@@ -225,13 +225,108 @@
     .tab-panel { display: none; }
     .tab-panel.active { display: block; }
 
+    /* ─ State chips ─ */
+    .state-chips { display: flex; gap: 8px; flex-wrap: wrap; padding: 12px 40px 0; }
+    .state-chip {
+      padding: 5px 14px; border-radius: 99px; border: 1.5px solid #cbd5e1;
+      background: #fff; cursor: pointer; font-size: 0.78rem; font-weight: 600; color: #475569;
+      transition: all .15s;
+    }
+    .state-chip:hover, .state-chip.active { background: #0f3460; color: #fff; border-color: #0f3460; }
+
+    /* ─ Clickable card ─ */
+    .card-clickable { cursor: pointer; }
+    .card-clickable:hover { box-shadow: 0 8px 24px rgba(0,0,0,.14); transform: translateY(-3px); }
+    .card-arrow { color: #94a3b8; font-size: 1rem; transition: color .15s; }
+    .card-clickable:hover .card-arrow { color: #0f3460; }
+
+    /* ─ Provider detail drawer ─ */
+    .drawer-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(15,52,96,0.45); z-index: 1000;
+      align-items: flex-start; justify-content: center;
+      padding: 32px 16px 48px; overflow-y: auto;
+    }
+    .drawer-overlay.open { display: flex; }
+    .drawer-panel {
+      background: #fff; border-radius: 18px; padding: 36px;
+      width: 100%; max-width: 740px; position: relative;
+      box-shadow: 0 24px 64px rgba(0,0,0,.22); margin: auto;
+      animation: slideUp .2s ease;
+    }
+    @keyframes slideUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+    .drawer-close {
+      position: absolute; top: 18px; right: 18px;
+      background: #f1f5f9; border: none; border-radius: 50%;
+      width: 34px; height: 34px; cursor: pointer; font-size: 1rem;
+      color: #475569; display: flex; align-items: center; justify-content: center;
+    }
+    .drawer-close:hover { background: #e2e8f0; }
+
+    .detail-hdr { display: flex; align-items: center; gap: 16px; margin-bottom: 28px; flex-wrap: wrap; }
+    .detail-avatar {
+      width: 56px; height: 56px; border-radius: 50%;
+      background: #1a1a2e; color: #fff; font-size: 1.1rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .detail-name { font-size: 1.25rem; font-weight: 700; color: #1e293b; }
+    .detail-type-lbl { font-size: 0.8rem; color: #64748b; margin-top: 2px; }
+    .detail-overall { margin-left: auto; }
+
+    .detail-lic-card {
+      border: 1.5px solid #e2e8f0; border-radius: 12px;
+      padding: 20px; margin-bottom: 16px; background: #f8fafc;
+    }
+    .detail-lic-card.dl-complete { border-color: #bbf7d0; background: #f0fdf4; }
+    .detail-lic-card.dl-progress { border-color: #fde68a; background: #fffbeb; }
+    .detail-lic-card.dl-risk     { border-color: #fecaca; background: #fff5f5; }
+
+    .detail-lic-hdr { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+    .detail-state-badge {
+      font-size: 1rem; font-weight: 800; color: #1e293b;
+      background: #e2e8f0; padding: 2px 10px; border-radius: 6px;
+    }
+    .detail-lic-type { font-size: 0.8rem; color: #64748b; background: #fff; border: 1px solid #e2e8f0; padding: 2px 8px; border-radius: 99px; }
+    .detail-deadline { font-size: 0.82rem; color: #475569; margin-bottom: 12px; }
+
+    .detail-prog-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .detail-prog-track { flex: 1; height: 10px; background: #e2e8f0; border-radius: 99px; overflow: hidden; }
+    .detail-prog-fill  { height: 100%; border-radius: 99px; background: #16a34a; transition: width .4s; }
+    .detail-prog-fill.partial { background: #d97706; }
+    .detail-prog-fill.low     { background: #dc2626; }
+    .detail-prog-label { font-size: 0.82rem; color: #475569; white-space: nowrap; font-weight: 600; }
+
+    .detail-sa-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-bottom: 12px; }
+    .detail-sa-table th { background: #f1f5f9; color: #64748b; font-weight: 600; padding: 6px 10px; text-align: left; font-size: 0.72rem; text-transform: uppercase; }
+    .detail-sa-table td { padding: 7px 10px; border-bottom: 1px solid #f1f5f9; color: #334155; }
+    .detail-sa-table tr:last-child td { border-bottom: none; }
+    .sa-done  { color: #15803d; font-weight: 600; }
+    .sa-short { color: #b91c1c; font-weight: 600; }
+
+    .detail-course-btn {
+      display: inline-block; margin-top: 6px; padding: 6px 14px;
+      background: #eff6ff; color: #1d4ed8; border-radius: 8px;
+      font-size: 0.78rem; text-decoration: none; font-weight: 600;
+    }
+    .detail-course-btn:hover { background: #dbeafe; }
+    .detail-no-sa { font-size: 0.8rem; color: #94a3b8; font-style: italic; margin-bottom: 8px; }
+
+    /* ─ Chart section ─ */
+    .chart-wrap { padding: 28px 40px 40px; }
+    .chart-section { background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 2px 10px rgba(0,0,0,.07); margin-bottom: 20px; }
+    .chart-section-title { font-size: 0.82rem; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 16px; }
+    .chart-canvas-wrap { position: relative; height: 380px; }
+    .chart-no-data { text-align: center; padding: 40px; color: #94a3b8; font-size: 0.88rem; }
+
     @media (max-width: 640px) {
       header, .stats, .controls, .table-wrap, .cards-grid, .section-title, .tab-bar, .run-table-wrap {
         padding-left: 16px;
         padding-right: 16px;
       }
+      .chart-wrap { padding-left: 16px; padding-right: 16px; }
     }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -242,7 +337,7 @@
   </div>
   <div class="header-meta">
     <div class="last-scraped-label">Last Scraped</div>
-    <div class="last-scraped-value" id="lastScrapedValue">Tuesday, February 24, 2026 at 3:01 PM</div>
+    <div class="last-scraped-value" id="lastScrapedValue">Tuesday, February 24, 2026 at 3:59 PM</div>
     <div class="run-badge">
       <span class="run-pill ok">✓ 9 succeeded</span>
       <span class="run-pill fail">✗ 1 failed</span>
@@ -263,11 +358,16 @@
   <button class="tab-btn active" onclick="showTab('profiles')">Provider Profiles</button>
   <button class="tab-btn"        onclick="showTab('table')">Full Table</button>
   <button class="tab-btn"        onclick="showTab('runlog')">Run Log</button>
+  <button class="tab-btn"        onclick="showTab('chart')">Progress Chart</button>
 </div>
 
 <!-- ── Tab: Provider Profiles ─────────────────────────────────────────── -->
 <div class="tab-panel active" id="tab-profiles">
   <div class="section-title">Provider Profiles</div>
+  <div class="state-chips">
+    <button class="state-chip active" id="schip-all" onclick="setStateFilter('all')">All States</button>
+    <button class="state-chip" id="schip-Florida" onclick="setStateFilter('Florida')">Florida</button><button class="state-chip" id="schip-New Hampshire" onclick="setStateFilter('New Hampshire')">New Hampshire</button><button class="state-chip" id="schip-New Mexico" onclick="setStateFilter('New Mexico')">New Mexico</button><button class="state-chip" id="schip-New York" onclick="setStateFilter('New York')">New York</button><button class="state-chip" id="schip-Ohio" onclick="setStateFilter('Ohio')">Ohio</button><button class="state-chip" id="schip-Texas" onclick="setStateFilter('Texas')">Texas</button>
+  </div>
   <div class="controls">
     <input class="search-box" type="text" id="cardSearch" placeholder="Search provider..." oninput="filterCards()" />
     <button class="filter-btn active" id="cbtn-all"         onclick="setCardFilter('all')">All</button>
@@ -276,14 +376,18 @@
     <button class="filter-btn"        id="cbtn-At Risk"     onclick="setCardFilter('At Risk')">At Risk</button>
   </div>
   <div class="cards-grid" id="cardsGrid">
-    <div class="provider-card card-ok" data-provider="Bryana Anderson, NP" data-status="Complete">
+    <div class="provider-card card-ok card-clickable"
+        data-provider="Bryana Anderson, NP"
+        data-status="Complete"
+        data-states="New Mexico"
+        onclick="openProvider(this.dataset.provider)">
       <div class="card-top">
         <div class="avatar">BA</div>
         <div class="card-info">
           <div class="card-name">Bryana Anderson, NP</div>
           <div class="card-type">NP</div>
         </div>
-        <div class="card-lic-count">1 license</div>
+        <div class="card-lic-count">1 license <span class="card-arrow">›</span></div>
       </div>
       <div class="lic-blocks"><div class="lic-block lic-complete">
         <div class="lic-header">
@@ -299,14 +403,18 @@
         </div>
         <a class="lic-course-link" href="https://cebroker.com/#!/courses/search?state=NEW MEXICO&licenseType=NP" target="_blank" rel="noopener">Search Courses ↗</a>
       </div></div>
-    </div><div class="provider-card card-prog" data-provider="Ashley Grout, NP" data-status="In Progress">
+    </div><div class="provider-card card-prog card-clickable"
+        data-provider="Ashley Grout, NP"
+        data-status="In Progress"
+        data-states="Florida"
+        onclick="openProvider(this.dataset.provider)">
       <div class="card-top">
         <div class="avatar">AG</div>
         <div class="card-info">
           <div class="card-name">Ashley Grout, NP</div>
           <div class="card-type">NP</div>
         </div>
-        <div class="card-lic-count">1 license</div>
+        <div class="card-lic-count">1 license <span class="card-arrow">›</span></div>
       </div>
       <div class="lic-blocks"><div class="lic-block lic-progress">
         <div class="lic-header">
@@ -322,14 +430,18 @@
         </div>
         <a class="lic-course-link" href="https://cebroker.com/#!/courses/search?state=FLORIDA&licenseType=NP" target="_blank" rel="noopener">Search Courses ↗</a>
       </div></div>
-    </div><div class="provider-card card-ok" data-provider="Bill Carbonneau, NP" data-status="Complete">
+    </div><div class="provider-card card-ok card-clickable"
+        data-provider="Bill Carbonneau, NP"
+        data-status="Complete"
+        data-states="Florida"
+        onclick="openProvider(this.dataset.provider)">
       <div class="card-top">
         <div class="avatar">BC</div>
         <div class="card-info">
           <div class="card-name">Bill Carbonneau, NP</div>
           <div class="card-type">NP</div>
         </div>
-        <div class="card-lic-count">1 license</div>
+        <div class="card-lic-count">1 license <span class="card-arrow">›</span></div>
       </div>
       <div class="lic-blocks"><div class="lic-block lic-complete">
         <div class="lic-header">
@@ -345,14 +457,18 @@
         </div>
         <a class="lic-course-link" href="https://cebroker.com/#!/courses/search?state=FLORIDA&licenseType=NP" target="_blank" rel="noopener">Search Courses ↗</a>
       </div></div>
-    </div><div class="provider-card card-ok" data-provider="Bryce Amos, NP" data-status="Complete">
+    </div><div class="provider-card card-ok card-clickable"
+        data-provider="Bryce Amos, NP"
+        data-status="Complete"
+        data-states="New York"
+        onclick="openProvider(this.dataset.provider)">
       <div class="card-top">
         <div class="avatar">BA</div>
         <div class="card-info">
           <div class="card-name">Bryce Amos, NP</div>
           <div class="card-type">NP</div>
         </div>
-        <div class="card-lic-count">1 license</div>
+        <div class="card-lic-count">1 license <span class="card-arrow">›</span></div>
       </div>
       <div class="lic-blocks"><div class="lic-block lic-complete">
         <div class="lic-header">
@@ -368,14 +484,18 @@
         </div>
         <a class="lic-course-link" href="https://cebroker.com/#!/courses/search?state=NEW YORK&licenseType=NP" target="_blank" rel="noopener">Search Courses ↗</a>
       </div></div>
-    </div><div class="provider-card card-prog" data-provider="Catherine Herrington, MD" data-status="In Progress">
+    </div><div class="provider-card card-prog card-clickable"
+        data-provider="Catherine Herrington, MD"
+        data-status="In Progress"
+        data-states="Texas"
+        onclick="openProvider(this.dataset.provider)">
       <div class="card-top">
         <div class="avatar">CH</div>
         <div class="card-info">
           <div class="card-name">Catherine Herrington, MD</div>
           <div class="card-type">MD</div>
         </div>
-        <div class="card-lic-count">1 license</div>
+        <div class="card-lic-count">1 license <span class="card-arrow">›</span></div>
       </div>
       <div class="lic-blocks"><div class="lic-block lic-progress">
         <div class="lic-header">
@@ -391,14 +511,18 @@
         </div>
         <a class="lic-course-link" href="https://cebroker.com/#!/courses/search?state=TEXAS&licenseType=MD" target="_blank" rel="noopener">Search Courses ↗</a>
       </div></div>
-    </div><div class="provider-card card-prog" data-provider="Doron Stember, MD" data-status="In Progress">
+    </div><div class="provider-card card-prog card-clickable"
+        data-provider="Doron Stember, MD"
+        data-status="In Progress"
+        data-states="New Hampshire"
+        onclick="openProvider(this.dataset.provider)">
       <div class="card-top">
         <div class="avatar">DS</div>
         <div class="card-info">
           <div class="card-name">Doron Stember, MD</div>
           <div class="card-type">MD</div>
         </div>
-        <div class="card-lic-count">1 license</div>
+        <div class="card-lic-count">1 license <span class="card-arrow">›</span></div>
       </div>
       <div class="lic-blocks"><div class="lic-block lic-progress">
         <div class="lic-header">
@@ -414,14 +538,18 @@
         </div>
         <a class="lic-course-link" href="https://cebroker.com/#!/courses/search?state=NEW HAMPSHIRE&licenseType=MD" target="_blank" rel="noopener">Search Courses ↗</a>
       </div></div>
-    </div><div class="provider-card card-prog" data-provider="Martin Van Dongen, NP" data-status="In Progress">
+    </div><div class="provider-card card-prog card-clickable"
+        data-provider="Martin Van Dongen, NP"
+        data-status="In Progress"
+        data-states="Ohio"
+        onclick="openProvider(this.dataset.provider)">
       <div class="card-top">
         <div class="avatar">MV</div>
         <div class="card-info">
           <div class="card-name">Martin Van Dongen, NP</div>
           <div class="card-type">NP</div>
         </div>
-        <div class="card-lic-count">1 license</div>
+        <div class="card-lic-count">1 license <span class="card-arrow">›</span></div>
       </div>
       <div class="lic-blocks"><div class="lic-block lic-progress">
         <div class="lic-header">
@@ -437,14 +565,18 @@
         </div>
         <a class="lic-course-link" href="https://cebroker.com/#!/courses/search?state=OHIO&licenseType=NP" target="_blank" rel="noopener">Search Courses ↗</a>
       </div></div>
-    </div><div class="provider-card card-prog" data-provider="Priya Chaudhari, NP" data-status="In Progress">
+    </div><div class="provider-card card-prog card-clickable"
+        data-provider="Priya Chaudhari, NP"
+        data-status="In Progress"
+        data-states="Florida"
+        onclick="openProvider(this.dataset.provider)">
       <div class="card-top">
         <div class="avatar">PC</div>
         <div class="card-info">
           <div class="card-name">Priya Chaudhari, NP</div>
           <div class="card-type">NP</div>
         </div>
-        <div class="card-lic-count">1 license</div>
+        <div class="card-lic-count">1 license <span class="card-arrow">›</span></div>
       </div>
       <div class="lic-blocks"><div class="lic-block lic-progress">
         <div class="lic-header">
@@ -460,14 +592,18 @@
         </div>
         <a class="lic-course-link" href="https://cebroker.com/#!/courses/search?state=FLORIDA&licenseType=NP" target="_blank" rel="noopener">Search Courses ↗</a>
       </div></div>
-    </div><div class="provider-card card-prog" data-provider="Summer Denny, NP" data-status="In Progress">
+    </div><div class="provider-card card-prog card-clickable"
+        data-provider="Summer Denny, NP"
+        data-status="In Progress"
+        data-states="New Mexico"
+        onclick="openProvider(this.dataset.provider)">
       <div class="card-top">
         <div class="avatar">SD</div>
         <div class="card-info">
           <div class="card-name">Summer Denny, NP</div>
           <div class="card-type">NP</div>
         </div>
-        <div class="card-lic-count">1 license</div>
+        <div class="card-lic-count">1 license <span class="card-arrow">›</span></div>
       </div>
       <div class="lic-blocks"><div class="lic-block lic-progress">
         <div class="lic-header">
@@ -483,14 +619,18 @@
         </div>
         <a class="lic-course-link" href="https://cebroker.com/#!/courses/search?state=NEW MEXICO&licenseType=NP" target="_blank" rel="noopener">Search Courses ↗</a>
       </div></div>
-    </div><div class="provider-card card-unk" data-provider="Tim Mack, NP" data-status="Unknown">
+    </div><div class="provider-card card-unk card-clickable"
+        data-provider="Tim Mack, NP"
+        data-status="Unknown"
+        data-states=""
+        onclick="openProvider(this.dataset.provider)">
       <div class="card-top">
         <div class="avatar">TM</div>
         <div class="card-info">
           <div class="card-name">Tim Mack, NP</div>
           <div class="card-type">NP</div>
         </div>
-        <div class="card-lic-count">1 license</div>
+        <div class="card-lic-count">1 license <span class="card-arrow">›</span></div>
       </div>
       <div class="lic-blocks"><div class="lic-block lic-unknown">
         <div class="lic-header">
@@ -924,7 +1064,30 @@ waiting for navigation until &quot;load&quot;
   </div>
 </div>
 
-<footer>CE Broker Automation &nbsp;·&nbsp; Last scraped: Tuesday, February 24, 2026 at 3:01 PM</footer>
+<!-- ── Tab: Progress Chart ────────────────────────────────────────────── -->
+<div class="tab-panel" id="tab-chart">
+  <div class="section-title">CEU Progress</div>
+  <div class="chart-wrap">
+    <div class="chart-section">
+      <div class="chart-section-title">Hours Completed vs. Required — Current Run</div>
+      <div class="chart-canvas-wrap"><canvas id="hoursChart"></canvas></div>
+    </div>
+    <div class="chart-section">
+      <div class="chart-section-title">Progress Over Time</div>
+      <div id="historyChartWrap" class="chart-canvas-wrap"><canvas id="historyChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Provider detail drawer ──────────────────────────────────────────── -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="if(event.target===this)closeProvider()">
+  <div class="drawer-panel" id="drawerPanel">
+    <button class="drawer-close" onclick="closeProvider()">✕</button>
+    <div id="drawerContent"></div>
+  </div>
+</div>
+
+<footer>CE Broker Automation &nbsp;·&nbsp; Last scraped: Tuesday, February 24, 2026 at 3:59 PM</footer>
 
 <script>
   // ── Tabs ──
@@ -933,8 +1096,22 @@ waiting for navigation until &quot;load&quot;
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.getElementById('tab-' + name).classList.add('active');
     const btns = document.querySelectorAll('.tab-btn');
-    const labels = ['profiles','table','runlog'];
+    const labels = ['profiles','table','runlog','chart'];
     btns[labels.indexOf(name)]?.classList.add('active');
+    if (name === 'chart') initCharts();
+  }
+
+  // ── Provider drawer HTML (pre-rendered at build time, embedded as JSON) ──
+  const DRAWER_HTML = {"Bryana Anderson, NP":"<div class=\"detail-hdr\">\n      <div class=\"detail-avatar\">BA</div>\n      <div>\n        <div class=\"detail-name\">Bryana Anderson, NP</div>\n        <div class=\"detail-type-lbl\">NP</div>\n      </div>\n      <div class=\"detail-overall\"><span class=\"status-badge status-complete\">✓ Complete</span></div>\n    </div>\n    <div><div class=\"detail-lic-card dl-complete\">\n        <div class=\"detail-lic-hdr\">\n          <span class=\"detail-state-badge\">New Mexico</span>\n          <span class=\"detail-lic-type\">NP</span>\n          <span class=\"status-badge status-complete\" style=\"margin-left:auto\">✓ Complete</span>\n        </div>\n        <div class=\"detail-deadline\">\n          Renewal: <strong>06/30/2027</strong> 491d left\n        </div>\n        <div class=\"detail-prog-row\">\n          <div class=\"detail-prog-track\">\n            <div class=\"detail-prog-fill \" style=\"width:100%\"></div>\n          </div>\n          <span class=\"detail-prog-label\">219.5 / 50 hrs (100%)</span>\n        </div>\n        <table class=\"detail-sa-table\">\n              <thead><tr>\n                <th>Subject Area</th>\n                <th style=\"text-align:center\">Req</th>\n                <th style=\"text-align:center\">Done</th>\n                <th style=\"text-align:center\">Left</th>\n              </tr></thead>\n              <tbody><tr>\n          <td>Continuing education related to non-cancer pain management</td>\n          <td style=\"text-align:center\">5</td>\n          <td style=\"text-align:center\" class=\"\">—</td>\n          <td style=\"text-align:center\" class=\"\">—</td>\n        </tr><tr>\n          <td>Continuing education related to pharmacology</td>\n          <td style=\"text-align:center\">10</td>\n          <td style=\"text-align:center\" class=\"\">—</td>\n          <td style=\"text-align:center\" class=\"\">—</td>\n        </tr><tr>\n          <td>Continuing education relevant to CNP nursing specialty</td>\n          <td style=\"text-align:center\">5</td>\n          <td style=\"text-align:center\" class=\"\">—</td>\n          <td style=\"text-align:center\" class=\"\">—</td>\n        </tr><tr>\n          <td>Continuing education relevant to nursing practice</td>\n          <td style=\"text-align:center\">30</td>\n          <td style=\"text-align:center\" class=\"\">—</td>\n          <td style=\"text-align:center\" class=\"\">—</td>\n        </tr></tbody>\n            </table>\n        <a class=\"detail-course-btn\" href=\"https://cebroker.com/#!/courses/search?state=NEW MEXICO&licenseType=NP\" target=\"_blank\" rel=\"noopener\">Search Available Courses ↗</a>\n      </div></div>","Ashley Grout, NP":"<div class=\"detail-hdr\">\n      <div class=\"detail-avatar\">AG</div>\n      <div>\n        <div class=\"detail-name\">Ashley Grout, NP</div>\n        <div class=\"detail-type-lbl\">NP</div>\n      </div>\n      <div class=\"detail-overall\"><span class=\"status-badge status-progress\">◷ In Progress</span></div>\n    </div>\n    <div><div class=\"detail-lic-card dl-progress\">\n        <div class=\"detail-lic-hdr\">\n          <span class=\"detail-state-badge\">Florida</span>\n          <span class=\"detail-lic-type\">NP</span>\n          <span class=\"status-badge status-progress\" style=\"margin-left:auto\">◷ In Progress</span>\n        </div>\n        <div class=\"detail-deadline\">\n          Renewal: <strong>04/30/2027</strong> 430d left\n        </div>\n        <div class=\"detail-prog-row\">\n          <div class=\"detail-prog-track\">\n            <div class=\"detail-prog-fill \" style=\"width:100%\"></div>\n          </div>\n          <span class=\"detail-prog-label\">45 / 24 hrs (100%)</span>\n        </div>\n        <table class=\"detail-sa-table\">\n              <thead><tr>\n                <th>Subject Area</th>\n                <th style=\"text-align:center\">Req</th>\n                <th style=\"text-align:center\">Done</th>\n                <th style=\"text-align:center\">Left</th>\n              </tr></thead>\n              <tbody><tr>\n          <td>Medical Errors</td>\n          <td style=\"text-align:center\">2</td>\n          <td style=\"text-align:center\" class=\"\">0</td>\n          <td style=\"text-align:center\" class=\"sa-short\">2</td>\n        </tr><tr>\n          <td>Laws and Rules of the Board</td>\n          <td style=\"text-align:center\">2</td>\n          <td style=\"text-align:center\" class=\"\">0</td>\n          <td style=\"text-align:center\" class=\"sa-short\">2</td>\n        </tr><tr>\n          <td>Human Trafficking</td>\n          <td style=\"text-align:center\">2</td>\n          <td style=\"text-align:center\" class=\"\">0</td>\n          <td style=\"text-align:center\" class=\"sa-short\">2</td>\n        </tr><tr>\n          <td>Domestic Violence</td>\n          <td style=\"text-align:center\">0</td>\n          <td style=\"text-align:center\" class=\"sa-done\">0</td>\n          <td style=\"text-align:center\" class=\"sa-done\">0</td>\n        </tr><tr>\n          <td>Recognizing Impairment in the Workplace</td>\n          <td style=\"text-align:center\">0</td>\n          <td style=\"text-align:center\" class=\"sa-done\">0</td>\n          <td style=\"text-align:center\" class=\"sa-done\">0</td>\n        </tr><tr>\n          <td>General</td>\n          <td style=\"text-align:center\">18</td>\n          <td style=\"text-align:center\" class=\"sa-done\">45</td>\n          <td style=\"text-align:center\" class=\"sa-done\">0</td>\n        </tr></tbody>\n            </table>\n        <a class=\"detail-course-btn\" href=\"https://cebroker.com/#!/courses/search?state=FLORIDA&licenseType=NP\" target=\"_blank\" rel=\"noopener\">Search Available Courses ↗</a>\n      </div></div>","Bill Carbonneau, NP":"<div class=\"detail-hdr\">\n      <div class=\"detail-avatar\">BC</div>\n      <div>\n        <div class=\"detail-name\">Bill Carbonneau, NP</div>\n        <div class=\"detail-type-lbl\">NP</div>\n      </div>\n      <div class=\"detail-overall\"><span class=\"status-badge status-complete\">✓ Complete</span></div>\n    </div>\n    <div><div class=\"detail-lic-card dl-complete\">\n        <div class=\"detail-lic-hdr\">\n          <span class=\"detail-state-badge\">Florida</span>\n          <span class=\"detail-lic-type\">NP</span>\n          <span class=\"status-badge status-complete\" style=\"margin-left:auto\">✓ Complete</span>\n        </div>\n        <div class=\"detail-deadline\">\n          Renewal: <strong>07/31/2026</strong> 157d left\n        </div>\n        <div class=\"detail-prog-row\">\n          <div class=\"detail-prog-track\">\n            <div class=\"detail-prog-fill \" style=\"width:100%\"></div>\n          </div>\n          <span class=\"detail-prog-label\">109 / 26 hrs (100%)</span>\n        </div>\n        <table class=\"detail-sa-table\">\n              <thead><tr>\n                <th>Subject Area</th>\n                <th style=\"text-align:center\">Req</th>\n                <th style=\"text-align:center\">Done</th>\n                <th style=\"text-align:center\">Left</th>\n              </tr></thead>\n              <tbody><tr>\n          <td>Recognizing Impairment in the Workplace</td>\n          <td style=\"text-align:center\">0</td>\n          <td style=\"text-align:center\" class=\"sa-done\">2</td>\n          <td style=\"text-align:center\" class=\"sa-done\">0</td>\n        </tr><tr>\n          <td>Medical Errors</td>\n          <td style=\"text-align:center\">2</td>\n          <td style=\"text-align:center\" class=\"sa-done\">4</td>\n          <td style=\"text-align:center\" class=\"sa-done\">0</td>\n        </tr><tr>\n          <td>Laws and Rules of the Board</td>\n          <td style=\"text-align:center\">2</td>\n          <td style=\"text-align:center\" class=\"sa-done\">2</td>\n          <td style=\"text-align:center\" class=\"sa-done\">0</td>\n        </tr><tr>\n          <td>Human Trafficking</td>\n          <td style=\"text-align:center\">2</td>\n          <td style=\"text-align:center\" class=\"sa-done\">2</td>\n          <td style=\"text-align:center\" class=\"sa-done\">0</td>\n        </tr><tr>\n          <td>Domestic Violence</td>\n          <td style=\"text-align:center\">2</td>\n          <td style=\"text-align:center\" class=\"sa-done\">2</td>\n          <td style=\"text-align:center\" class=\"sa-done\">0</td>\n        </tr><tr>\n          <td>General</td>\n          <td style=\"text-align:center\">18</td>\n          <td style=\"text-align:center\" class=\"sa-done\">97</td>\n          <td style=\"text-align:center\" class=\"sa-done\">0</td>\n        </tr></tbody>\n            </table>\n        <a class=\"detail-course-btn\" href=\"https://cebroker.com/#!/courses/search?state=FLORIDA&licenseType=NP\" target=\"_blank\" rel=\"noopener\">Search Available Courses ↗</a>\n      </div></div>","Bryce Amos, NP":"<div class=\"detail-hdr\">\n      <div class=\"detail-avatar\">BA</div>\n      <div>\n        <div class=\"detail-name\">Bryce Amos, NP</div>\n        <div class=\"detail-type-lbl\">NP</div>\n      </div>\n      <div class=\"detail-overall\"><span class=\"status-badge status-complete\">✓ Complete</span></div>\n    </div>\n    <div><div class=\"detail-lic-card dl-complete\">\n        <div class=\"detail-lic-hdr\">\n          <span class=\"detail-state-badge\">New York</span>\n          <span class=\"detail-lic-type\">NP</span>\n          <span class=\"status-badge status-complete\" style=\"margin-left:auto\">✓ Complete</span>\n        </div>\n        <div class=\"detail-deadline\">\n          Renewal: <strong>02/29/2028</strong> 735d left\n        </div>\n        <div class=\"detail-prog-row\">\n          <div class=\"detail-prog-track\">\n            <div class=\"detail-prog-fill low\" style=\"width:0%\"></div>\n          </div>\n          <span class=\"detail-prog-label\">0 / 0 hrs (0%)</span>\n        </div>\n        <p class=\"detail-no-sa\">No subject area breakdown available.</p>\n        <a class=\"detail-course-btn\" href=\"https://cebroker.com/#!/courses/search?state=NEW YORK&licenseType=NP\" target=\"_blank\" rel=\"noopener\">Search Available Courses ↗</a>\n      </div></div>","Catherine Herrington, MD":"<div class=\"detail-hdr\">\n      <div class=\"detail-avatar\">CH</div>\n      <div>\n        <div class=\"detail-name\">Catherine Herrington, MD</div>\n        <div class=\"detail-type-lbl\">MD</div>\n      </div>\n      <div class=\"detail-overall\"><span class=\"status-badge status-progress\">◷ In Progress</span></div>\n    </div>\n    <div><div class=\"detail-lic-card dl-progress\">\n        <div class=\"detail-lic-hdr\">\n          <span class=\"detail-state-badge\">Texas</span>\n          <span class=\"detail-lic-type\">MD</span>\n          <span class=\"status-badge status-progress\" style=\"margin-left:auto\">◷ In Progress</span>\n        </div>\n        <div class=\"detail-deadline\">\n          Renewal: <strong>05/31/2027</strong> 461d left\n        </div>\n        <div class=\"detail-prog-row\">\n          <div class=\"detail-prog-track\">\n            <div class=\"detail-prog-fill low\" style=\"width:15%\"></div>\n          </div>\n          <span class=\"detail-prog-label\">7 / 48 hrs (15%)</span>\n        </div>\n        <table class=\"detail-sa-table\">\n              <thead><tr>\n                <th>Subject Area</th>\n                <th style=\"text-align:center\">Req</th>\n                <th style=\"text-align:center\">Done</th>\n                <th style=\"text-align:center\">Left</th>\n              </tr></thead>\n              <tbody><tr>\n          <td>Medical Ethics and/or Professional Responsibility (Category 1 or 1A)</td>\n          <td style=\"text-align:center\">2</td>\n          <td style=\"text-align:center\" class=\"\">—</td>\n          <td style=\"text-align:center\" class=\"\">—</td>\n        </tr><tr>\n          <td>Formal Category 1 or 1A Hours</td>\n          <td style=\"text-align:center\">24</td>\n          <td style=\"text-align:center\" class=\"\">—</td>\n          <td style=\"text-align:center\" class=\"\">—</td>\n        </tr><tr>\n          <td>Informal Hours</td>\n          <td style=\"text-align:center\">0</td>\n          <td style=\"text-align:center\" class=\"\">—</td>\n          <td style=\"text-align:center\" class=\"\">—</td>\n        </tr><tr>\n          <td>Pain Management and the Prescription of Opioids (Category 1 or 1A)</td>\n          <td style=\"text-align:center\">2</td>\n          <td style=\"text-align:center\" class=\"\">—</td>\n          <td style=\"text-align:center\" class=\"\">—</td>\n        </tr></tbody>\n            </table>\n        <a class=\"detail-course-btn\" href=\"https://cebroker.com/#!/courses/search?state=TEXAS&licenseType=MD\" target=\"_blank\" rel=\"noopener\">Search Available Courses ↗</a>\n      </div></div>","Doron Stember, MD":"<div class=\"detail-hdr\">\n      <div class=\"detail-avatar\">DS</div>\n      <div>\n        <div class=\"detail-name\">Doron Stember, MD</div>\n        <div class=\"detail-type-lbl\">MD</div>\n      </div>\n      <div class=\"detail-overall\"><span class=\"status-badge status-progress\">◷ In Progress</span></div>\n    </div>\n    <div><div class=\"detail-lic-card dl-progress\">\n        <div class=\"detail-lic-hdr\">\n          <span class=\"detail-state-badge\">New Hampshire</span>\n          <span class=\"detail-lic-type\">MD</span>\n          <span class=\"status-badge status-progress\" style=\"margin-left:auto\">◷ In Progress</span>\n        </div>\n        <div class=\"detail-deadline\">\n          Renewal: <strong>12/13/2027</strong> 657d left\n        </div>\n        <div class=\"detail-prog-row\">\n          <div class=\"detail-prog-track\">\n            <div class=\"detail-prog-fill low\" style=\"width:0%\"></div>\n          </div>\n          <span class=\"detail-prog-label\">0 / 100 hrs (0%)</span>\n        </div>\n        <table class=\"detail-sa-table\">\n              <thead><tr>\n                <th>Subject Area</th>\n                <th style=\"text-align:center\">Req</th>\n                <th style=\"text-align:center\">Done</th>\n                <th style=\"text-align:center\">Left</th>\n              </tr></thead>\n              <tbody><tr>\n          <td>Pain Management or Addiction Disorders (Category 1)</td>\n          <td style=\"text-align:center\">3</td>\n          <td style=\"text-align:center\" class=\"\">0</td>\n          <td style=\"text-align:center\" class=\"sa-short\">3</td>\n        </tr><tr>\n          <td>Category 1 Hours</td>\n          <td style=\"text-align:center\">40</td>\n          <td style=\"text-align:center\" class=\"\">0</td>\n          <td style=\"text-align:center\" class=\"sa-short\">40</td>\n        </tr><tr>\n          <td>Remaining Hours Required</td>\n          <td style=\"text-align:center\">0</td>\n          <td style=\"text-align:center\" class=\"sa-done\">0</td>\n          <td style=\"text-align:center\" class=\"sa-done\">0</td>\n        </tr></tbody>\n            </table>\n        <a class=\"detail-course-btn\" href=\"https://cebroker.com/#!/courses/search?state=NEW HAMPSHIRE&licenseType=MD\" target=\"_blank\" rel=\"noopener\">Search Available Courses ↗</a>\n      </div></div>","Martin Van Dongen, NP":"<div class=\"detail-hdr\">\n      <div class=\"detail-avatar\">MV</div>\n      <div>\n        <div class=\"detail-name\">Martin Van Dongen, NP</div>\n        <div class=\"detail-type-lbl\">NP</div>\n      </div>\n      <div class=\"detail-overall\"><span class=\"status-badge status-progress\">◷ In Progress</span></div>\n    </div>\n    <div><div class=\"detail-lic-card dl-progress\">\n        <div class=\"detail-lic-hdr\">\n          <span class=\"detail-state-badge\">Ohio</span>\n          <span class=\"detail-lic-type\">NP</span>\n          <span class=\"status-badge status-progress\" style=\"margin-left:auto\">◷ In Progress</span>\n        </div>\n        <div class=\"detail-deadline\">\n          Renewal: <strong>10/31/2027</strong> 614d left\n        </div>\n        <div class=\"detail-prog-row\">\n          <div class=\"detail-prog-track\">\n            <div class=\"detail-prog-fill low\" style=\"width:0%\"></div>\n          </div>\n          <span class=\"detail-prog-label\">0 / 24 hrs (0%)</span>\n        </div>\n        <table class=\"detail-sa-table\">\n              <thead><tr>\n                <th>Subject Area</th>\n                <th style=\"text-align:center\">Req</th>\n                <th style=\"text-align:center\">Done</th>\n                <th style=\"text-align:center\">Left</th>\n              </tr></thead>\n              <tbody><tr>\n          <td>Advanced Pharmacology</td>\n          <td style=\"text-align:center\">12</td>\n          <td style=\"text-align:center\" class=\"\">—</td>\n          <td style=\"text-align:center\" class=\"\">—</td>\n        </tr><tr>\n          <td>General CE</td>\n          <td style=\"text-align:center\">12</td>\n          <td style=\"text-align:center\" class=\"\">—</td>\n          <td style=\"text-align:center\" class=\"\">—</td>\n        </tr></tbody>\n            </table>\n        <a class=\"detail-course-btn\" href=\"https://cebroker.com/#!/courses/search?state=OHIO&licenseType=NP\" target=\"_blank\" rel=\"noopener\">Search Available Courses ↗</a>\n      </div></div>","Priya Chaudhari, NP":"<div class=\"detail-hdr\">\n      <div class=\"detail-avatar\">PC</div>\n      <div>\n        <div class=\"detail-name\">Priya Chaudhari, NP</div>\n        <div class=\"detail-type-lbl\">NP</div>\n      </div>\n      <div class=\"detail-overall\"><span class=\"status-badge status-progress\">◷ In Progress</span></div>\n    </div>\n    <div><div class=\"detail-lic-card dl-progress\">\n        <div class=\"detail-lic-hdr\">\n          <span class=\"detail-state-badge\">Florida</span>\n          <span class=\"detail-lic-type\">NP</span>\n          <span class=\"status-badge status-progress\" style=\"margin-left:auto\">◷ In Progress</span>\n        </div>\n        <div class=\"detail-deadline\">\n          Renewal: <strong>04/30/2026</strong> 65d left\n        </div>\n        <div class=\"detail-prog-row\">\n          <div class=\"detail-prog-track\">\n            <div class=\"detail-prog-fill low\" style=\"width:0%\"></div>\n          </div>\n          <span class=\"detail-prog-label\">0 / 21 hrs (0%)</span>\n        </div>\n        <table class=\"detail-sa-table\">\n              <thead><tr>\n                <th>Subject Area</th>\n                <th style=\"text-align:center\">Req</th>\n                <th style=\"text-align:center\">Done</th>\n                <th style=\"text-align:center\">Left</th>\n              </tr></thead>\n              <tbody><tr>\n          <td>Medical Errors</td>\n          <td style=\"text-align:center\">2</td>\n          <td style=\"text-align:center\" class=\"\">—</td>\n          <td style=\"text-align:center\" class=\"\">—</td>\n        </tr><tr>\n          <td>Laws and Rules of the Board</td>\n          <td style=\"text-align:center\">2</td>\n          <td style=\"text-align:center\" class=\"\">—</td>\n          <td style=\"text-align:center\" class=\"\">—</td>\n        </tr><tr>\n          <td>Safe and Effective Prescription of Controlled Substances</td>\n          <td style=\"text-align:center\">3</td>\n          <td style=\"text-align:center\" class=\"\">—</td>\n          <td style=\"text-align:center\" class=\"\">—</td>\n        </tr><tr>\n          <td>Human Trafficking</td>\n          <td style=\"text-align:center\">2</td>\n          <td style=\"text-align:center\" class=\"\">—</td>\n          <td style=\"text-align:center\" class=\"\">—</td>\n        </tr><tr>\n          <td>Domestic Violence</td>\n          <td style=\"text-align:center\">0</td>\n          <td style=\"text-align:center\" class=\"\">—</td>\n          <td style=\"text-align:center\" class=\"\">—</td>\n        </tr><tr>\n          <td>Recognizing Impairment in the Workplace</td>\n          <td style=\"text-align:center\">2</td>\n          <td style=\"text-align:center\" class=\"\">—</td>\n          <td style=\"text-align:center\" class=\"\">—</td>\n        </tr><tr>\n          <td>General</td>\n          <td style=\"text-align:center\">10</td>\n          <td style=\"text-align:center\" class=\"\">—</td>\n          <td style=\"text-align:center\" class=\"\">—</td>\n        </tr></tbody>\n            </table>\n        <a class=\"detail-course-btn\" href=\"https://cebroker.com/#!/courses/search?state=FLORIDA&licenseType=NP\" target=\"_blank\" rel=\"noopener\">Search Available Courses ↗</a>\n      </div></div>","Summer Denny, NP":"<div class=\"detail-hdr\">\n      <div class=\"detail-avatar\">SD</div>\n      <div>\n        <div class=\"detail-name\">Summer Denny, NP</div>\n        <div class=\"detail-type-lbl\">NP</div>\n      </div>\n      <div class=\"detail-overall\"><span class=\"status-badge status-progress\">◷ In Progress</span></div>\n    </div>\n    <div><div class=\"detail-lic-card dl-progress\">\n        <div class=\"detail-lic-hdr\">\n          <span class=\"detail-state-badge\">New Mexico</span>\n          <span class=\"detail-lic-type\">NP</span>\n          <span class=\"status-badge status-progress\" style=\"margin-left:auto\">◷ In Progress</span>\n        </div>\n        <div class=\"detail-deadline\">\n          Renewal: <strong>09/30/2027</strong> 583d left\n        </div>\n        <div class=\"detail-prog-row\">\n          <div class=\"detail-prog-track\">\n            <div class=\"detail-prog-fill low\" style=\"width:34%\"></div>\n          </div>\n          <span class=\"detail-prog-label\">17 / 50 hrs (34%)</span>\n        </div>\n        <table class=\"detail-sa-table\">\n              <thead><tr>\n                <th>Subject Area</th>\n                <th style=\"text-align:center\">Req</th>\n                <th style=\"text-align:center\">Done</th>\n                <th style=\"text-align:center\">Left</th>\n              </tr></thead>\n              <tbody><tr>\n          <td>Continuing education related to non-cancer pain management</td>\n          <td style=\"text-align:center\">5</td>\n          <td style=\"text-align:center\" class=\"\">0</td>\n          <td style=\"text-align:center\" class=\"sa-short\">5</td>\n        </tr><tr>\n          <td>Continuing education related to pharmacology</td>\n          <td style=\"text-align:center\">10</td>\n          <td style=\"text-align:center\" class=\"\">5</td>\n          <td style=\"text-align:center\" class=\"sa-short\">5</td>\n        </tr><tr>\n          <td>Continuing education relevant to CNP nursing specialty</td>\n          <td style=\"text-align:center\">5</td>\n          <td style=\"text-align:center\" class=\"\">0</td>\n          <td style=\"text-align:center\" class=\"sa-short\">5</td>\n        </tr><tr>\n          <td>Continuing education relevant to nursing practice</td>\n          <td style=\"text-align:center\">30</td>\n          <td style=\"text-align:center\" class=\"\">12</td>\n          <td style=\"text-align:center\" class=\"sa-short\">18</td>\n        </tr></tbody>\n            </table>\n        <a class=\"detail-course-btn\" href=\"https://cebroker.com/#!/courses/search?state=NEW MEXICO&licenseType=NP\" target=\"_blank\" rel=\"noopener\">Search Available Courses ↗</a>\n      </div></div>","Tim Mack, NP":"<div class=\"detail-hdr\">\n      <div class=\"detail-avatar\">TM</div>\n      <div>\n        <div class=\"detail-name\">Tim Mack, NP</div>\n        <div class=\"detail-type-lbl\">NP</div>\n      </div>\n      <div class=\"detail-overall\"><span class=\"status-badge status-unknown\">— Unknown</span></div>\n    </div>\n    <div><div class=\"detail-lic-card \">\n        <div class=\"detail-lic-hdr\">\n          <span class=\"detail-state-badge\">??</span>\n          <span class=\"detail-lic-type\">NP</span>\n          <span class=\"status-badge status-unknown\" style=\"margin-left:auto\">— Unknown</span>\n        </div>\n        <div class=\"detail-deadline\">\n          Renewal: <strong>—</strong> \n        </div>\n        <div class=\"detail-prog-row\">\n          <div class=\"detail-prog-track\">\n            <div class=\"detail-prog-fill low\" style=\"width:0%\"></div>\n          </div>\n          <span class=\"detail-prog-label\">? / ? hrs (0%)</span>\n        </div>\n        <p class=\"detail-no-sa\">No subject area breakdown available.</p>\n        <a class=\"detail-course-btn\" href=\"https://cebroker.com/#!/courses/search?state=??&licenseType=NP\" target=\"_blank\" rel=\"noopener\">Search Available Courses ↗</a>\n      </div></div>"};
+
+  // ── State filter ──
+  let stateFilter = 'all';
+  function setStateFilter(s) {
+    stateFilter = s;
+    document.querySelectorAll('[id^="schip-"]').forEach(b => b.classList.remove('active'));
+    const btn = document.getElementById('schip-' + s);
+    if (btn) btn.classList.add('active');
+    filterCards();
   }
 
   // ── Card filter ──
@@ -944,9 +1121,11 @@ waiting for navigation until &quot;load&quot;
     document.querySelectorAll('#cardsGrid .provider-card').forEach(card => {
       const name   = (card.dataset.provider || '').toLowerCase();
       const status = card.dataset.status || '';
+      const states = (card.dataset.states || '').split(',');
       const matchQ = !q || name.includes(q);
       const matchF = cardFilter === 'all' || status === cardFilter;
-      card.style.display = (matchQ && matchF) ? '' : 'none';
+      const matchS = stateFilter === 'all' || states.includes(stateFilter);
+      card.style.display = (matchQ && matchF && matchS) ? '' : 'none';
     });
   }
   function setCardFilter(f) {
@@ -956,6 +1135,20 @@ waiting for navigation until &quot;load&quot;
     if (btn) btn.classList.add('active');
     filterCards();
   }
+
+  // ── Provider detail drawer ──
+  function openProvider(name) {
+    const html = DRAWER_HTML[name];
+    if (!html) return;
+    document.getElementById('drawerContent').innerHTML = html;
+    document.getElementById('drawerOverlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeProvider() {
+    document.getElementById('drawerOverlay').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeProvider(); });
 
   // ── Table filter ──
   let tableFilter = 'all';
@@ -1005,6 +1198,115 @@ waiting for navigation until &quot;load&quot;
       return av.localeCompare(bv) * sortDir;
     });
     rows.forEach(r => tbody.appendChild(r));
+  }
+
+  // ── Chart.js ──
+  const CHART_DATA   = {"labels":["Bryana Anderson, NP","Ashley Grout, NP","Bill Carbonneau, NP","Bryce Amos, NP","Catherine Herrington, MD","Doron Stember, MD","Martin Van Dongen, NP","Priya Chaudhari, NP","Summer Denny, NP","Tim Mack, NP"],"completed":[219.5,45,109,0,7,0,0,0,17,0],"required":[50,24,26,0,48,100,24,21,50,0],"colors":["rgba(22,163,74,0.8)","rgba(217,119,6,0.8)","rgba(22,163,74,0.8)","rgba(22,163,74,0.8)","rgba(217,119,6,0.8)","rgba(217,119,6,0.8)","rgba(217,119,6,0.8)","rgba(217,119,6,0.8)","rgba(217,119,6,0.8)","rgba(100,116,139,0.5)"]};
+  const HISTORY_DATA = [{"timestamp":"2026-02-24T20:59:42.057Z","succeeded":9,"failed":1,"providers":[{"name":"Bryana Anderson, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":219.5,"hoursRemaining":0,"renewalDeadline":"06/30/2027"},{"name":"Ashley Grout, NP","state":"Florida","hoursRequired":24,"hoursCompleted":45,"hoursRemaining":6,"renewalDeadline":"04/30/2027"},{"name":"Bill Carbonneau, NP","state":"Florida","hoursRequired":26,"hoursCompleted":109,"hoursRemaining":0,"renewalDeadline":"07/31/2026"},{"name":"Bryce Amos, NP","state":"New York","hoursRequired":0,"hoursCompleted":0,"hoursRemaining":0,"renewalDeadline":"02/29/2028"},{"name":"Catherine Herrington, MD","state":"Texas","hoursRequired":48,"hoursCompleted":7,"hoursRemaining":41,"renewalDeadline":"05/31/2027"},{"name":"Doron Stember, MD","state":"New Hampshire","hoursRequired":100,"hoursCompleted":0,"hoursRemaining":100,"renewalDeadline":"12/13/2027"},{"name":"Martin Van Dongen, NP","state":"Ohio","hoursRequired":24,"hoursCompleted":0,"hoursRemaining":24,"renewalDeadline":"10/31/2027"},{"name":"Priya Chaudhari, NP","state":"Florida","hoursRequired":21,"hoursCompleted":0,"hoursRemaining":21,"renewalDeadline":"04/30/2026"},{"name":"Summer Denny, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":17,"hoursRemaining":33,"renewalDeadline":"09/30/2027"},{"name":"Tim Mack, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null}]}];
+
+  let chartsInit = false;
+  function initCharts() {
+    if (chartsInit) return;
+    chartsInit = true;
+
+    // Bar chart: Completed vs Required per license
+    const ctx1 = document.getElementById('hoursChart').getContext('2d');
+    new Chart(ctx1, {
+      type: 'bar',
+      data: {
+        labels: CHART_DATA.labels,
+        datasets: [
+          {
+            label: 'Hours Completed',
+            data: CHART_DATA.completed,
+            backgroundColor: CHART_DATA.colors,
+            borderRadius: 4,
+          },
+          {
+            label: 'Hours Required',
+            data: CHART_DATA.required,
+            backgroundColor: 'rgba(148,163,184,0.25)',
+            borderColor: 'rgba(148,163,184,0.6)',
+            borderWidth: 1,
+            borderRadius: 4,
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'top' },
+          tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + ctx.parsed.y + ' hrs' } }
+        },
+        scales: {
+          y: { beginAtZero: true, title: { display: true, text: 'Hours' } },
+          x: { ticks: { maxRotation: 45, minRotation: 30 } }
+        }
+      }
+    });
+
+    // History trend chart
+    const histWrap = document.getElementById('historyChartWrap');
+    if (!HISTORY_DATA || HISTORY_DATA.length < 2) {
+      histWrap.innerHTML = '<p class="chart-no-data">Run the scraper multiple times to see progress trends over time.</p>';
+      return;
+    }
+    const histLabels = HISTORY_DATA.map(h => {
+      const d = new Date(h.timestamp);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' +
+             d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    });
+    const histAvgPct = HISTORY_DATA.map(h => {
+      const pcts = (h.providers || [])
+        .filter(p => p.hoursRequired > 0)
+        .map(p => Math.min(100, Math.round(((p.hoursCompleted || 0) / p.hoursRequired) * 100)));
+      return pcts.length ? Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length) : 0;
+    });
+    const histComplete = HISTORY_DATA.map(h =>
+      (h.providers || []).filter(p =>
+        p.hoursRemaining != null ? p.hoursRemaining <= 0 : (p.hoursCompleted || 0) >= (p.hoursRequired || 1)
+      ).length
+    );
+    const ctx2 = document.getElementById('historyChart').getContext('2d');
+    new Chart(ctx2, {
+      type: 'line',
+      data: {
+        labels: histLabels,
+        datasets: [
+          {
+            label: 'Avg Completion %',
+            data: histAvgPct,
+            borderColor: '#1d4ed8',
+            backgroundColor: 'rgba(29,78,216,0.1)',
+            fill: true,
+            tension: 0.3,
+            yAxisID: 'pct',
+          },
+          {
+            label: 'Licenses Complete',
+            data: histComplete,
+            borderColor: '#16a34a',
+            backgroundColor: 'transparent',
+            borderDash: [5, 3],
+            tension: 0.3,
+            yAxisID: 'count',
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'top' } },
+        scales: {
+          pct:   { type: 'linear', position: 'left',  beginAtZero: true, max: 100,
+                   title: { display: true, text: '% Complete' } },
+          count: { type: 'linear', position: 'right', beginAtZero: true,
+                   title: { display: true, text: 'Licenses Complete' },
+                   grid: { drawOnChartArea: false } }
+        }
+      }
+    });
   }
 </script>
 </body>
