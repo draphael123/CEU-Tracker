@@ -101,6 +101,87 @@ function buildDashboard(allProviderRecords, runResults = []) {
     providerMap[key].licenses.push(rec);
   }
 
+  // All unique states for the state filter chips
+  const allStates = [...new Set(flat.map(r => r.state).filter(Boolean))].sort();
+
+  // Pre-render each provider's drawer HTML in Node.js (avoids nested template literal issues)
+  const drawerHtmlMap = {};
+  for (const [pName, info] of Object.entries(providerMap)) {
+    const ini      = pName.split(/[\s,]+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
+    const worstSt  = info.licenses.some(l => getS(l) === 'At Risk')     ? 'At Risk'
+                   : info.licenses.some(l => getS(l) === 'In Progress') ? 'In Progress'
+                   : info.licenses.every(l => getS(l) === 'Complete')   ? 'Complete'
+                   : 'Unknown';
+    const ovCls   = { Complete:'status-complete','In Progress':'status-progress','At Risk':'status-risk',Unknown:'status-unknown' }[worstSt] || 'status-unknown';
+    const ovLabel = { Complete:'✓ Complete','In Progress':'◷ In Progress','At Risk':'⚠ At Risk',Unknown:'— Unknown' }[worstSt] || worstSt;
+
+    const licCards = info.licenses.map(lic => {
+      const st      = getS(lic);
+      const pct     = lic.hoursRequired > 0 ? Math.min(100, Math.round(((lic.hoursCompleted || 0) / lic.hoursRequired) * 100)) : 0;
+      const barCls  = pct >= 100 ? '' : pct >= 50 ? 'partial' : 'low';
+      const dlCls   = { Complete:'dl-complete','In Progress':'dl-progress','At Risk':'dl-risk',Unknown:'' }[st] || '';
+      const stCls   = { Complete:'status-complete','In Progress':'status-progress','At Risk':'status-risk',Unknown:'status-unknown' }[st] || 'status-unknown';
+      const stLabel = { Complete:'✓ Complete','In Progress':'◷ In Progress','At Risk':'⚠ At Risk',Unknown:'— Unknown' }[st] || st;
+      const licState = lic.state || '??';
+      const days    = daysUntil(parseDate(lic.renewalDeadline));
+      const daysStr = days === null ? ''
+        : days < 0   ? `<span class="overdue">${Math.abs(days)}d overdue</span>`
+        : days <= 60 ? `<span class="urgent">${days}d left</span>`
+        : `${days}d left`;
+      const cUrl    = courseSearchUrl(licState, lic.licenseType || info.type);
+
+      const saRows = (lic.subjectAreas || []).map(sa => {
+        const rem  = (sa.hoursRequired != null && sa.hoursCompleted != null) ? Math.max(0, sa.hoursRequired - sa.hoursCompleted) : null;
+        return `<tr>
+          <td>${escHtml(sa.topicName || '—')}</td>
+          <td style="text-align:center">${sa.hoursRequired ?? '—'}</td>
+          <td style="text-align:center" class="${rem === 0 ? 'sa-done' : ''}">${sa.hoursCompleted ?? '—'}</td>
+          <td style="text-align:center" class="${rem > 0 ? 'sa-short' : rem === 0 ? 'sa-done' : ''}">${rem ?? '—'}</td>
+        </tr>`;
+      }).join('');
+
+      return `<div class="detail-lic-card ${dlCls}">
+        <div class="detail-lic-hdr">
+          <span class="detail-state-badge">${escHtml(licState)}</span>
+          <span class="detail-lic-type">${escHtml(lic.licenseType || info.type || '')}</span>
+          <span class="status-badge ${stCls}" style="margin-left:auto">${stLabel}</span>
+        </div>
+        <div class="detail-deadline">
+          Renewal: <strong>${escHtml(lic.renewalDeadline || '—')}</strong> ${daysStr}
+        </div>
+        <div class="detail-prog-row">
+          <div class="detail-prog-track">
+            <div class="detail-prog-fill ${barCls}" style="width:${pct}%"></div>
+          </div>
+          <span class="detail-prog-label">${lic.hoursCompleted ?? '?'} / ${lic.hoursRequired ?? '?'} hrs (${pct}%)</span>
+        </div>
+        ${saRows
+          ? `<table class="detail-sa-table">
+              <thead><tr>
+                <th>Subject Area</th>
+                <th style="text-align:center">Req</th>
+                <th style="text-align:center">Done</th>
+                <th style="text-align:center">Left</th>
+              </tr></thead>
+              <tbody>${saRows}</tbody>
+            </table>`
+          : '<p class="detail-no-sa">No subject area breakdown available.</p>'
+        }
+        ${cUrl ? `<a class="detail-course-btn" href="${cUrl}" target="_blank" rel="noopener">Search Available Courses ↗</a>` : ''}
+      </div>`;
+    }).join('');
+
+    drawerHtmlMap[pName] = `<div class="detail-hdr">
+      <div class="detail-avatar">${escHtml(ini)}</div>
+      <div>
+        <div class="detail-name">${escHtml(pName)}</div>
+        <div class="detail-type-lbl">${escHtml(info.type || 'Healthcare Provider')}</div>
+      </div>
+      <div class="detail-overall"><span class="status-badge ${ovCls}">${ovLabel}</span></div>
+    </div>
+    <div>${licCards}</div>`;
+  }
+
   const profileCards = Object.entries(providerMap).map(([name, info]) => {
     const licBadges = info.licenses.map(lic => {
       const status    = getS(lic);
@@ -165,14 +246,19 @@ function buildDashboard(allProviderRecords, runResults = []) {
     const initials = name.split(/[\s,]+/).filter(Boolean).slice(0, 2)
       .map(w => w[0].toUpperCase()).join('');
 
-    return `<div class="provider-card ${cardBorderCls}" data-provider="${escHtml(name)}" data-status="${worstStatus}">
+    const statesList = info.licenses.map(l => l.state).filter(Boolean).join(',');
+    return `<div class="provider-card ${cardBorderCls} card-clickable"
+        data-provider="${escHtml(name)}"
+        data-status="${worstStatus}"
+        data-states="${escHtml(statesList)}"
+        onclick="openProvider(this.dataset.provider)">
       <div class="card-top">
         <div class="avatar">${escHtml(initials)}</div>
         <div class="card-info">
           <div class="card-name">${escHtml(name)}</div>
           <div class="card-type">${escHtml(info.type || '')}</div>
         </div>
-        <div class="card-lic-count">${info.licenses.length} license${info.licenses.length !== 1 ? 's' : ''}</div>
+        <div class="card-lic-count">${info.licenses.length} license${info.licenses.length !== 1 ? 's' : ''} <span class="card-arrow">›</span></div>
       </div>
       <div class="lic-blocks">${licBadges}</div>
     </div>`;
@@ -468,6 +554,92 @@ function buildDashboard(allProviderRecords, runResults = []) {
     .tab-panel { display: none; }
     .tab-panel.active { display: block; }
 
+    /* ─ State chips ─ */
+    .state-chips { display: flex; gap: 8px; flex-wrap: wrap; padding: 12px 40px 0; }
+    .state-chip {
+      padding: 5px 14px; border-radius: 99px; border: 1.5px solid #cbd5e1;
+      background: #fff; cursor: pointer; font-size: 0.78rem; font-weight: 600; color: #475569;
+      transition: all .15s;
+    }
+    .state-chip:hover, .state-chip.active { background: #0f3460; color: #fff; border-color: #0f3460; }
+
+    /* ─ Clickable card ─ */
+    .card-clickable { cursor: pointer; }
+    .card-clickable:hover { box-shadow: 0 8px 24px rgba(0,0,0,.14); transform: translateY(-3px); }
+    .card-arrow { color: #94a3b8; font-size: 1rem; transition: color .15s; }
+    .card-clickable:hover .card-arrow { color: #0f3460; }
+
+    /* ─ Provider detail drawer ─ */
+    .drawer-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(15,52,96,0.45); z-index: 1000;
+      align-items: flex-start; justify-content: center;
+      padding: 32px 16px 48px; overflow-y: auto;
+    }
+    .drawer-overlay.open { display: flex; }
+    .drawer-panel {
+      background: #fff; border-radius: 18px; padding: 36px;
+      width: 100%; max-width: 740px; position: relative;
+      box-shadow: 0 24px 64px rgba(0,0,0,.22); margin: auto;
+      animation: slideUp .2s ease;
+    }
+    @keyframes slideUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+    .drawer-close {
+      position: absolute; top: 18px; right: 18px;
+      background: #f1f5f9; border: none; border-radius: 50%;
+      width: 34px; height: 34px; cursor: pointer; font-size: 1rem;
+      color: #475569; display: flex; align-items: center; justify-content: center;
+    }
+    .drawer-close:hover { background: #e2e8f0; }
+
+    .detail-hdr { display: flex; align-items: center; gap: 16px; margin-bottom: 28px; flex-wrap: wrap; }
+    .detail-avatar {
+      width: 56px; height: 56px; border-radius: 50%;
+      background: #1a1a2e; color: #fff; font-size: 1.1rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .detail-name { font-size: 1.25rem; font-weight: 700; color: #1e293b; }
+    .detail-type-lbl { font-size: 0.8rem; color: #64748b; margin-top: 2px; }
+    .detail-overall { margin-left: auto; }
+
+    .detail-lic-card {
+      border: 1.5px solid #e2e8f0; border-radius: 12px;
+      padding: 20px; margin-bottom: 16px; background: #f8fafc;
+    }
+    .detail-lic-card.dl-complete { border-color: #bbf7d0; background: #f0fdf4; }
+    .detail-lic-card.dl-progress { border-color: #fde68a; background: #fffbeb; }
+    .detail-lic-card.dl-risk     { border-color: #fecaca; background: #fff5f5; }
+
+    .detail-lic-hdr { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+    .detail-state-badge {
+      font-size: 1rem; font-weight: 800; color: #1e293b;
+      background: #e2e8f0; padding: 2px 10px; border-radius: 6px;
+    }
+    .detail-lic-type { font-size: 0.8rem; color: #64748b; background: #fff; border: 1px solid #e2e8f0; padding: 2px 8px; border-radius: 99px; }
+    .detail-deadline { font-size: 0.82rem; color: #475569; margin-bottom: 12px; }
+
+    .detail-prog-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .detail-prog-track { flex: 1; height: 10px; background: #e2e8f0; border-radius: 99px; overflow: hidden; }
+    .detail-prog-fill  { height: 100%; border-radius: 99px; background: #16a34a; transition: width .4s; }
+    .detail-prog-fill.partial { background: #d97706; }
+    .detail-prog-fill.low     { background: #dc2626; }
+    .detail-prog-label { font-size: 0.82rem; color: #475569; white-space: nowrap; font-weight: 600; }
+
+    .detail-sa-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-bottom: 12px; }
+    .detail-sa-table th { background: #f1f5f9; color: #64748b; font-weight: 600; padding: 6px 10px; text-align: left; font-size: 0.72rem; text-transform: uppercase; }
+    .detail-sa-table td { padding: 7px 10px; border-bottom: 1px solid #f1f5f9; color: #334155; }
+    .detail-sa-table tr:last-child td { border-bottom: none; }
+    .sa-done  { color: #15803d; font-weight: 600; }
+    .sa-short { color: #b91c1c; font-weight: 600; }
+
+    .detail-course-btn {
+      display: inline-block; margin-top: 6px; padding: 6px 14px;
+      background: #eff6ff; color: #1d4ed8; border-radius: 8px;
+      font-size: 0.78rem; text-decoration: none; font-weight: 600;
+    }
+    .detail-course-btn:hover { background: #dbeafe; }
+    .detail-no-sa { font-size: 0.8rem; color: #94a3b8; font-style: italic; margin-bottom: 8px; }
+
     /* ─ Chart section ─ */
     .chart-wrap { padding: 28px 40px 40px; }
     .chart-section { background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 2px 10px rgba(0,0,0,.07); margin-bottom: 20px; }
@@ -523,6 +695,10 @@ function buildDashboard(allProviderRecords, runResults = []) {
 <!-- ── Tab: Provider Profiles ─────────────────────────────────────────── -->
 <div class="tab-panel active" id="tab-profiles">
   <div class="section-title">Provider Profiles</div>
+  <div class="state-chips">
+    <button class="state-chip active" id="schip-all" onclick="setStateFilter('all')">All States</button>
+    ${allStates.map(s => `<button class="state-chip" id="schip-${escHtml(s)}" onclick="setStateFilter('${escHtml(s)}')">${escHtml(s)}</button>`).join('')}
+  </div>
   <div class="controls">
     <input class="search-box" type="text" id="cardSearch" placeholder="Search provider..." oninput="filterCards()" />
     <button class="filter-btn active" id="cbtn-all"         onclick="setCardFilter('all')">All</button>
@@ -594,6 +770,14 @@ function buildDashboard(allProviderRecords, runResults = []) {
   </div>
 </div>
 
+<!-- ── Provider detail drawer ──────────────────────────────────────────── -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="if(event.target===this)closeProvider()">
+  <div class="drawer-panel" id="drawerPanel">
+    <button class="drawer-close" onclick="closeProvider()">✕</button>
+    <div id="drawerContent"></div>
+  </div>
+</div>
+
 <footer>CE Broker Automation &nbsp;·&nbsp; Last scraped: ${escHtml(runDate)}</footer>
 
 <script>
@@ -608,6 +792,19 @@ function buildDashboard(allProviderRecords, runResults = []) {
     if (name === 'chart') initCharts();
   }
 
+  // ── Provider drawer HTML (pre-rendered at build time, embedded as JSON) ──
+  const DRAWER_HTML = ${safeJson(drawerHtmlMap)};
+
+  // ── State filter ──
+  let stateFilter = 'all';
+  function setStateFilter(s) {
+    stateFilter = s;
+    document.querySelectorAll('[id^="schip-"]').forEach(b => b.classList.remove('active'));
+    const btn = document.getElementById('schip-' + s);
+    if (btn) btn.classList.add('active');
+    filterCards();
+  }
+
   // ── Card filter ──
   let cardFilter = 'all';
   function filterCards() {
@@ -615,9 +812,11 @@ function buildDashboard(allProviderRecords, runResults = []) {
     document.querySelectorAll('#cardsGrid .provider-card').forEach(card => {
       const name   = (card.dataset.provider || '').toLowerCase();
       const status = card.dataset.status || '';
+      const states = (card.dataset.states || '').split(',');
       const matchQ = !q || name.includes(q);
       const matchF = cardFilter === 'all' || status === cardFilter;
-      card.style.display = (matchQ && matchF) ? '' : 'none';
+      const matchS = stateFilter === 'all' || states.includes(stateFilter);
+      card.style.display = (matchQ && matchF && matchS) ? '' : 'none';
     });
   }
   function setCardFilter(f) {
@@ -627,6 +826,20 @@ function buildDashboard(allProviderRecords, runResults = []) {
     if (btn) btn.classList.add('active');
     filterCards();
   }
+
+  // ── Provider detail drawer ──
+  function openProvider(name) {
+    const html = DRAWER_HTML[name];
+    if (!html) return;
+    document.getElementById('drawerContent').innerHTML = html;
+    document.getElementById('drawerOverlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeProvider() {
+    document.getElementById('drawerOverlay').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeProvider(); });
 
   // ── Table filter ──
   let tableFilter = 'all';
