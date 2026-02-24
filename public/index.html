@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CE Broker — Compliance Dashboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f2f5; color: #1a1a2e; min-height: 100vh; }
+
+    /* ─ Header ─ */
+    header {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%);
+      color: #fff;
+      padding: 24px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,.35);
+    }
+    header h1 { font-size: 1.55rem; font-weight: 700; }
+    header h1 span { color: #e94560; }
+    .header-meta { text-align: right; }
+    .last-scraped-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px; color: #64748b; }
+    .last-scraped-value { font-size: 0.95rem; color: #e2e8f0; font-weight: 500; margin-top: 2px; }
+    .run-badge { margin-top: 6px; display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+    .run-pill { padding: 3px 10px; border-radius: 99px; font-size: 0.75rem; font-weight: 600; }
+    .run-pill.ok   { background: #166534; color: #dcfce7; }
+    .run-pill.fail { background: #7f1d1d; color: #fee2e2; }
+
+    /* ─ Stat cards ─ */
+    .stats { display: flex; gap: 14px; padding: 28px 40px 0; flex-wrap: wrap; }
+    .stat-card { background: #fff; border-radius: 12px; padding: 18px 22px; min-width: 130px; box-shadow: 0 2px 8px rgba(0,0,0,.07); }
+    .stat-card .num { font-size: 2rem; font-weight: 700; }
+    .stat-card .lbl { font-size: 0.72rem; text-transform: uppercase; letter-spacing: .8px; color: #64748b; margin-top: 3px; }
+    .stat-card.total .num { color: #334155; }
+    .stat-card.ok    .num { color: #16a34a; }
+    .stat-card.prog  .num { color: #d97706; }
+    .stat-card.risk  .num { color: #dc2626; }
+
+    /* ─ Section titles ─ */
+    .section-title {
+      padding: 28px 40px 12px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #1e293b;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: #e2e8f0;
+    }
+
+    /* ─ Provider cards ─ */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 18px;
+      padding: 0 40px;
+    }
+    .provider-card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,.07);
+      border-left: 5px solid #cbd5e1;
+      transition: box-shadow .15s, transform .15s;
+    }
+    .provider-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,.12); transform: translateY(-2px); }
+    .provider-card.card-ok   { border-left-color: #16a34a; }
+    .provider-card.card-prog { border-left-color: #d97706; }
+    .provider-card.card-risk { border-left-color: #dc2626; }
+    .provider-card.card-unk  { border-left-color: #94a3b8; }
+
+    .card-top { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .avatar {
+      width: 42px; height: 42px; border-radius: 50%;
+      background: #1a1a2e; color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.9rem; font-weight: 700; flex-shrink: 0;
+    }
+    .card-info { flex: 1; min-width: 0; }
+    .card-name { font-weight: 700; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .card-type { font-size: 0.78rem; color: #64748b; margin-top: 2px; }
+    .card-lic-count { font-size: 0.75rem; color: #94a3b8; white-space: nowrap; }
+
+    /* ─ License blocks inside a card ─ */
+    .lic-blocks { display: flex; flex-direction: column; gap: 10px; }
+    .lic-block {
+      border-radius: 10px;
+      padding: 12px 14px;
+      border: 1.5px solid #e2e8f0;
+      background: #f8fafc;
+    }
+    .lic-block.lic-complete  { border-color: #bbf7d0; background: #f0fdf4; }
+    .lic-block.lic-progress  { border-color: #fde68a; background: #fffbeb; }
+    .lic-block.lic-risk      { border-color: #fecaca; background: #fff5f5; }
+
+    .lic-header { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
+    .lic-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+    .dot-green  { background: #16a34a; }
+    .dot-yellow { background: #d97706; }
+    .dot-red    { background: #dc2626; }
+    .dot-gray   { background: #94a3b8; }
+    .lic-header strong { font-size: 0.9rem; }
+    .lic-type   { font-size: 0.72rem; color: #64748b; background: #e2e8f0; padding: 1px 7px; border-radius: 99px; }
+    .lic-status-text { margin-left: auto; font-size: 0.75rem; color: #475569; font-weight: 500; }
+
+    .lic-deadline { font-size: 0.78rem; color: #475569; margin-bottom: 7px; }
+    .overdue  { color: #dc2626; font-weight: 700; }
+    .urgent   { color: #d97706; font-weight: 600; }
+
+    .lic-bar-row { display: flex; align-items: center; gap: 8px; }
+    .bar-track { flex: 1; height: 7px; background: #e2e8f0; border-radius: 99px; overflow: hidden; }
+    .bar-fill  { height: 100%; border-radius: 99px; background: #16a34a; transition: width .4s; }
+    .bar-fill.partial { background: #d97706; }
+    .bar-fill.low     { background: #dc2626; }
+    .bar-label { font-size: 0.75rem; color: #64748b; white-space: nowrap; }
+
+    .lic-course-link {
+      display: inline-block;
+      margin-top: 8px;
+      font-size: 0.75rem;
+      color: #1d4ed8;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .lic-course-link:hover { text-decoration: underline; }
+
+    /* ─ Controls ─ */
+    .controls {
+      padding: 20px 40px 12px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .search-box {
+      padding: 8px 14px;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      width: 220px;
+      outline: none;
+    }
+    .search-box:focus { border-color: #0f3460; }
+    .filter-btn {
+      padding: 7px 16px;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 8px;
+      background: #fff;
+      cursor: pointer;
+      font-size: 0.82rem;
+      transition: all .15s;
+    }
+    .filter-btn:hover, .filter-btn.active { background: #0f3460; color: #fff; border-color: #0f3460; }
+
+    /* ─ Table ─ */
+    .table-wrap { padding: 0 40px 16px; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,.07); font-size: 0.86rem; }
+    thead th { background: #1a1a2e; color: #fff; padding: 12px 16px; text-align: left; font-weight: 600; font-size: 0.76rem; text-transform: uppercase; letter-spacing: .6px; white-space: nowrap; cursor: pointer; user-select: none; }
+    thead th:hover { background: #0f3460; }
+    thead th .sort-icon { opacity: .4; margin-left: 4px; font-size: .68rem; }
+    thead th.sorted .sort-icon { opacity: 1; }
+    tbody tr.summary-row { border-bottom: 1px solid #f1f5f9; transition: background .1s; }
+    tbody tr.summary-row:hover { background: #f8fafc; }
+    td { padding: 11px 16px; vertical-align: middle; }
+    td.center { text-align: center; }
+    td:first-child { font-weight: 600; color: #1e293b; }
+    .days-label { color: #94a3b8; font-size: .73rem; }
+
+    .hours-wrap { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+    .hours-text { font-size: .78rem; color: #475569; white-space: nowrap; }
+
+    .status-badge { display: inline-block; padding: 4px 10px; border-radius: 99px; font-size: .72rem; font-weight: 600; white-space: nowrap; }
+    .status-complete { background: #dcfce7; color: #15803d; }
+    .status-progress { background: #fef3c7; color: #b45309; }
+    .status-risk     { background: #fee2e2; color: #b91c1c; }
+    .status-unknown  { background: #f1f5f9; color: #64748b; }
+
+    .course-link { display: inline-block; padding: 4px 10px; background: #eff6ff; color: #1d4ed8; border-radius: 6px; font-size: .76rem; text-decoration: none; font-weight: 500; }
+    .course-link:hover { background: #dbeafe; }
+    .toggle-btn { display: inline-block; margin-left: 6px; padding: 3px 8px; background: #f1f5f9; color: #475569; border: none; border-radius: 6px; font-size: .73rem; cursor: pointer; }
+    .toggle-btn:hover { background: #e2e8f0; }
+
+    .detail-group.hidden { display: none; }
+    .detail-row td { background: #f8fafc; color: #475569; font-size: .8rem; }
+    .sa-indent { padding-left: 40px !important; font-style: italic; }
+    .sa-badge  { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: .7rem; font-weight: 600; }
+    .sa-ok   { background: #dcfce7; color: #15803d; }
+    .sa-prog { background: #fef3c7; color: #b45309; }
+    .sa-risk { background: #fee2e2; color: #b91c1c; }
+    .sa-unk  { background: #f1f5f9; color: #64748b; }
+
+    tr.hidden-row { display: none; }
+
+    /* ─ Run log table ─ */
+    .run-table-wrap { padding: 0 40px 40px; overflow-x: auto; }
+    .run-table-wrap table { font-size: 0.84rem; }
+
+    /* ─ Footer ─ */
+    footer { text-align: center; padding: 16px; font-size: .76rem; color: #94a3b8; border-top: 1px solid #e2e8f0; margin-top: 8px; }
+
+    /* ─ Tabs ─ */
+    .tab-bar { display: flex; gap: 0; padding: 28px 40px 0; border-bottom: 2px solid #e2e8f0; margin-bottom: 0; }
+    .tab-btn {
+      padding: 10px 22px;
+      border: none;
+      border-bottom: 3px solid transparent;
+      background: none;
+      cursor: pointer;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #64748b;
+      margin-bottom: -2px;
+      transition: all .15s;
+    }
+    .tab-btn.active { color: #0f3460; border-bottom-color: #0f3460; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    @media (max-width: 640px) {
+      header, .stats, .controls, .table-wrap, .cards-grid, .section-title, .tab-bar, .run-table-wrap {
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ─────────────────────────────────────────────────────────── -->
+<header>
+  <div>
+    <h1>CE Broker <span>Compliance</span> Dashboard</h1>
+  </div>
+  <div class="header-meta">
+    <div class="last-scraped-label">Last Scraped</div>
+    <div class="last-scraped-value" id="lastScrapedValue">Tuesday, February 24, 2026 at 3:01 PM</div>
+    <div class="run-badge">
+      <span class="run-pill ok">✓ 9 succeeded</span>
+      <span class="run-pill fail">✗ 1 failed</span>
+    </div>
+  </div>
+</header>
+
+<!-- ── Stats ──────────────────────────────────────────────────────────── -->
+<div class="stats">
+  <div class="stat-card total"><div class="num">10</div><div class="lbl">Total Licenses</div></div>
+  <div class="stat-card ok">  <div class="num">3</div><div class="lbl">Complete</div></div>
+  <div class="stat-card prog"><div class="num">6</div><div class="lbl">In Progress</div></div>
+  <div class="stat-card risk"><div class="num">0</div><div class="lbl">At Risk</div></div>
+</div>
+
+<!-- ── Tabs ───────────────────────────────────────────────────────────── -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('profiles')">Provider Profiles</button>
+  <button class="tab-btn"        onclick="showTab('table')">Full Table</button>
+  <button class="tab-btn"        onclick="showTab('runlog')">Run Log</button>
+</div>
+
+<!-- ── Tab: Provider Profiles ─────────────────────────────────────────── -->
+<div class="tab-panel active" id="tab-profiles">
+  <div class="section-title">Provider Profiles</div>
+  <div class="controls">
+    <input class="search-box" type="text" id="cardSearch" placeholder="Search provider..." oninput="filterCards()" />
+    <button class="filter-btn active" id="cbtn-all"         onclick="setCardFilter('all')">All</button>
+    <button class="filter-btn"        id="cbtn-Complete"    onclick="setCardFilter('Complete')">Complete</button>
+    <button class="filter-btn"        id="cbtn-In Progress" onclick="setCardFilter('In Progress')">In Progress</button>
+    <button class="filter-btn"        id="cbtn-At Risk"     onclick="setCardFilter('At Risk')">At Risk</button>
+  </div>
+  <div class="cards-grid" id="cardsGrid">
+    <div class="provider-card card-ok" data-provider="Bryana Anderson, NP" data-status="Complete">
+      <div class="card-top">
+        <div class="avatar">BA</div>
+        <div class="card-info">
+          <div class="card-name">Bryana Anderson, NP</div>
+          <div class="card-type">NP</div>
+        </div>
+        <div class="card-lic-count">1 license</div>
+      </div>
+      <div class="lic-blocks"><div class="lic-block lic-complete">
+        <div class="lic-header">
+          <span class="lic-dot dot-green"></span>
+          <strong>New Mexico</strong>
+          <span class="lic-type">NP</span>
+          <span class="lic-status-text">Complete</span>
+        </div>
+        <div class="lic-deadline">Renewal: 06/30/2027 491d left</div>
+        <div class="lic-bar-row">
+          <div class="bar-track"><div class="bar-fill " style="width:100%"></div></div>
+          <span class="bar-label">219.5 / 50 hrs</span>
+        </div>
+        <a class="lic-course-link" href="https://cebroker.com/#!/courses/search?state=NEW MEXICO&licenseType=NP" target="_blank" rel="noopener">Search Courses ↗</a>
+      </div></div>
+    </div><div class="provider-card card-prog" data-provider="Ashley Grout, NP" data-status="In Progress">
+      <div class="card-top">
+        <div class="avatar">AG</div>
+        <div class="card-info">
+          <div class="card-name">Ashley Grout, NP</div>
+          <div class="card-type">NP</div>
+        </div>
+        <div class="card-lic-count">1 license</div>
+      </div>
+      <div class="lic-blocks"><div class="lic-block lic-progress">
+        <div class="lic-header">
+          <span class="lic-dot dot-yellow"></span>
+          <strong>Florida</strong>
+          <span class="lic-type">NP</span>
+          <span class="lic-status-text">In Progress</span>
+        </div>
+        <div class="lic-deadline">Renewal: 04/30/2027 430d left</div>
+        <div class="lic-bar-row">
+          <div class="bar-track"><div class="bar-fill " style="width:100%"></div></div>
+          <span class="bar-label">45 / 24 hrs</span>
+        </div>
+        <a class="lic-course-link" href="https://cebroker.com/#!/courses/search?state=FLORIDA&licenseType=NP" target="_blank" rel="noopener">Search Courses ↗</a>
+      </div></div>
+    </div><div class="provider-card card-ok" data-provider="Bill Carbonneau, NP" data-status="Complete">
+      <div class="card-top">
+        <div class="avatar">BC</div>
+        <div class="card-info">
+          <div class="card-name">Bill Carbonneau, NP</div>
+          <div class="card-type">NP</div>
+        </div>
+        <div class="card-lic-count">1 license</div>
+      </div>
+      <div class="lic-blocks"><div class="lic-block lic-complete">
+        <div class="lic-header">
+          <span class="lic-dot dot-green"></span>
+          <strong>Florida</strong>
+          <span class="lic-type">NP</span>
+          <span class="lic-status-text">Complete</span>
+        </div>
+        <div class="lic-deadline">Renewal: 07/31/2026 157d left</div>
+        <div class="lic-bar-row">
+          <div class="bar-track"><div class="bar-fill " style="width:100%"></div></div>
+          <span class="bar-label">109 / 26 hrs</span>
+        </div>
+        <a class="lic-course-link" href="https://cebroker.com/#!/courses/search?state=FLORIDA&licenseType=NP" target="_blank" rel="noopener">Search Courses ↗</a>
+      </div></div>
+    </div><div class="provider-card card-ok" data-provider="Bryce Amos, NP" data-status="Complete">
+      <div class="card-top">
+        <div class="avatar">BA</div>
+        <div class="card-info">
+          <div class="card-name">Bryce Amos, NP</div>
+          <div class="card-type">NP</div>
+        </div>
+        <div class="card-lic-count">1 license</div>
+      </div>
+      <div class="lic-blocks"><div class="lic-block lic-complete">
+        <div class="lic-header">
+          <span class="lic-dot dot-green"></span>
+          <strong>New York</strong>
+          <span class="lic-type">NP</span>
+          <span class="lic-status-text">Complete</span>
+        </div>
+        <div class="lic-deadline">Renewal: 02/29/2028 735d left</div>
+        <div class="lic-bar-row">
+          <div class="bar-track"><div class="bar-fill low" style="width:0%"></div></div>
+          <span class="bar-label">0 / 0 hrs</span>
+        </div>
+        <a class="lic-course-link" href="https://cebroker.com/#!/courses/search?state=NEW YORK&licenseType=NP" target="_blank" rel="noopener">Search Courses ↗</a>
+      </div></div>
+    </div><div class="provider-card card-prog" data-provider="Catherine Herrington, MD" data-status="In Progress">
+      <div class="card-top">
+        <div class="avatar">CH</div>
+        <div class="card-info">
+          <div class="card-name">Catherine Herrington, MD</div>
+          <div class="card-type">MD</div>
+        </div>
+        <div class="card-lic-count">1 license</div>
+      </div>
+      <div class="lic-blocks"><div class="lic-block lic-progress">
+        <div class="lic-header">
+          <span class="lic-dot dot-yellow"></span>
+          <strong>Texas</strong>
+          <span class="lic-type">MD</span>
+          <span class="lic-status-text">In Progress</span>
+        </div>
+        <div class="lic-deadline">Renewal: 05/31/2027 461d left</div>
+        <div class="lic-bar-row">
+          <div class="bar-track"><div class="bar-fill low" style="width:15%"></div></div>
+          <span class="bar-label">7 / 48 hrs</span>
+        </div>
+        <a class="lic-course-link" href="https://cebroker.com/#!/courses/search?state=TEXAS&licenseType=MD" target="_blank" rel="noopener">Search Courses ↗</a>
+      </div></div>
+    </div><div class="provider-card card-prog" data-provider="Doron Stember, MD" data-status="In Progress">
+      <div class="card-top">
+        <div class="avatar">DS</div>
+        <div class="card-info">
+          <div class="card-name">Doron Stember, MD</div>
+          <div class="card-type">MD</div>
+        </div>
+        <div class="card-lic-count">1 license</div>
+      </div>
+      <div class="lic-blocks"><div class="lic-block lic-progress">
+        <div class="lic-header">
+          <span class="lic-dot dot-yellow"></span>
+          <strong>New Hampshire</strong>
+          <span class="lic-type">MD</span>
+          <span class="lic-status-text">In Progress</span>
+        </div>
+        <div class="lic-deadline">Renewal: 12/13/2027 657d left</div>
+        <div class="lic-bar-row">
+          <div class="bar-track"><div class="bar-fill low" style="width:0%"></div></div>
+          <span class="bar-label">0 / 100 hrs</span>
+        </div>
+        <a class="lic-course-link" href="https://cebroker.com/#!/courses/search?state=NEW HAMPSHIRE&licenseType=MD" target="_blank" rel="noopener">Search Courses ↗</a>
+      </div></div>
+    </div><div class="provider-card card-prog" data-provider="Martin Van Dongen, NP" data-status="In Progress">
+      <div class="card-top">
+        <div class="avatar">MV</div>
+        <div class="card-info">
+          <div class="card-name">Martin Van Dongen, NP</div>
+          <div class="card-type">NP</div>
+        </div>
+        <div class="card-lic-count">1 license</div>
+      </div>
+      <div class="lic-blocks"><div class="lic-block lic-progress">
+        <div class="lic-header">
+          <span class="lic-dot dot-yellow"></span>
+          <strong>Ohio</strong>
+          <span class="lic-type">NP</span>
+          <span class="lic-status-text">In Progress</span>
+        </div>
+        <div class="lic-deadline">Renewal: 10/31/2027 614d left</div>
+        <div class="lic-bar-row">
+          <div class="bar-track"><div class="bar-fill low" style="width:0%"></div></div>
+          <span class="bar-label">0 / 24 hrs</span>
+        </div>
+        <a class="lic-course-link" href="https://cebroker.com/#!/courses/search?state=OHIO&licenseType=NP" target="_blank" rel="noopener">Search Courses ↗</a>
+      </div></div>
+    </div><div class="provider-card card-prog" data-provider="Priya Chaudhari, NP" data-status="In Progress">
+      <div class="card-top">
+        <div class="avatar">PC</div>
+        <div class="card-info">
+          <div class="card-name">Priya Chaudhari, NP</div>
+          <div class="card-type">NP</div>
+        </div>
+        <div class="card-lic-count">1 license</div>
+      </div>
+      <div class="lic-blocks"><div class="lic-block lic-progress">
+        <div class="lic-header">
+          <span class="lic-dot dot-yellow"></span>
+          <strong>Florida</strong>
+          <span class="lic-type">NP</span>
+          <span class="lic-status-text">In Progress</span>
+        </div>
+        <div class="lic-deadline">Renewal: 04/30/2026 65d left</div>
+        <div class="lic-bar-row">
+          <div class="bar-track"><div class="bar-fill low" style="width:0%"></div></div>
+          <span class="bar-label">0 / 21 hrs</span>
+        </div>
+        <a class="lic-course-link" href="https://cebroker.com/#!/courses/search?state=FLORIDA&licenseType=NP" target="_blank" rel="noopener">Search Courses ↗</a>
+      </div></div>
+    </div><div class="provider-card card-prog" data-provider="Summer Denny, NP" data-status="In Progress">
+      <div class="card-top">
+        <div class="avatar">SD</div>
+        <div class="card-info">
+          <div class="card-name">Summer Denny, NP</div>
+          <div class="card-type">NP</div>
+        </div>
+        <div class="card-lic-count">1 license</div>
+      </div>
+      <div class="lic-blocks"><div class="lic-block lic-progress">
+        <div class="lic-header">
+          <span class="lic-dot dot-yellow"></span>
+          <strong>New Mexico</strong>
+          <span class="lic-type">NP</span>
+          <span class="lic-status-text">In Progress</span>
+        </div>
+        <div class="lic-deadline">Renewal: 09/30/2027 583d left</div>
+        <div class="lic-bar-row">
+          <div class="bar-track"><div class="bar-fill low" style="width:34%"></div></div>
+          <span class="bar-label">17 / 50 hrs</span>
+        </div>
+        <a class="lic-course-link" href="https://cebroker.com/#!/courses/search?state=NEW MEXICO&licenseType=NP" target="_blank" rel="noopener">Search Courses ↗</a>
+      </div></div>
+    </div><div class="provider-card card-unk" data-provider="Tim Mack, NP" data-status="Unknown">
+      <div class="card-top">
+        <div class="avatar">TM</div>
+        <div class="card-info">
+          <div class="card-name">Tim Mack, NP</div>
+          <div class="card-type">NP</div>
+        </div>
+        <div class="card-lic-count">1 license</div>
+      </div>
+      <div class="lic-blocks"><div class="lic-block lic-unknown">
+        <div class="lic-header">
+          <span class="lic-dot dot-gray"></span>
+          <strong>??</strong>
+          <span class="lic-type">NP</span>
+          <span class="lic-status-text">Unknown</span>
+        </div>
+        <div class="lic-deadline">Renewal: — </div>
+        <div class="lic-bar-row">
+          <div class="bar-track"><div class="bar-fill low" style="width:0%"></div></div>
+          <span class="bar-label">? / ? hrs</span>
+        </div>
+        <a class="lic-course-link" href="https://cebroker.com/#!/courses/search?state=??&licenseType=NP" target="_blank" rel="noopener">Search Courses ↗</a>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab: Full Table ────────────────────────────────────────────────── -->
+<div class="tab-panel" id="tab-table">
+  <div class="controls">
+    <input class="search-box" type="text" id="tableSearch" placeholder="Search provider..." oninput="filterTable()" />
+    <button class="filter-btn active" id="tbtn-all"         onclick="setTableFilter('all')">All</button>
+    <button class="filter-btn"        id="tbtn-Complete"    onclick="setTableFilter('Complete')">Complete</button>
+    <button class="filter-btn"        id="tbtn-In Progress" onclick="setTableFilter('In Progress')">In Progress</button>
+    <button class="filter-btn"        id="tbtn-At Risk"     onclick="setTableFilter('At Risk')">At Risk</button>
+  </div>
+  <div class="table-wrap">
+    <table id="mainTable">
+      <thead>
+        <tr>
+          <th onclick="sortTable(0)">Provider <span class="sort-icon">↕</span></th>
+          <th onclick="sortTable(1)" style="text-align:center">Type <span class="sort-icon">↕</span></th>
+          <th onclick="sortTable(2)" style="text-align:center">State <span class="sort-icon">↕</span></th>
+          <th onclick="sortTable(3)" style="text-align:center">Renewal Deadline <span class="sort-icon">↕</span></th>
+          <th onclick="sortTable(4)" style="text-align:center">Hours <span class="sort-icon">↕</span></th>
+          <th onclick="sortTable(5)" style="text-align:center">Status <span class="sort-icon">↕</span></th>
+          <th style="text-align:center">Links</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        <tr class="summary-row" data-status="Complete" data-provider="Bryana Anderson, NP">
+      <td>Bryana Anderson, NP</td>
+      <td class="center">NP</td>
+      <td class="center">New Mexico</td>
+      <td class="center">06/30/2027<br><small class="days-label">491d</small></td>
+      <td class="center"><div class="hours-wrap">
+    <div class="hours-text">219.5 / 50 hrs</div>
+    <div class="bar-track"><div class="bar-fill " style="width:100%"></div></div>
+  </div></td>
+      <td class="center"><span class="status-badge status-complete">✓ Complete</span></td>
+      <td class="center">
+        <a class="course-link" href="https://cebroker.com/#!/courses/search?state=NEW MEXICO&licenseType=NP" target="_blank" rel="noopener">Search ↗</a>
+        <button class="toggle-btn" onclick="toggleDetail('detail-bryana-anderson-np-New Mexico')">▸ Details</button>
+      </td>
+    </tr>
+    <tbody id="detail-bryana-anderson-np-New Mexico" class="detail-group hidden"><tr class="detail-row">
+            <td colspan="2" class="sa-indent">Continuing education related to non-cancer pain management</td>
+            <td class="center">5</td>
+            <td class="center">—</td>
+            <td colspan="3" class="center"><span class="sa-badge sa-unk">Unknown</span></td>
+          </tr><tr class="detail-row">
+            <td colspan="2" class="sa-indent">Continuing education related to pharmacology</td>
+            <td class="center">10</td>
+            <td class="center">—</td>
+            <td colspan="3" class="center"><span class="sa-badge sa-unk">Unknown</span></td>
+          </tr><tr class="detail-row">
+            <td colspan="2" class="sa-indent">Continuing education relevant to CNP nursing specialty</td>
+            <td class="center">5</td>
+            <td class="center">—</td>
+            <td colspan="3" class="center"><span class="sa-badge sa-unk">Unknown</span></td>
+          </tr><tr class="detail-row">
+            <td colspan="2" class="sa-indent">Continuing education relevant to nursing practice</td>
+            <td class="center">30</td>
+            <td class="center">—</td>
+            <td colspan="3" class="center"><span class="sa-badge sa-unk">Unknown</span></td>
+          </tr></tbody><tr class="summary-row" data-status="In Progress" data-provider="Ashley Grout, NP">
+      <td>Ashley Grout, NP</td>
+      <td class="center">NP</td>
+      <td class="center">Florida</td>
+      <td class="center">04/30/2027<br><small class="days-label">430d</small></td>
+      <td class="center"><div class="hours-wrap">
+    <div class="hours-text">45 / 24 hrs</div>
+    <div class="bar-track"><div class="bar-fill " style="width:100%"></div></div>
+  </div></td>
+      <td class="center"><span class="status-badge status-progress">◷ In Progress</span></td>
+      <td class="center">
+        <a class="course-link" href="https://cebroker.com/#!/courses/search?state=FLORIDA&licenseType=NP" target="_blank" rel="noopener">Search ↗</a>
+        <button class="toggle-btn" onclick="toggleDetail('detail-ashley-grout-np-Florida')">▸ Details</button>
+      </td>
+    </tr>
+    <tbody id="detail-ashley-grout-np-Florida" class="detail-group hidden"><tr class="detail-row">
+            <td colspan="2" class="sa-indent">Medical Errors</td>
+            <td class="center">2</td>
+            <td class="center">0</td>
+            <td colspan="3" class="center"><span class="sa-badge sa-prog">In Progress</span></td>
+          </tr><tr class="detail-row">
+            <td colspan="2" class="sa-indent">Laws and Rules of the Board</td>
+            <td class="center">2</td>
+            <td class="center">0</td>
+            <td colspan="3" class="center"><span class="sa-badge sa-prog">In Progress</span></td>
+          </tr><tr class="detail-row">
+            <td colspan="2" class="sa-indent">Human Trafficking</td>
+            <td class="center">2</td>
+            <td class="center">0</td>
+            <td colspan="3" class="center"><span class="sa-badge sa-prog">In Progress</span></td>
+          </tr><tr class="detail-row">
+            <td colspan="2" class="sa-indent">Domestic Violence</td>
+            <td class="center">0</td>
+            <td class="center">0</td>
+            <td colspan="3" class="center"><span class="sa-badge sa-ok">Complete</span></td>
+          </tr><tr class="detail-row">
+            <td colspan="2" class="sa-indent">Recognizing Impairment in the Workplace</td>
+            <td class="center">0</td>
+            <td class="center">0</td>
+            <td colspan="3" class="center"><span class="sa-badge sa-ok">Complete</span></td>
+          </tr><tr class="detail-row">
+            <td colspan="2" class="sa-indent">General</td>
+            <td class="center">18</td>
+            <td class="center">45</td>
+            <td colspan="3" class="center"><span class="sa-badge sa-ok">Complete</span></td>
+          </tr></tbody><tr class="summary-row" data-status="Complete" data-provider="Bill Carbonneau, NP">
+      <td>Bill Carbonneau, NP</td>
+      <td class="center">NP</td>
+      <td class="center">Florida</td>
+      <td class="center">07/31/2026<br><small class="days-label">157d</small></td>
+      <td class="center"><div class="hours-wrap">
+    <div class="hours-text">109 / 26 hrs</div>
+    <div class="bar-track"><div class="bar-fill " style="width:100%"></div></div>
+  </div></td>
+      <td class="center"><span class="status-badge status-complete">✓ Complete</span></td>
+      <td class="center">
+        <a class="course-link" href="https://cebroker.com/#!/courses/search?state=FLORIDA&licenseType=NP" target="_blank" rel="noopener">Search ↗</a>
+        <button class="toggle-btn" onclick="toggleDetail('detail-bill-carbonneau-np-Florida')">▸ Details</button>
+      </td>
+    </tr>
+    <tbody id="detail-bill-carbonneau-np-Florida" class="detail-group hidden"><tr class="detail-row">
+            <td colspan="2" class="sa-indent">Recognizing Impairment in the Workplace</td>
+            <td class="center">0</td>
+            <td class="center">2</td>
+            <td colspan="3" class="center"><span class="sa-badge sa-ok">Complete</span></td>
+          </tr><tr class="detail-row">
+            <td colspan="2" class="sa-indent">Medical Errors</td>
+            <td class="center">2</td>
+            <td class="center">4</td>
+            <td colspan="3" class="center"><span class="sa-badge sa-ok">Complete</span></td>
+          </tr><tr class="detail-row">
+            <td colspan="2" class="sa-indent">Laws and Rules of the Board</td>
+            <td class="center">2</td>
+            <td class="center">2</td>
+            <td colspan="3" class="center"><span class="sa-badge sa-ok">Complete</span></td>
+          </tr><tr class="detail-row">
+            <td colspan="2" class="sa-indent">Human Trafficking</td>
+            <td class="center">2</td>
+            <td class="center">2</td>
+            <td colspan="3" class="center"><span class="sa-badge sa-ok">Complete</span></td>
+          </tr><tr class="detail-row">
+            <td colspan="2" class="sa-indent">Domestic Violence</td>
+            <td class="center">2</td>
+            <td class="center">2</td>
+            <td colspan="3" class="center"><span class="sa-badge sa-ok">Complete</span></td>
+          </tr><tr class="detail-row">
+            <td colspan="2" class="sa-indent">General</td>
+            <td class="center">18</td>
+            <td class="center">97</td>
+            <td colspan="3" class="center"><span class="sa-badge sa-ok">Complete</span></td>
+          </tr></tbody><tr class="summary-row" data-status="Complete" data-provider="Bryce Amos, NP">
+      <td>Bryce Amos, NP</td>
+      <td class="center">NP</td>
+      <td class="center">New York</td>
+      <td class="center">02/29/2028<br><small class="days-label">735d</small></td>
+      <td class="center"><div class="hours-wrap">
+    <div class="hours-text">0 / 0 hrs</div>
+    <div class="bar-track"><div class="bar-fill low" style="width:0%"></div></div>
+  </div></td>
+      <td class="center"><span class="status-badge status-complete">✓ Complete</span></td>
+      <td class="center">
+        <a class="course-link" href="https://cebroker.com/#!/courses/search?state=NEW YORK&licenseType=NP" target="_blank" rel="noopener">Search ↗</a>
+        
+      </td>
+    </tr>
+    <tbody id="detail-bryce-amos-np-New York" class="detail-group hidden"></tbody><tr class="summary-row" data-status="In Progress" data-provider="Catherine Herrington, MD">
+      <td>Catherine Herrington, MD</td>
+      <td class="center">MD</td>
+      <td class="center">Texas</td>
+      <td class="center">05/31/2027<br><small class="days-label">461d</small></td>
+      <td class="center"><div class="hours-wrap">
+    <div class="hours-text">7 / 48 hrs</div>
+    <div class="bar-track"><div class="bar-fill low" style="width:15%"></div></div>
+  </div></td>
+      <td class="center"><span class="status-badge status-progress">◷ In Progress</span></td>
+      <td class="center">
+        <a class="course-link" href="https://cebroker.com/#!/courses/search?state=TEXAS&licenseType=MD" target="_blank" rel="noopener">Search ↗</a>
+        <button class="toggle-btn" onclick="toggleDetail('detail-catherine-herrington-md-Texas')">▸ Details</button>
+      </td>
+    </tr>
+    <tbody id="detail-catherine-herrington-md-Texas" class="detail-group hidden"><tr class="detail-row">
+            <td colspan="2" class="sa-indent">Medical Ethics and/or Professional Responsibility (Category 1 or 1A)</td>
+            <td class="center">2</td>
+            <td class="center">—</td>
+            <td colspan="3" class="center"><span class="sa-badge sa-unk">Unknown</span></td>
+          </tr><tr class="detail-row">
+            <td colspan="2" class="sa-indent">Formal Category 1 or 1A Hours</td>
+            <td class="center">24</td>
+            <td class="center">—</td>
+            <td colspan="3" class="center"><span class="sa-badge sa-unk">Unknown</span></td>
+          </tr><tr class="detail-row">
+            <td colspan="2" class="sa-indent">Informal Hours</td>
+            <td class="center">0</td>
+            <td class="center">—</td>
+            <td colspan="3" class="center"><span class="sa-badge sa-unk">Unknown</span></td>
+          </tr><tr class="detail-row">
+            <td colspan="2" class="sa-indent">Pain Management and the Prescription of Opioids (Category 1 or 1A)</td>
+            <td class="center">2</td>
+            <td class="center">—</td>
+            <td colspan="3" class="center"><span class="sa-badge sa-unk">Unknown</span></td>
+          </tr></tbody><tr class="summary-row" data-status="In Progress" data-provider="Doron Stember, MD">
+      <td>Doron Stember, MD</td>
+      <td class="center">MD</td>
+      <td class="center">New Hampshire</td>
+      <td class="center">12/13/2027<br><small class="days-label">657d</small></td>
+      <td class="center"><div class="hours-wrap">
+    <div class="hours-text">0 / 100 hrs</div>
+    <div class="bar-track"><div class="bar-fill low" style="width:0%"></div></div>
+  </div></td>
+      <td class="center"><span class="status-badge status-progress">◷ In Progress</span></td>
+      <td class="center">
+        <a class="course-link" href="https://cebroker.com/#!/courses/search?state=NEW HAMPSHIRE&licenseType=MD" target="_blank" rel="noopener">Search ↗</a>
+        <button class="toggle-btn" onclick="toggleDetail('detail-doron-stember-md-New Hampshire')">▸ Details</button>
+      </td>
+    </tr>
+    <tbody id="detail-doron-stember-md-New Hampshire" class="detail-group hidden"><tr class="detail-row">
+            <td colspan="2" class="sa-indent">Pain Management or Addiction Disorders (Category 1)</td>
+            <td class="center">3</td>
+            <td class="center">0</td>
+            <td colspan="3" class="center"><span class="sa-badge sa-prog">In Progress</span></td>
+          </tr><tr class="detail-row">
+            <td colspan="2" class="sa-indent">Category 1 Hours</td>
+            <td class="center">40</td>
+            <td class="center">0</td>
+            <td colspan="3" class="center"><span class="sa-badge sa-prog">In Progress</span></td>
+          </tr><tr class="detail-row">
+            <td colspan="2" class="sa-indent">Remaining Hours Required</td>
+            <td class="center">0</td>
+            <td class="center">0</td>
+            <td colspan="3" class="center"><span class="sa-badge sa-ok">Complete</span></td>
+          </tr></tbody><tr class="summary-row" data-status="In Progress" data-provider="Martin Van Dongen, NP">
+      <td>Martin Van Dongen, NP</td>
+      <td class="center">NP</td>
+      <td class="center">Ohio</td>
+      <td class="center">10/31/2027<br><small class="days-label">614d</small></td>
+      <td class="center"><div class="hours-wrap">
+    <div class="hours-text">0 / 24 hrs</div>
+    <div class="bar-track"><div class="bar-fill low" style="width:0%"></div></div>
+  </div></td>
+      <td class="center"><span class="status-badge status-progress">◷ In Progress</span></td>
+      <td class="center">
+        <a class="course-link" href="https://cebroker.com/#!/courses/search?state=OHIO&licenseType=NP" target="_blank" rel="noopener">Search ↗</a>
+        <button class="toggle-btn" onclick="toggleDetail('detail-martin-van-dongen-np-Ohio')">▸ Details</button>
+      </td>
+    </tr>
+    <tbody id="detail-martin-van-dongen-np-Ohio" class="detail-group hidden"><tr class="detail-row">
+            <td colspan="2" class="sa-indent">Advanced Pharmacology</td>
+            <td class="center">12</td>
+            <td class="center">—</td>
+            <td colspan="3" class="center"><span class="sa-badge sa-unk">Unknown</span></td>
+          </tr><tr class="detail-row">
+            <td colspan="2" class="sa-indent">General CE</td>
+            <td class="center">12</td>
+            <td class="center">—</td>
+            <td colspan="3" class="center"><span class="sa-badge sa-unk">Unknown</span></td>
+          </tr></tbody><tr class="summary-row" data-status="In Progress" data-provider="Priya Chaudhari, NP">
+      <td>Priya Chaudhari, NP</td>
+      <td class="center">NP</td>
+      <td class="center">Florida</td>
+      <td class="center">04/30/2026<br><small class="days-label">65d</small></td>
+      <td class="center"><div class="hours-wrap">
+    <div class="hours-text">0 / 21 hrs</div>
+    <div class="bar-track"><div class="bar-fill low" style="width:0%"></div></div>
+  </div></td>
+      <td class="center"><span class="status-badge status-progress">◷ In Progress</span></td>
+      <td class="center">
+        <a class="course-link" href="https://cebroker.com/#!/courses/search?state=FLORIDA&licenseType=NP" target="_blank" rel="noopener">Search ↗</a>
+        <button class="toggle-btn" onclick="toggleDetail('detail-priya-chaudhari-np-Florida')">▸ Details</button>
+      </td>
+    </tr>
+    <tbody id="detail-priya-chaudhari-np-Florida" class="detail-group hidden"><tr class="detail-row">
+            <td colspan="2" class="sa-indent">Medical Errors</td>
+            <td class="center">2</td>
+            <td class="center">—</td>
+            <td colspan="3" class="center"><span class="sa-badge sa-unk">Unknown</span></td>
+          </tr><tr class="detail-row">
+            <td colspan="2" class="sa-indent">Laws and Rules of the Board</td>
+            <td class="center">2</td>
+            <td class="center">—</td>
+            <td colspan="3" class="center"><span class="sa-badge sa-unk">Unknown</span></td>
+          </tr><tr class="detail-row">
+            <td colspan="2" class="sa-indent">Safe and Effective Prescription of Controlled Substances</td>
+            <td class="center">3</td>
+            <td class="center">—</td>
+            <td colspan="3" class="center"><span class="sa-badge sa-unk">Unknown</span></td>
+          </tr><tr class="detail-row">
+            <td colspan="2" class="sa-indent">Human Trafficking</td>
+            <td class="center">2</td>
+            <td class="center">—</td>
+            <td colspan="3" class="center"><span class="sa-badge sa-unk">Unknown</span></td>
+          </tr><tr class="detail-row">
+            <td colspan="2" class="sa-indent">Domestic Violence</td>
+            <td class="center">0</td>
+            <td class="center">—</td>
+            <td colspan="3" class="center"><span class="sa-badge sa-unk">Unknown</span></td>
+          </tr><tr class="detail-row">
+            <td colspan="2" class="sa-indent">Recognizing Impairment in the Workplace</td>
+            <td class="center">2</td>
+            <td class="center">—</td>
+            <td colspan="3" class="center"><span class="sa-badge sa-unk">Unknown</span></td>
+          </tr><tr class="detail-row">
+            <td colspan="2" class="sa-indent">General</td>
+            <td class="center">10</td>
+            <td class="center">—</td>
+            <td colspan="3" class="center"><span class="sa-badge sa-unk">Unknown</span></td>
+          </tr></tbody><tr class="summary-row" data-status="In Progress" data-provider="Summer Denny, NP">
+      <td>Summer Denny, NP</td>
+      <td class="center">NP</td>
+      <td class="center">New Mexico</td>
+      <td class="center">09/30/2027<br><small class="days-label">583d</small></td>
+      <td class="center"><div class="hours-wrap">
+    <div class="hours-text">17 / 50 hrs</div>
+    <div class="bar-track"><div class="bar-fill low" style="width:34%"></div></div>
+  </div></td>
+      <td class="center"><span class="status-badge status-progress">◷ In Progress</span></td>
+      <td class="center">
+        <a class="course-link" href="https://cebroker.com/#!/courses/search?state=NEW MEXICO&licenseType=NP" target="_blank" rel="noopener">Search ↗</a>
+        <button class="toggle-btn" onclick="toggleDetail('detail-summer-denny-np-New Mexico')">▸ Details</button>
+      </td>
+    </tr>
+    <tbody id="detail-summer-denny-np-New Mexico" class="detail-group hidden"><tr class="detail-row">
+            <td colspan="2" class="sa-indent">Continuing education related to non-cancer pain management</td>
+            <td class="center">5</td>
+            <td class="center">0</td>
+            <td colspan="3" class="center"><span class="sa-badge sa-prog">In Progress</span></td>
+          </tr><tr class="detail-row">
+            <td colspan="2" class="sa-indent">Continuing education related to pharmacology</td>
+            <td class="center">10</td>
+            <td class="center">5</td>
+            <td colspan="3" class="center"><span class="sa-badge sa-prog">In Progress</span></td>
+          </tr><tr class="detail-row">
+            <td colspan="2" class="sa-indent">Continuing education relevant to CNP nursing specialty</td>
+            <td class="center">5</td>
+            <td class="center">0</td>
+            <td colspan="3" class="center"><span class="sa-badge sa-prog">In Progress</span></td>
+          </tr><tr class="detail-row">
+            <td colspan="2" class="sa-indent">Continuing education relevant to nursing practice</td>
+            <td class="center">30</td>
+            <td class="center">12</td>
+            <td colspan="3" class="center"><span class="sa-badge sa-prog">In Progress</span></td>
+          </tr></tbody><tr class="summary-row" data-status="Unknown" data-provider="Tim Mack, NP">
+      <td>Tim Mack, NP</td>
+      <td class="center">NP</td>
+      <td class="center">—</td>
+      <td class="center">—<br><small class="days-label">—</small></td>
+      <td class="center"><span style="color:#94a3b8">—</span></td>
+      <td class="center"><span class="status-badge status-unknown">— Unknown</span></td>
+      <td class="center">
+        <a class="course-link" href="https://cebroker.com/#!/courses/search?state=&licenseType=NP" target="_blank" rel="noopener">Search ↗</a>
+        
+      </td>
+    </tr>
+    <tbody id="detail-tim-mack-np-" class="detail-group hidden"></tbody>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── Tab: Run Log ───────────────────────────────────────────────────── -->
+<div class="tab-panel" id="tab-runlog">
+  <div class="section-title">Last Run Results</div>
+  <div class="run-table-wrap">
+    <table>
+      <thead><tr>
+        <th>Provider</th>
+        <th style="text-align:center;width:140px">Result</th>
+        <th>Error Message</th>
+      </tr></thead>
+      <tbody><tr>
+    <td>Bryana Anderson, NP</td>
+    <td class="center"><span class="status-badge status-complete">✓ Success</span></td>
+    <td><span style="color:#94a3b8">—</span></td>
+  </tr><tr>
+    <td>Ashley Grout, NP</td>
+    <td class="center"><span class="status-badge status-complete">✓ Success</span></td>
+    <td><span style="color:#94a3b8">—</span></td>
+  </tr><tr>
+    <td>Bill Carbonneau, NP</td>
+    <td class="center"><span class="status-badge status-complete">✓ Success</span></td>
+    <td><span style="color:#94a3b8">—</span></td>
+  </tr><tr>
+    <td>Bryce Amos, NP</td>
+    <td class="center"><span class="status-badge status-complete">✓ Success</span></td>
+    <td><span style="color:#94a3b8">—</span></td>
+  </tr><tr>
+    <td>Catherine Herrington, MD</td>
+    <td class="center"><span class="status-badge status-complete">✓ Success</span></td>
+    <td><span style="color:#94a3b8">—</span></td>
+  </tr><tr>
+    <td>Doron Stember, MD</td>
+    <td class="center"><span class="status-badge status-complete">✓ Success</span></td>
+    <td><span style="color:#94a3b8">—</span></td>
+  </tr><tr>
+    <td>Martin Van Dongen, NP</td>
+    <td class="center"><span class="status-badge status-complete">✓ Success</span></td>
+    <td><span style="color:#94a3b8">—</span></td>
+  </tr><tr>
+    <td>Priya Chaudhari, NP</td>
+    <td class="center"><span class="status-badge status-complete">✓ Success</span></td>
+    <td><span style="color:#94a3b8">—</span></td>
+  </tr><tr>
+    <td>Summer Denny, NP</td>
+    <td class="center"><span class="status-badge status-complete">✓ Success</span></td>
+    <td><span style="color:#94a3b8">—</span></td>
+  </tr><tr>
+    <td>Tim Mack, NP</td>
+    <td class="center"><span class="status-badge status-risk">✗ Failed</span></td>
+    <td><span style="color:#dc2626;font-size:0.8rem">page.waitForURL: Timeout 20000ms exceeded.
+=========================== logs ===========================
+waiting for navigation until &quot;load&quot;
+============================================================</span></td>
+  </tr></tbody>
+    </table>
+  </div>
+</div>
+
+<footer>CE Broker Automation &nbsp;·&nbsp; Last scraped: Tuesday, February 24, 2026 at 3:01 PM</footer>
+
+<script>
+  // ── Tabs ──
+  function showTab(name) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    const btns = document.querySelectorAll('.tab-btn');
+    const labels = ['profiles','table','runlog'];
+    btns[labels.indexOf(name)]?.classList.add('active');
+  }
+
+  // ── Card filter ──
+  let cardFilter = 'all';
+  function filterCards() {
+    const q = document.getElementById('cardSearch').value.toLowerCase();
+    document.querySelectorAll('#cardsGrid .provider-card').forEach(card => {
+      const name   = (card.dataset.provider || '').toLowerCase();
+      const status = card.dataset.status || '';
+      const matchQ = !q || name.includes(q);
+      const matchF = cardFilter === 'all' || status === cardFilter;
+      card.style.display = (matchQ && matchF) ? '' : 'none';
+    });
+  }
+  function setCardFilter(f) {
+    cardFilter = f;
+    document.querySelectorAll('[id^="cbtn-"]').forEach(b => b.classList.remove('active'));
+    const btn = document.getElementById('cbtn-' + f);
+    if (btn) btn.classList.add('active');
+    filterCards();
+  }
+
+  // ── Table filter ──
+  let tableFilter = 'all';
+  function filterTable() {
+    const q = document.getElementById('tableSearch').value.toLowerCase();
+    document.querySelectorAll('#tableBody tr.summary-row').forEach(row => {
+      const name   = (row.dataset.provider || '').toLowerCase();
+      const status = row.dataset.status || '';
+      const matchQ = !q || name.includes(q);
+      const matchF = tableFilter === 'all' || status === tableFilter;
+      row.classList.toggle('hidden-row', !(matchQ && matchF));
+    });
+  }
+  function setTableFilter(f) {
+    tableFilter = f;
+    document.querySelectorAll('[id^="tbtn-"]').forEach(b => b.classList.remove('active'));
+    const btn = document.getElementById('tbtn-' + f);
+    if (btn) btn.classList.add('active');
+    filterTable();
+  }
+
+  // ── Detail toggle ──
+  function toggleDetail(id) {
+    const el  = document.getElementById(id);
+    if (!el) return;
+    const hidden = el.classList.toggle('hidden');
+    const btn = el.previousElementSibling?.querySelector('.toggle-btn');
+    if (btn) btn.textContent = hidden ? '▸ Details' : '▾ Details';
+  }
+
+  // ── Sort ──
+  let sortCol = -1, sortDir = 1;
+  function sortTable(col) {
+    const tbody = document.getElementById('tableBody');
+    const rows  = Array.from(tbody.querySelectorAll('tr.summary-row'));
+    if (sortCol === col) sortDir *= -1; else { sortCol = col; sortDir = 1; }
+    document.querySelectorAll('thead th').forEach((th, i) => {
+      th.classList.toggle('sorted', i === col);
+      const ic = th.querySelector('.sort-icon');
+      if (ic) ic.textContent = i === col ? (sortDir === 1 ? '↑' : '↓') : '↕';
+    });
+    rows.sort((a, b) => {
+      const av = a.cells[col]?.textContent?.trim() || '';
+      const bv = b.cells[col]?.textContent?.trim() || '';
+      const an = parseFloat(av), bn = parseFloat(bv);
+      if (!isNaN(an) && !isNaN(bn)) return (an - bn) * sortDir;
+      return av.localeCompare(bv) * sortDir;
+    });
+    rows.forEach(r => tbody.appendChild(r));
+  }
+</script>
+</body>
+</html>
