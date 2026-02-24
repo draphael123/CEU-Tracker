@@ -1,0 +1,18 @@
+{
+  "name": "ce-broker-automation",
+  "version": "1.0.0",
+  "description": "Playwright automation for CE Broker CEU status scraping and Excel export",
+  "main": "index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node index.js",
+    "serve": "node server.js",
+    "build": "echo Dashboard pre-built",
+    "install-browsers": "npx playwright install chromium"
+  },
+  "dependencies": {
+    "exceljs": "^4.4.0",
+    "express": "^5.2.1",
+    "playwright": "^1.41.0"
+  }
+}

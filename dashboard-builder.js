@@ -1,0 +1,833 @@
+// dashboard-builder.js — Generates dashboard.html from scraped records
+
+const fs   = require('fs');
+const path = require('path');
+const { daysUntil, parseDate, getStatus, courseSearchUrl } = require('./utils');
+
+const OUTPUT_HTML    = path.join(__dirname, 'dashboard.html');
+const LAST_RUN_FILE  = path.join(__dirname, 'last_run.json');
+const HISTORY_FILE   = path.join(__dirname, 'history.json');
+const PUBLIC_DIR     = path.join(__dirname, 'public');
+
+function ensurePublicDir() {
+  if (!fs.existsSync(PUBLIC_DIR)) fs.mkdirSync(PUBLIC_DIR, { recursive: true });
+}
+
+/**
+ * Append the current run snapshot to history.json so progress can be
+ * tracked across multiple scrape runs over time.
+ */
+function saveHistory(allProviderRecords, runResults) {
+  const flat      = allProviderRecords.flat();
+  const succeeded = (runResults || []).filter(r => r.status === 'success').length;
+  const failed    = (runResults || []).filter(r => r.status === 'failed').length;
+
+  // Build a lean snapshot — just the numbers we need for charts
+  const snapshot = {
+    timestamp: new Date().toISOString(),
+    succeeded,
+    failed,
+    providers: flat.map(rec => ({
+      name:            rec.providerName,
+      state:           rec.state,
+      hoursRequired:   rec.hoursRequired,
+      hoursCompleted:  rec.hoursCompleted,
+      hoursRemaining:  rec.hoursRemaining,
+      renewalDeadline: rec.renewalDeadline,
+    })),
+  };
+
+  // Load existing history (or start fresh)
+  let history = [];
+  try { history = JSON.parse(fs.readFileSync(HISTORY_FILE, 'utf8')); } catch { /* first run */ }
+
+  history.push(snapshot);
+  fs.writeFileSync(HISTORY_FILE, JSON.stringify(history, null, 2), 'utf8');
+
+  // Mirror to public/ so Vercel serves the latest history
+  ensurePublicDir();
+  fs.writeFileSync(path.join(PUBLIC_DIR, 'history.json'), JSON.stringify(history, null, 2), 'utf8');
+
+  // Also save a simple last_run.json for the server's health check
+  fs.writeFileSync(LAST_RUN_FILE, JSON.stringify({
+    timestamp: snapshot.timestamp, total: flat.length, succeeded, failed,
+  }, null, 2), 'utf8');
+
+  return history;
+}
+
+/**
+ * Build and write dashboard.html.
+ * @param {LicenseRecord[][]} allProviderRecords
+ * @param {{ name:string, status:string, error?:string }[]} [runResults]
+ */
+function buildDashboard(allProviderRecords, runResults = []) {
+  const history = saveHistory(allProviderRecords, runResults);
+
+  const flat    = allProviderRecords.flat();
+  const runDate = new Date().toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' });
+
+  // ── Aggregate stats ──────────────────────────────────────────────────────
+  const getS = (rec) => getStatus(rec.hoursRemaining, daysUntil(parseDate(rec.renewalDeadline)));
+  const total    = flat.length;
+  const complete = flat.filter(r => getS(r) === 'Complete').length;
+  const atRisk   = flat.filter(r => getS(r) === 'At Risk').length;
+  const inProg   = flat.filter(r => getS(r) === 'In Progress').length;
+
+  // ── Chart data (for embedded bar chart) ─────────────────────────────────
+  const chartData = { labels: [], completed: [], required: [], colors: [] };
+  for (const rec of flat) {
+    const sameProvider = flat.filter(r => r.providerName === rec.providerName);
+    const label = sameProvider.length > 1
+      ? `${rec.providerName} (${rec.state || '?'})` : (rec.providerName || 'Unknown');
+    chartData.labels.push(label);
+    chartData.completed.push(rec.hoursCompleted ?? 0);
+    chartData.required.push(rec.hoursRequired ?? 0);
+    const st = getS(rec);
+    chartData.colors.push(
+      st === 'Complete'     ? 'rgba(22,163,74,0.8)'
+    : st === 'At Risk'     ? 'rgba(220,38,38,0.8)'
+    : st === 'In Progress' ? 'rgba(217,119,6,0.8)'
+    :                        'rgba(100,116,139,0.5)'
+    );
+  }
+
+  // ── Provider profile cards ───────────────────────────────────────────────
+  // Group records by providerName so each person gets one card
+  const providerMap = {};
+  for (const rec of flat) {
+    const key = rec.providerName || 'Unknown';
+    if (!providerMap[key]) providerMap[key] = { type: rec.providerType, licenses: [] };
+    providerMap[key].licenses.push(rec);
+  }
+
+  const profileCards = Object.entries(providerMap).map(([name, info]) => {
+    const licBadges = info.licenses.map(lic => {
+      const status    = getS(lic);
+      const state     = lic.state || '??';
+      const deadline  = lic.renewalDeadline || '—';
+      const days      = daysUntil(parseDate(lic.renewalDeadline));
+      const daysStr   = days !== null
+        ? (days < 0 ? `<span class="overdue">${Math.abs(days)}d overdue</span>`
+          : days <= 60 ? `<span class="urgent">${days}d left</span>`
+          : `${days}d left`)
+        : '';
+
+      const badgeCls  = {
+        Complete:      'lic-complete',
+        'In Progress': 'lic-progress',
+        'At Risk':     'lic-risk',
+        Unknown:       'lic-unknown',
+      }[status] || 'lic-unknown';
+
+      const dotCls    = {
+        Complete:      'dot-green',
+        'In Progress': 'dot-yellow',
+        'At Risk':     'dot-red',
+        Unknown:       'dot-gray',
+      }[status] || 'dot-gray';
+
+      const pct = lic.hoursRequired
+        ? Math.min(100, Math.round(((lic.hoursCompleted || 0) / lic.hoursRequired) * 100))
+        : 0;
+      const barCls = pct >= 100 ? '' : pct >= 50 ? 'partial' : 'low';
+
+      const courseUrl = courseSearchUrl(state, lic.licenseType || info.type);
+
+      return `<div class="lic-block ${badgeCls}">
+        <div class="lic-header">
+          <span class="lic-dot ${dotCls}"></span>
+          <strong>${escHtml(state)}</strong>
+          <span class="lic-type">${escHtml(lic.licenseType || info.type || '')}</span>
+          <span class="lic-status-text">${escHtml(status)}</span>
+        </div>
+        <div class="lic-deadline">Renewal: ${escHtml(deadline)} ${daysStr}</div>
+        <div class="lic-bar-row">
+          <div class="bar-track"><div class="bar-fill ${barCls}" style="width:${pct}%"></div></div>
+          <span class="bar-label">${lic.hoursCompleted ?? '?'} / ${lic.hoursRequired ?? '?'} hrs</span>
+        </div>
+        ${courseUrl ? `<a class="lic-course-link" href="${courseUrl}" target="_blank" rel="noopener">Search Courses ↗</a>` : ''}
+      </div>`;
+    }).join('');
+
+    // Overall worst status for card border
+    const worstStatus = info.licenses.some(l => getS(l) === 'At Risk')      ? 'At Risk'
+                      : info.licenses.some(l => getS(l) === 'In Progress')  ? 'In Progress'
+                      : info.licenses.every(l => getS(l) === 'Complete')    ? 'Complete'
+                      : 'Unknown';
+    const cardBorderCls = {
+      Complete:      'card-ok',
+      'In Progress': 'card-prog',
+      'At Risk':     'card-risk',
+      Unknown:       'card-unk',
+    }[worstStatus] || 'card-unk';
+
+    const initials = name.split(/[\s,]+/).filter(Boolean).slice(0, 2)
+      .map(w => w[0].toUpperCase()).join('');
+
+    return `<div class="provider-card ${cardBorderCls}" data-provider="${escHtml(name)}" data-status="${worstStatus}">
+      <div class="card-top">
+        <div class="avatar">${escHtml(initials)}</div>
+        <div class="card-info">
+          <div class="card-name">${escHtml(name)}</div>
+          <div class="card-type">${escHtml(info.type || '')}</div>
+        </div>
+        <div class="card-lic-count">${info.licenses.length} license${info.licenses.length !== 1 ? 's' : ''}</div>
+      </div>
+      <div class="lic-blocks">${licBadges}</div>
+    </div>`;
+  }).join('');
+
+  // ── Summary table rows ───────────────────────────────────────────────────
+  const rows = flat.map(rec => {
+    const status     = getS(rec);
+    const state      = rec.state || '';
+    const licType    = rec.licenseType || rec.providerType || '';
+    const deadline   = parseDate(rec.renewalDeadline);
+    const days       = daysUntil(deadline);
+    const courseUrl  = courseSearchUrl(state, licType);
+
+    const statusClass = { Complete: 'status-complete', 'At Risk': 'status-risk', 'In Progress': 'status-progress', Unknown: 'status-unknown' }[status] || 'status-unknown';
+    const statusBadge = { Complete: '✓ Complete', 'At Risk': '⚠ At Risk', 'In Progress': '◷ In Progress', Unknown: '— Unknown' }[status] || status;
+
+    const daysLabel = days !== null
+      ? (days < 0 ? `<span class="overdue">${Math.abs(days)}d overdue</span>`
+        : days <= 60 ? `<span class="urgent">${days}d</span>`
+        : `${days}d`)
+      : '—';
+
+    const hoursBar  = buildHoursBar(rec.hoursCompleted, rec.hoursRequired);
+
+    // Subject-area detail rows
+    const subjectRows = (rec.subjectAreas || []).length > 0
+      ? rec.subjectAreas.map(sa => {
+          const saRem    = (sa.hoursRequired != null && sa.hoursCompleted != null) ? Math.max(0, sa.hoursRequired - sa.hoursCompleted) : null;
+          const saStatus = getStatus(saRem, null);
+          const saClass  = { Complete: 'sa-ok', 'In Progress': 'sa-prog', 'At Risk': 'sa-risk', Unknown: 'sa-unk' }[saStatus] || 'sa-unk';
+          return `<tr class="detail-row">
+            <td colspan="2" class="sa-indent">${escHtml(sa.topicName || '')}</td>
+            <td class="center">${sa.hoursRequired ?? '—'}</td>
+            <td class="center">${sa.hoursCompleted ?? '—'}</td>
+            <td colspan="3" class="center"><span class="sa-badge ${saClass}">${saStatus}</span></td>
+          </tr>`;
+        }).join('')
+      : '';
+
+    const toggleId  = `detail-${slugify(rec.providerName)}-${state}`;
+    const toggleBtn = subjectRows
+      ? `<button class="toggle-btn" onclick="toggleDetail('${toggleId}')">▸ Details</button>`
+      : '';
+
+    return `<tr class="summary-row" data-status="${status}" data-provider="${escHtml(rec.providerName)}">
+      <td>${escHtml(rec.providerName || '—')}</td>
+      <td class="center">${escHtml(licType)}</td>
+      <td class="center">${escHtml(state) || '—'}</td>
+      <td class="center">${escHtml(rec.renewalDeadline || '—')}<br><small class="days-label">${daysLabel}</small></td>
+      <td class="center">${hoursBar}</td>
+      <td class="center"><span class="status-badge ${statusClass}">${statusBadge}</span></td>
+      <td class="center">
+        ${courseUrl ? `<a class="course-link" href="${courseUrl}" target="_blank" rel="noopener">Search ↗</a>` : '—'}
+        ${toggleBtn}
+      </td>
+    </tr>
+    <tbody id="${toggleId}" class="detail-group hidden">${subjectRows}</tbody>`;
+  }).join('');
+
+  // ── Run result table ─────────────────────────────────────────────────────
+  const runRows = runResults.map(r => `<tr>
+    <td>${escHtml(r.name)}</td>
+    <td class="center"><span class="status-badge ${r.status === 'success' ? 'status-complete' : 'status-risk'}">${r.status === 'success' ? '✓ Success' : '✗ Failed'}</span></td>
+    <td>${r.error ? `<span style="color:#dc2626;font-size:0.8rem">${escHtml(r.error)}</span>` : '<span style="color:#94a3b8">—</span>'}</td>
+  </tr>`).join('');
+
+  // ── HTML ─────────────────────────────────────────────────────────────────
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CE Broker — Compliance Dashboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f2f5; color: #1a1a2e; min-height: 100vh; }
+
+    /* ─ Header ─ */
+    header {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%);
+      color: #fff;
+      padding: 24px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,.35);
+    }
+    header h1 { font-size: 1.55rem; font-weight: 700; }
+    header h1 span { color: #e94560; }
+    .header-meta { text-align: right; }
+    .last-scraped-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px; color: #64748b; }
+    .last-scraped-value { font-size: 0.95rem; color: #e2e8f0; font-weight: 500; margin-top: 2px; }
+    .run-badge { margin-top: 6px; display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+    .run-pill { padding: 3px 10px; border-radius: 99px; font-size: 0.75rem; font-weight: 600; }
+    .run-pill.ok   { background: #166534; color: #dcfce7; }
+    .run-pill.fail { background: #7f1d1d; color: #fee2e2; }
+
+    /* ─ Stat cards ─ */
+    .stats { display: flex; gap: 14px; padding: 28px 40px 0; flex-wrap: wrap; }
+    .stat-card { background: #fff; border-radius: 12px; padding: 18px 22px; min-width: 130px; box-shadow: 0 2px 8px rgba(0,0,0,.07); }
+    .stat-card .num { font-size: 2rem; font-weight: 700; }
+    .stat-card .lbl { font-size: 0.72rem; text-transform: uppercase; letter-spacing: .8px; color: #64748b; margin-top: 3px; }
+    .stat-card.total .num { color: #334155; }
+    .stat-card.ok    .num { color: #16a34a; }
+    .stat-card.prog  .num { color: #d97706; }
+    .stat-card.risk  .num { color: #dc2626; }
+
+    /* ─ Section titles ─ */
+    .section-title {
+      padding: 28px 40px 12px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #1e293b;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: #e2e8f0;
+    }
+
+    /* ─ Provider cards ─ */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 18px;
+      padding: 0 40px;
+    }
+    .provider-card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,.07);
+      border-left: 5px solid #cbd5e1;
+      transition: box-shadow .15s, transform .15s;
+    }
+    .provider-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,.12); transform: translateY(-2px); }
+    .provider-card.card-ok   { border-left-color: #16a34a; }
+    .provider-card.card-prog { border-left-color: #d97706; }
+    .provider-card.card-risk { border-left-color: #dc2626; }
+    .provider-card.card-unk  { border-left-color: #94a3b8; }
+
+    .card-top { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .avatar {
+      width: 42px; height: 42px; border-radius: 50%;
+      background: #1a1a2e; color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.9rem; font-weight: 700; flex-shrink: 0;
+    }
+    .card-info { flex: 1; min-width: 0; }
+    .card-name { font-weight: 700; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .card-type { font-size: 0.78rem; color: #64748b; margin-top: 2px; }
+    .card-lic-count { font-size: 0.75rem; color: #94a3b8; white-space: nowrap; }
+
+    /* ─ License blocks inside a card ─ */
+    .lic-blocks { display: flex; flex-direction: column; gap: 10px; }
+    .lic-block {
+      border-radius: 10px;
+      padding: 12px 14px;
+      border: 1.5px solid #e2e8f0;
+      background: #f8fafc;
+    }
+    .lic-block.lic-complete  { border-color: #bbf7d0; background: #f0fdf4; }
+    .lic-block.lic-progress  { border-color: #fde68a; background: #fffbeb; }
+    .lic-block.lic-risk      { border-color: #fecaca; background: #fff5f5; }
+
+    .lic-header { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
+    .lic-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+    .dot-green  { background: #16a34a; }
+    .dot-yellow { background: #d97706; }
+    .dot-red    { background: #dc2626; }
+    .dot-gray   { background: #94a3b8; }
+    .lic-header strong { font-size: 0.9rem; }
+    .lic-type   { font-size: 0.72rem; color: #64748b; background: #e2e8f0; padding: 1px 7px; border-radius: 99px; }
+    .lic-status-text { margin-left: auto; font-size: 0.75rem; color: #475569; font-weight: 500; }
+
+    .lic-deadline { font-size: 0.78rem; color: #475569; margin-bottom: 7px; }
+    .overdue  { color: #dc2626; font-weight: 700; }
+    .urgent   { color: #d97706; font-weight: 600; }
+
+    .lic-bar-row { display: flex; align-items: center; gap: 8px; }
+    .bar-track { flex: 1; height: 7px; background: #e2e8f0; border-radius: 99px; overflow: hidden; }
+    .bar-fill  { height: 100%; border-radius: 99px; background: #16a34a; transition: width .4s; }
+    .bar-fill.partial { background: #d97706; }
+    .bar-fill.low     { background: #dc2626; }
+    .bar-label { font-size: 0.75rem; color: #64748b; white-space: nowrap; }
+
+    .lic-course-link {
+      display: inline-block;
+      margin-top: 8px;
+      font-size: 0.75rem;
+      color: #1d4ed8;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .lic-course-link:hover { text-decoration: underline; }
+
+    /* ─ Controls ─ */
+    .controls {
+      padding: 20px 40px 12px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .search-box {
+      padding: 8px 14px;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      width: 220px;
+      outline: none;
+    }
+    .search-box:focus { border-color: #0f3460; }
+    .filter-btn {
+      padding: 7px 16px;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 8px;
+      background: #fff;
+      cursor: pointer;
+      font-size: 0.82rem;
+      transition: all .15s;
+    }
+    .filter-btn:hover, .filter-btn.active { background: #0f3460; color: #fff; border-color: #0f3460; }
+
+    /* ─ Table ─ */
+    .table-wrap { padding: 0 40px 16px; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,.07); font-size: 0.86rem; }
+    thead th { background: #1a1a2e; color: #fff; padding: 12px 16px; text-align: left; font-weight: 600; font-size: 0.76rem; text-transform: uppercase; letter-spacing: .6px; white-space: nowrap; cursor: pointer; user-select: none; }
+    thead th:hover { background: #0f3460; }
+    thead th .sort-icon { opacity: .4; margin-left: 4px; font-size: .68rem; }
+    thead th.sorted .sort-icon { opacity: 1; }
+    tbody tr.summary-row { border-bottom: 1px solid #f1f5f9; transition: background .1s; }
+    tbody tr.summary-row:hover { background: #f8fafc; }
+    td { padding: 11px 16px; vertical-align: middle; }
+    td.center { text-align: center; }
+    td:first-child { font-weight: 600; color: #1e293b; }
+    .days-label { color: #94a3b8; font-size: .73rem; }
+
+    .hours-wrap { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+    .hours-text { font-size: .78rem; color: #475569; white-space: nowrap; }
+
+    .status-badge { display: inline-block; padding: 4px 10px; border-radius: 99px; font-size: .72rem; font-weight: 600; white-space: nowrap; }
+    .status-complete { background: #dcfce7; color: #15803d; }
+    .status-progress { background: #fef3c7; color: #b45309; }
+    .status-risk     { background: #fee2e2; color: #b91c1c; }
+    .status-unknown  { background: #f1f5f9; color: #64748b; }
+
+    .course-link { display: inline-block; padding: 4px 10px; background: #eff6ff; color: #1d4ed8; border-radius: 6px; font-size: .76rem; text-decoration: none; font-weight: 500; }
+    .course-link:hover { background: #dbeafe; }
+    .toggle-btn { display: inline-block; margin-left: 6px; padding: 3px 8px; background: #f1f5f9; color: #475569; border: none; border-radius: 6px; font-size: .73rem; cursor: pointer; }
+    .toggle-btn:hover { background: #e2e8f0; }
+
+    .detail-group.hidden { display: none; }
+    .detail-row td { background: #f8fafc; color: #475569; font-size: .8rem; }
+    .sa-indent { padding-left: 40px !important; font-style: italic; }
+    .sa-badge  { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: .7rem; font-weight: 600; }
+    .sa-ok   { background: #dcfce7; color: #15803d; }
+    .sa-prog { background: #fef3c7; color: #b45309; }
+    .sa-risk { background: #fee2e2; color: #b91c1c; }
+    .sa-unk  { background: #f1f5f9; color: #64748b; }
+
+    tr.hidden-row { display: none; }
+
+    /* ─ Run log table ─ */
+    .run-table-wrap { padding: 0 40px 40px; overflow-x: auto; }
+    .run-table-wrap table { font-size: 0.84rem; }
+
+    /* ─ Footer ─ */
+    footer { text-align: center; padding: 16px; font-size: .76rem; color: #94a3b8; border-top: 1px solid #e2e8f0; margin-top: 8px; }
+
+    /* ─ Tabs ─ */
+    .tab-bar { display: flex; gap: 0; padding: 28px 40px 0; border-bottom: 2px solid #e2e8f0; margin-bottom: 0; }
+    .tab-btn {
+      padding: 10px 22px;
+      border: none;
+      border-bottom: 3px solid transparent;
+      background: none;
+      cursor: pointer;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #64748b;
+      margin-bottom: -2px;
+      transition: all .15s;
+    }
+    .tab-btn.active { color: #0f3460; border-bottom-color: #0f3460; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ─ Chart section ─ */
+    .chart-wrap { padding: 28px 40px 40px; }
+    .chart-section { background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 2px 10px rgba(0,0,0,.07); margin-bottom: 20px; }
+    .chart-section-title { font-size: 0.82rem; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 16px; }
+    .chart-canvas-wrap { position: relative; height: 380px; }
+    .chart-no-data { text-align: center; padding: 40px; color: #94a3b8; font-size: 0.88rem; }
+
+    @media (max-width: 640px) {
+      header, .stats, .controls, .table-wrap, .cards-grid, .section-title, .tab-bar, .run-table-wrap {
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+      .chart-wrap { padding-left: 16px; padding-right: 16px; }
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<!-- ── Header ─────────────────────────────────────────────────────────── -->
+<header>
+  <div>
+    <h1>CE Broker <span>Compliance</span> Dashboard</h1>
+  </div>
+  <div class="header-meta">
+    <div class="last-scraped-label">Last Scraped</div>
+    <div class="last-scraped-value" id="lastScrapedValue">${escHtml(runDate)}</div>
+    <div class="run-badge">
+      <span class="run-pill ok">✓ ${runResults.filter(r => r.status === 'success').length} succeeded</span>
+      ${runResults.filter(r => r.status === 'failed').length > 0
+        ? `<span class="run-pill fail">✗ ${runResults.filter(r => r.status === 'failed').length} failed</span>`
+        : ''}
+    </div>
+  </div>
+</header>
+
+<!-- ── Stats ──────────────────────────────────────────────────────────── -->
+<div class="stats">
+  <div class="stat-card total"><div class="num">${total}</div><div class="lbl">Total Licenses</div></div>
+  <div class="stat-card ok">  <div class="num">${complete}</div><div class="lbl">Complete</div></div>
+  <div class="stat-card prog"><div class="num">${inProg}</div><div class="lbl">In Progress</div></div>
+  <div class="stat-card risk"><div class="num">${atRisk}</div><div class="lbl">At Risk</div></div>
+</div>
+
+<!-- ── Tabs ───────────────────────────────────────────────────────────── -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('profiles')">Provider Profiles</button>
+  <button class="tab-btn"        onclick="showTab('table')">Full Table</button>
+  <button class="tab-btn"        onclick="showTab('runlog')">Run Log</button>
+  <button class="tab-btn"        onclick="showTab('chart')">Progress Chart</button>
+</div>
+
+<!-- ── Tab: Provider Profiles ─────────────────────────────────────────── -->
+<div class="tab-panel active" id="tab-profiles">
+  <div class="section-title">Provider Profiles</div>
+  <div class="controls">
+    <input class="search-box" type="text" id="cardSearch" placeholder="Search provider..." oninput="filterCards()" />
+    <button class="filter-btn active" id="cbtn-all"         onclick="setCardFilter('all')">All</button>
+    <button class="filter-btn"        id="cbtn-Complete"    onclick="setCardFilter('Complete')">Complete</button>
+    <button class="filter-btn"        id="cbtn-In Progress" onclick="setCardFilter('In Progress')">In Progress</button>
+    <button class="filter-btn"        id="cbtn-At Risk"     onclick="setCardFilter('At Risk')">At Risk</button>
+  </div>
+  <div class="cards-grid" id="cardsGrid">
+    ${profileCards}
+  </div>
+</div>
+
+<!-- ── Tab: Full Table ────────────────────────────────────────────────── -->
+<div class="tab-panel" id="tab-table">
+  <div class="controls">
+    <input class="search-box" type="text" id="tableSearch" placeholder="Search provider..." oninput="filterTable()" />
+    <button class="filter-btn active" id="tbtn-all"         onclick="setTableFilter('all')">All</button>
+    <button class="filter-btn"        id="tbtn-Complete"    onclick="setTableFilter('Complete')">Complete</button>
+    <button class="filter-btn"        id="tbtn-In Progress" onclick="setTableFilter('In Progress')">In Progress</button>
+    <button class="filter-btn"        id="tbtn-At Risk"     onclick="setTableFilter('At Risk')">At Risk</button>
+  </div>
+  <div class="table-wrap">
+    <table id="mainTable">
+      <thead>
+        <tr>
+          <th onclick="sortTable(0)">Provider <span class="sort-icon">↕</span></th>
+          <th onclick="sortTable(1)" style="text-align:center">Type <span class="sort-icon">↕</span></th>
+          <th onclick="sortTable(2)" style="text-align:center">State <span class="sort-icon">↕</span></th>
+          <th onclick="sortTable(3)" style="text-align:center">Renewal Deadline <span class="sort-icon">↕</span></th>
+          <th onclick="sortTable(4)" style="text-align:center">Hours <span class="sort-icon">↕</span></th>
+          <th onclick="sortTable(5)" style="text-align:center">Status <span class="sort-icon">↕</span></th>
+          <th style="text-align:center">Links</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        ${rows}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── Tab: Run Log ───────────────────────────────────────────────────── -->
+<div class="tab-panel" id="tab-runlog">
+  <div class="section-title">Last Run Results</div>
+  <div class="run-table-wrap">
+    <table>
+      <thead><tr>
+        <th>Provider</th>
+        <th style="text-align:center;width:140px">Result</th>
+        <th>Error Message</th>
+      </tr></thead>
+      <tbody>${runRows || '<tr><td colspan="3" style="text-align:center;color:#94a3b8;padding:24px">No run data available</td></tr>'}</tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── Tab: Progress Chart ────────────────────────────────────────────── -->
+<div class="tab-panel" id="tab-chart">
+  <div class="section-title">CEU Progress</div>
+  <div class="chart-wrap">
+    <div class="chart-section">
+      <div class="chart-section-title">Hours Completed vs. Required — Current Run</div>
+      <div class="chart-canvas-wrap"><canvas id="hoursChart"></canvas></div>
+    </div>
+    <div class="chart-section">
+      <div class="chart-section-title">Progress Over Time</div>
+      <div id="historyChartWrap" class="chart-canvas-wrap"><canvas id="historyChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<footer>CE Broker Automation &nbsp;·&nbsp; Last scraped: ${escHtml(runDate)}</footer>
+
+<script>
+  // ── Tabs ──
+  function showTab(name) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    const btns = document.querySelectorAll('.tab-btn');
+    const labels = ['profiles','table','runlog','chart'];
+    btns[labels.indexOf(name)]?.classList.add('active');
+    if (name === 'chart') initCharts();
+  }
+
+  // ── Card filter ──
+  let cardFilter = 'all';
+  function filterCards() {
+    const q = document.getElementById('cardSearch').value.toLowerCase();
+    document.querySelectorAll('#cardsGrid .provider-card').forEach(card => {
+      const name   = (card.dataset.provider || '').toLowerCase();
+      const status = card.dataset.status || '';
+      const matchQ = !q || name.includes(q);
+      const matchF = cardFilter === 'all' || status === cardFilter;
+      card.style.display = (matchQ && matchF) ? '' : 'none';
+    });
+  }
+  function setCardFilter(f) {
+    cardFilter = f;
+    document.querySelectorAll('[id^="cbtn-"]').forEach(b => b.classList.remove('active'));
+    const btn = document.getElementById('cbtn-' + f);
+    if (btn) btn.classList.add('active');
+    filterCards();
+  }
+
+  // ── Table filter ──
+  let tableFilter = 'all';
+  function filterTable() {
+    const q = document.getElementById('tableSearch').value.toLowerCase();
+    document.querySelectorAll('#tableBody tr.summary-row').forEach(row => {
+      const name   = (row.dataset.provider || '').toLowerCase();
+      const status = row.dataset.status || '';
+      const matchQ = !q || name.includes(q);
+      const matchF = tableFilter === 'all' || status === tableFilter;
+      row.classList.toggle('hidden-row', !(matchQ && matchF));
+    });
+  }
+  function setTableFilter(f) {
+    tableFilter = f;
+    document.querySelectorAll('[id^="tbtn-"]').forEach(b => b.classList.remove('active'));
+    const btn = document.getElementById('tbtn-' + f);
+    if (btn) btn.classList.add('active');
+    filterTable();
+  }
+
+  // ── Detail toggle ──
+  function toggleDetail(id) {
+    const el  = document.getElementById(id);
+    if (!el) return;
+    const hidden = el.classList.toggle('hidden');
+    const btn = el.previousElementSibling?.querySelector('.toggle-btn');
+    if (btn) btn.textContent = hidden ? '▸ Details' : '▾ Details';
+  }
+
+  // ── Sort ──
+  let sortCol = -1, sortDir = 1;
+  function sortTable(col) {
+    const tbody = document.getElementById('tableBody');
+    const rows  = Array.from(tbody.querySelectorAll('tr.summary-row'));
+    if (sortCol === col) sortDir *= -1; else { sortCol = col; sortDir = 1; }
+    document.querySelectorAll('thead th').forEach((th, i) => {
+      th.classList.toggle('sorted', i === col);
+      const ic = th.querySelector('.sort-icon');
+      if (ic) ic.textContent = i === col ? (sortDir === 1 ? '↑' : '↓') : '↕';
+    });
+    rows.sort((a, b) => {
+      const av = a.cells[col]?.textContent?.trim() || '';
+      const bv = b.cells[col]?.textContent?.trim() || '';
+      const an = parseFloat(av), bn = parseFloat(bv);
+      if (!isNaN(an) && !isNaN(bn)) return (an - bn) * sortDir;
+      return av.localeCompare(bv) * sortDir;
+    });
+    rows.forEach(r => tbody.appendChild(r));
+  }
+
+  // ── Chart.js ──
+  const CHART_DATA   = ${safeJson(chartData)};
+  const HISTORY_DATA = ${safeJson(history)};
+
+  let chartsInit = false;
+  function initCharts() {
+    if (chartsInit) return;
+    chartsInit = true;
+
+    // Bar chart: Completed vs Required per license
+    const ctx1 = document.getElementById('hoursChart').getContext('2d');
+    new Chart(ctx1, {
+      type: 'bar',
+      data: {
+        labels: CHART_DATA.labels,
+        datasets: [
+          {
+            label: 'Hours Completed',
+            data: CHART_DATA.completed,
+            backgroundColor: CHART_DATA.colors,
+            borderRadius: 4,
+          },
+          {
+            label: 'Hours Required',
+            data: CHART_DATA.required,
+            backgroundColor: 'rgba(148,163,184,0.25)',
+            borderColor: 'rgba(148,163,184,0.6)',
+            borderWidth: 1,
+            borderRadius: 4,
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'top' },
+          tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + ctx.parsed.y + ' hrs' } }
+        },
+        scales: {
+          y: { beginAtZero: true, title: { display: true, text: 'Hours' } },
+          x: { ticks: { maxRotation: 45, minRotation: 30 } }
+        }
+      }
+    });
+
+    // History trend chart
+    const histWrap = document.getElementById('historyChartWrap');
+    if (!HISTORY_DATA || HISTORY_DATA.length < 2) {
+      histWrap.innerHTML = '<p class="chart-no-data">Run the scraper multiple times to see progress trends over time.</p>';
+      return;
+    }
+    const histLabels = HISTORY_DATA.map(h => {
+      const d = new Date(h.timestamp);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' +
+             d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    });
+    const histAvgPct = HISTORY_DATA.map(h => {
+      const pcts = (h.providers || [])
+        .filter(p => p.hoursRequired > 0)
+        .map(p => Math.min(100, Math.round(((p.hoursCompleted || 0) / p.hoursRequired) * 100)));
+      return pcts.length ? Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length) : 0;
+    });
+    const histComplete = HISTORY_DATA.map(h =>
+      (h.providers || []).filter(p =>
+        p.hoursRemaining != null ? p.hoursRemaining <= 0 : (p.hoursCompleted || 0) >= (p.hoursRequired || 1)
+      ).length
+    );
+    const ctx2 = document.getElementById('historyChart').getContext('2d');
+    new Chart(ctx2, {
+      type: 'line',
+      data: {
+        labels: histLabels,
+        datasets: [
+          {
+            label: 'Avg Completion %',
+            data: histAvgPct,
+            borderColor: '#1d4ed8',
+            backgroundColor: 'rgba(29,78,216,0.1)',
+            fill: true,
+            tension: 0.3,
+            yAxisID: 'pct',
+          },
+          {
+            label: 'Licenses Complete',
+            data: histComplete,
+            borderColor: '#16a34a',
+            backgroundColor: 'transparent',
+            borderDash: [5, 3],
+            tension: 0.3,
+            yAxisID: 'count',
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'top' } },
+        scales: {
+          pct:   { type: 'linear', position: 'left',  beginAtZero: true, max: 100,
+                   title: { display: true, text: '% Complete' } },
+          count: { type: 'linear', position: 'right', beginAtZero: true,
+                   title: { display: true, text: 'Licenses Complete' },
+                   grid: { drawOnChartArea: false } }
+        }
+      }
+    });
+  }
+</script>
+</body>
+</html>`;
+
+  fs.writeFileSync(OUTPUT_HTML, html, 'utf8');
+
+  // Mirror to public/index.html so Vercel serves it at the root URL
+  ensurePublicDir();
+  fs.writeFileSync(path.join(PUBLIC_DIR, 'index.html'), html, 'utf8');
+
+  return OUTPUT_HTML;
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function escHtml(str) {
+  return String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function safeJson(obj) {
+  // Serialize as JSON safe for embedding in an HTML <script> block
+  return JSON.stringify(obj).replace(/<\/script>/gi, '<\\/script>');
+}
+
+function slugify(str) {
+  return String(str).toLowerCase().replace(/[^a-z0-9]+/g, '-');
+}
+
+function buildHoursBar(completed, required) {
+  if (completed == null && required == null) return '<span style="color:#94a3b8">—</span>';
+  const c   = completed ?? 0;
+  const r   = required  ?? 0;
+  const pct = r > 0 ? Math.min(100, Math.round((c / r) * 100)) : (c > 0 ? 100 : 0);
+  const cls = pct >= 100 ? '' : pct >= 50 ? 'partial' : 'low';
+  return `<div class="hours-wrap">
+    <div class="hours-text">${c} / ${r} hrs</div>
+    <div class="bar-track"><div class="bar-fill ${cls}" style="width:${pct}%"></div></div>
+  </div>`;
+}
+
+module.exports = { buildDashboard };
