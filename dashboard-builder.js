@@ -382,6 +382,23 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
       .map(w => w[0].toUpperCase()).join('');
 
     const statesList = info.licenses.map(l => l.state).filter(Boolean).join(',');
+
+    // Platform tags visible on the card
+    const platTags = (platformByProvider[name] || [])
+      .filter(pr => pr.status === 'success')
+      .map(pr => {
+        const slug = pr.platform === 'NetCE' ? 'netce'
+                   : pr.platform === 'CEUfast' ? 'ceufast'
+                   : pr.platform === 'AANP Cert' ? 'aanp'
+                   : 'other';
+        let detail = pr.hoursRequired !== null
+          ? `${pr.hoursEarned ?? '?'}/${pr.hoursRequired} cr`
+          : pr.hoursEarned !== null ? `${pr.hoursEarned} h` : '';
+        if (pr.certStatus) detail += ` · ${pr.certStatus}`;
+        return `<span class="card-plat-tag plat-tag-${slug}">${escHtml(pr.platform)}${detail ? `: ${escHtml(detail)}` : ''}</span>`;
+      }).join('');
+    const platTagsRow = platTags ? `<div class="card-plat-tags">${platTags}</div>` : '';
+
     return `<div class="provider-card ${cardBorderCls} card-clickable"
         data-provider="${escHtml(name)}"
         data-status="${worstStatus}"
@@ -396,6 +413,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
         <div class="card-lic-count">${info.licenses.length} license${info.licenses.length !== 1 ? 's' : ''} <span class="card-arrow">›</span></div>
       </div>
       <div class="lic-blocks">${licBadges}</div>
+      ${platTagsRow}
     </div>`;
   }).join('');
 
@@ -708,6 +726,12 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     .card-clickable:hover { box-shadow: 0 8px 24px rgba(0,0,0,.14); transform: translateY(-3px); }
     .card-arrow { color: #94a3b8; font-size: 1rem; transition: color .15s; }
     .card-clickable:hover .card-arrow { color: #1d4ed8; }
+    .card-plat-tags { display: flex; flex-wrap: wrap; gap: 5px; padding: 8px 12px 4px; border-top: 1px solid #f1f5f9; }
+    .card-plat-tag { font-size: 0.68rem; font-weight: 600; padding: 2px 7px; border-radius: 10px; }
+    .plat-tag-netce   { background: #ccfbf1; color: #0f766e; }
+    .plat-tag-ceufast { background: #ede9fe; color: #6d28d9; }
+    .plat-tag-aanp    { background: #dbeafe; color: #1e40af; }
+    .plat-tag-other   { background: #f1f5f9; color: #475569; }
 
     /* ─ Provider detail drawer ─ */
     .drawer-overlay {
