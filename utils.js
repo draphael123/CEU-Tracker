@@ -116,7 +116,8 @@ function daysUntil(date) {
  * @param {number|null} daysToDeadline
  * @returns {'Complete'|'At Risk'|'In Progress'|'Unknown'}
  */
-function getStatus(hoursRemaining, daysToDeadline) {
+function getStatus(hoursRemaining, daysToDeadline, hoursRequired) {
+  if (hoursRequired === 0) return 'Complete';
   if (hoursRemaining === null || hoursRemaining === undefined) return 'Unknown';
   if (hoursRemaining <= 0) return 'Complete';
   if (daysToDeadline !== null && daysToDeadline <= 60) return 'At Risk';

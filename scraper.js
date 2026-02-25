@@ -55,8 +55,11 @@ async function loginProvider(browser, provider) {
     await sleep(300);
     await page.click('button[type="submit"]');   // "Log in"
 
-    // Wait for URL to leave /login
-    await page.waitForURL(u => !u.toString().includes('/login'), { timeout: 20000 });
+    // Wait for URL to reach the licensees dashboard (handles redirect via /login?redirect_to=...)
+    await page.waitForURL(
+      u => u.toString().includes('licensees.cebroker.com') && !u.toString().includes('/login'),
+      { timeout: 25000 }
+    );
     await sleep(2500);
 
     logger.success(`Logged in as ${name}`);
@@ -183,9 +186,14 @@ async function scrapeCurrentLicense(page, provider) {
   const cycleMatch   = body.match(/CE Cycle\s*\n([\d/]+ - [\d/]+)/);
   const licNumMatch  = body.match(/License #\s*\n(\S+)/);
 
-  const state       = stateMatch  ? stateMatch[1].trim()  : null;
-  const cycleStr    = cycleMatch  ? cycleMatch[1].trim()  : null;
+  const state           = stateMatch  ? stateMatch[1].trim()  : null;
+  const cycleStr        = cycleMatch  ? cycleMatch[1].trim()  : null;
   const renewalDeadline = cycleStr ? cycleStr.split(' - ')[1] : null; // end of CE cycle
+  const licenseNumber   = licNumMatch ? licNumMatch[1].trim() : null;
+
+  // ── License ID from the current page URL ──────────────────────────────────
+  const urlLicMatch = page.url().match(/\/license\/(\d+)\//);
+  const licenseId   = urlLicMatch ? urlLicMatch[1] : null;
 
   // ── License type from the page sub-header ─────────────────────────────────
   let licenseType = provider.type;
@@ -293,21 +301,29 @@ async function scrapeCurrentLicense(page, provider) {
     await sleep(2000);
   } catch { /* may already be on overview */ }
 
-  // ── Sum course hours from history ─────────────────────────────────────────
-  // For Professional accounts the transcript already gives us accurate
-  // Posted + Needed totals — use those and skip paginating course history.
+  // ── Scrape course history ─────────────────────────────────────────────────
+  // For Professional accounts the transcript already gives accurate totals.
+  // We still attempt to collect individual course records for both account types.
   let hoursCompleted = subjectAreas._proHoursCompleted ?? null;
   let hoursRemaining = subjectAreas._proHoursRemaining ?? null;
+  let completedCourses = [];
 
   if (hoursCompleted === null) {
-    // Basic account — must sum course history manually
+    // Basic account — navigate to Overview first, then paginate course history
     try {
-      hoursCompleted = await sumCourseHours(page);
+      const result = await scrapeCourseHistory(page);
+      hoursCompleted   = result.total;
+      completedCourses = result.courses;
     } catch (histErr) {
       logger.warn(`Course history error for ${provider.name}: ${histErr.message}`);
     }
   } else {
     logger.info(`  Using Professional transcript totals (skipping course history pagination)`);
+    // Professional: try to collect courses from the transcript page we're already on
+    try {
+      const result = await scrapeCourseHistory(page);
+      if (result.courses.length > 0) completedCourses = result.courses;
+    } catch { /* not available on this page — ok */ }
   }
 
   if (hoursRemaining === null && hoursRequired !== null && hoursCompleted !== null) {
@@ -320,33 +336,35 @@ async function scrapeCurrentLicense(page, provider) {
 
   return {
     providerName,
-    providerType: provider.type,
+    providerType:  provider.type,
     state,
     licenseType,
+    licenseNumber,
+    licenseId,
     renewalDeadline,
     hoursRequired,
     hoursCompleted,
     hoursRemaining,
-    lastUpdated: new Date().toLocaleDateString('en-US'),
+    lastUpdated:   new Date().toLocaleDateString('en-US'),
     subjectAreas,
+    completedCourses,
+    providerEmail: provider.email || (provider.username?.includes('@') ? provider.username : null),
+    providerPhone: provider.phone || null,
   };
 }
 
 /**
- * Sum all course hours in the course history by:
- *   1. Setting the page-size selector to 100
- *   2. Reading all <p class="course-hours"> values
- *   3. Paginating if there are more pages
+ * Paginate through course history and collect individual course records.
+ * Returns { total: number, courses: Array<{ name, hours, date, category }> }
  */
-async function sumCourseHours(page) {
+async function scrapeCourseHistory(page) {
   let total = 0;
+  const courses = [];
 
-  // Dismiss Pendo before any interactions on the overview page
   await dismissPendo(page);
 
-  // Try to set page size to 100 via the pager select
+  // Try to set page size to 100
   try {
-    // The pager select trigger shows e.g. "1010" (current size + label)
     const pageSizeTrigger = page.locator('.eui-pager .eui-select-trigger').first();
     if (await pageSizeTrigger.isVisible({ timeout: 3000 }).catch(() => false)) {
       await pageSizeTrigger.click();
@@ -361,33 +379,68 @@ async function sumCourseHours(page) {
     }
   } catch { /* ok */ }
 
-  // Collect hours from all pages (paginate via the next-page button)
   let page_num = 1;
   while (true) {
-    const hoursEls = await page.locator('p.course-hours').all();
-    let pageHours = 0;
-    for (const el of hoursEls) {
-      const txt = (await el.textContent().catch(() => '')).trim();
-      const h   = parseFloat(txt);
-      if (!isNaN(h)) pageHours += h;
-    }
-    total += pageHours;
-    logger.info(`    Page ${page_num}: found ${hoursEls.length} courses, ${pageHours}h`);
+    // Extract course records in one evaluate call to minimise round-trips
+    const pageCourses = await page.evaluate(() => {
+      const items = [];
+      document.querySelectorAll('p.course-hours').forEach(hoursEl => {
+        const hours = parseFloat((hoursEl.textContent || '').trim());
+        if (isNaN(hours)) return;
 
-    // Check for a "next" pagination button
+        // Walk up to find a block element that wraps one course entry
+        let block = hoursEl.parentElement;
+        for (let i = 0; i < 7 && block; i++) {
+          const tag = block.tagName.toLowerCase();
+          const cls = (block.className || '').toLowerCase();
+          if (tag === 'li' || tag === 'article' || tag === 'section' ||
+              cls.includes('course') || cls.includes('card') ||
+              cls.includes('history') || cls.includes('record') ||
+              cls.includes('item')) break;
+          block = block.parentElement;
+        }
+        if (!block) { items.push({ name: '', hours, date: '', category: '' }); return; }
+
+        // Course name = longest leaf-node text that isn't just a number or short label
+        const leaves = Array.from(block.querySelectorAll('*'))
+          .filter(el => el.children.length === 0 && el !== hoursEl)
+          .map(el => (el.textContent || '').trim())
+          .filter(t => t.length > 8 && !/^\d+\.?\d*$/.test(t));
+        const name = leaves.sort((a, b) => b.length - a.length)[0] || '';
+
+        // Date: look for MM/DD/YYYY pattern anywhere in the block
+        const blockText = block.innerText || block.textContent || '';
+        const dateMatch = blockText.match(/\d{1,2}\/\d{1,2}\/\d{2,4}/);
+        const date = dateMatch ? dateMatch[0] : '';
+
+        // Category: look for a "category", "topic", or "subject" labelled element
+        const catEl = block.querySelector(
+          '[class*="category"], [class*="topic"], [class*="subject"], [class*="type"]'
+        );
+        const category = catEl ? (catEl.textContent || '').trim().split('\n')[0].trim() : '';
+
+        items.push({ name: name.substring(0, 200), hours, date, category });
+      });
+      return items;
+    });
+
+    const pageTotal = pageCourses.reduce((s, c) => s + c.hours, 0);
+    total += pageTotal;
+    courses.push(...pageCourses);
+    logger.info(`    Page ${page_num}: found ${pageCourses.length} courses, ${pageTotal}h`);
+
     const nextBtn = page.locator('button.eui-pager-btn-next').first();
     const isDisabled = await nextBtn.isDisabled({ timeout: 2000 }).catch(() => true);
     if (isDisabled) break;
-    // Use force:true + JS click to bypass any overlay (e.g. Pendo backdrop)
     await nextBtn.click({ force: true }).catch(() =>
       page.evaluate(() => document.querySelector('button.eui-pager-btn-next')?.click())
     );
     await sleep(1800);
     page_num++;
-    if (page_num > 20) break; // safety cap
+    if (page_num > 20) break;
   }
 
-  return total;
+  return { total, courses };
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -415,16 +468,21 @@ async function dismissPendo(page) {
 
 function emptyRecord(provider) {
   return {
-    providerName:    provider.name,
-    providerType:    provider.type,
-    state:           null,
-    licenseType:     provider.type,
-    renewalDeadline: null,
-    hoursRequired:   null,
-    hoursCompleted:  null,
-    hoursRemaining:  null,
-    lastUpdated:     null,
-    subjectAreas:    [],
+    providerName:     provider.name,
+    providerType:     provider.type,
+    state:            null,
+    licenseType:      provider.type,
+    licenseNumber:    null,
+    licenseId:        null,
+    renewalDeadline:  null,
+    hoursRequired:    null,
+    hoursCompleted:   null,
+    hoursRemaining:   null,
+    lastUpdated:      null,
+    subjectAreas:     [],
+    completedCourses: [],
+    providerEmail:    provider.email || (provider.username?.includes('@') ? provider.username : null),
+    providerPhone:    provider.phone || null,
   };
 }
 

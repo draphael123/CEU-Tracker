@@ -66,6 +66,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
 
   const flat    = allProviderRecords.flat();
   const runDate = new Date().toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' });
+  const runIso  = new Date().toISOString();
 
   // ── Group platform results by provider name ──────────────────────────────
   const platformByProvider = {};
@@ -91,7 +92,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
   }
 
   // ── Aggregate stats ──────────────────────────────────────────────────────
-  const getS = (rec) => getStatus(rec.hoursRemaining, daysUntil(parseDate(rec.renewalDeadline)));
+  const getS = (rec) => getStatus(rec.hoursRemaining, daysUntil(parseDate(rec.renewalDeadline)), rec.hoursRequired);
   const total    = flat.length;
   const complete = flat.filter(r => getS(r) === 'Complete').length;
   const atRisk   = flat.filter(r => getS(r) === 'At Risk').length;
@@ -262,7 +263,12 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     const platformSection = buildPlatformSection(platformByProvider[pName] || []);
 
     drawerHtmlMap[pName] = `<div class="detail-hdr">
-      <div class="detail-avatar">${escHtml(ini)}</div>
+      <div class="detail-avatar" style="background:${
+        worstSt === 'Complete'    ? '#0d9488'
+      : worstSt === 'In Progress' ? '#d97706'
+      : worstSt === 'At Risk'     ? '#dc2626'
+      :                              '#64748b'
+      }">${escHtml(ini)}</div>
       <div style="flex:1;min-width:0">
         <div class="detail-name">${escHtml(pName)}</div>
         <div class="detail-type-lbl">${escHtml(info.type || 'Healthcare Provider')}</div>
@@ -429,7 +435,12 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
         data-states="${escHtml(statesList)}"
         onclick="openProvider(this.dataset.provider)">
       <div class="card-top">
-        <div class="avatar">${escHtml(initials)}</div>
+        <div class="avatar" style="background:${
+        worstStatus === 'Complete'    ? '#0d9488'
+      : worstStatus === 'In Progress' ? '#d97706'
+      : worstStatus === 'At Risk'     ? '#dc2626'
+      :                                  '#64748b'
+      }">${escHtml(initials)}</div>
         <div class="card-info">
           <div class="card-name">${escHtml(name)}</div>
           <div class="card-states">${stateChips}</div>
@@ -512,11 +523,18 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
   <title>CE Broker — Compliance Dashboard</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #eff6ff; color: #1e3a8a; min-height: 100vh; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f4f2; color: #1e3a8a; min-height: 100vh; }
 
     /* ─ Header ─ */
     header {
-      background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 60%, #2563eb 100%);
+      background-color: #0f172a;
+      background-image: repeating-linear-gradient(
+        -45deg,
+        transparent,
+        transparent 18px,
+        rgba(255,255,255,0.03) 18px,
+        rgba(255,255,255,0.03) 36px
+      );
       color: #fff;
       padding: 20px 40px;
       display: flex;
@@ -524,7 +542,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
       justify-content: space-between;
       flex-wrap: wrap;
       gap: 12px;
-      box-shadow: 0 4px 20px rgba(0,0,0,.35);
+      box-shadow: 0 4px 20px rgba(0,0,0,.5);
     }
     .header-brand { display: flex; align-items: center; gap: 16px; }
     .header-logo  { height: 38px; width: auto; display: block; }
@@ -532,10 +550,11 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
       width: 1px; height: 32px; background: rgba(255,255,255,0.3); flex-shrink: 0;
     }
     header h1 { font-size: 1.4rem; font-weight: 700; }
-    header h1 span { color: #93c5fd; }
+    header h1 span { color: #5eead4; }
     .header-meta { text-align: right; }
     .last-scraped-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px; color: #64748b; }
     .last-scraped-value { font-size: 0.95rem; color: #e2e8f0; font-weight: 500; margin-top: 2px; }
+    .last-scraped-ago { font-size: 0.72rem; color: #5eead4; margin-top: 1px; }
     .run-badge { margin-top: 6px; display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
     .run-pill { padding: 3px 10px; border-radius: 99px; font-size: 0.75rem; font-weight: 600; }
     .run-pill.ok   { background: #166534; color: #dcfce7; }
@@ -543,23 +562,35 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
 
     /* ─ Stat cards ─ */
     .stats { display: flex; gap: 14px; padding: 28px 40px 0; flex-wrap: wrap; }
-    .stat-card { background: #fff; border-radius: 12px; padding: 18px 22px; min-width: 130px; box-shadow: 0 2px 8px rgba(0,0,0,.07); }
-    .stat-card .num { font-size: 2rem; font-weight: 700; }
-    .stat-card .lbl { font-size: 0.72rem; text-transform: uppercase; letter-spacing: .8px; color: #64748b; margin-top: 3px; }
-    .stat-card.total .num { color: #1d4ed8; }
-    .stat-card.ok    .num { color: #16a34a; }
-    .stat-card.prog  .num { color: #d97706; }
-    .stat-card.risk  .num { color: #dc2626; }
+    .stat-card { background: #fff; border-radius: 12px; padding: 18px 22px; min-width: 130px; box-shadow: 0 2px 8px rgba(0,0,0,.07); border-top: 4px solid #e2e8f0; }
+    .stat-card .num { font-size: 2.4rem; font-weight: 800; line-height: 1; }
+    .stat-card .lbl { font-size: 0.72rem; text-transform: uppercase; letter-spacing: .8px; color: #64748b; margin-top: 6px; }
+    .stat-card.total { border-top-color: #6366f1; }
+    .stat-card.total .num { color: #4f46e5; }
+    .stat-card.ok    { border-top-color: #16a34a; }
+    .stat-card.ok    .num { color: #15803d; }
+    .stat-card.prog  { border-top-color: #d97706; }
+    .stat-card.prog  .num { color: #b45309; }
+    .stat-card.risk  { border-top-color: #dc2626; }
+    .stat-card.risk  .num { color: #b91c1c; }
 
     /* ─ Section titles ─ */
     .section-title {
       padding: 28px 40px 12px;
       font-size: 1.1rem;
-      font-weight: 700;
-      color: #1e293b;
+      font-weight: 800;
+      color: #0f172a;
       display: flex;
       align-items: center;
       gap: 10px;
+    }
+    .section-title::before {
+      content: '';
+      width: 4px;
+      height: 1.1em;
+      background: #0d9488;
+      border-radius: 2px;
+      flex-shrink: 0;
     }
     .section-title::after {
       content: '';
@@ -592,12 +623,12 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     .card-top { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
     .avatar {
       width: 42px; height: 42px; border-radius: 50%;
-      background: #1d4ed8; color: #fff;
+      background: #64748b; color: #fff;
       display: flex; align-items: center; justify-content: center;
       font-size: 0.9rem; font-weight: 700; flex-shrink: 0;
     }
     .card-info { flex: 1; min-width: 0; }
-    .card-name { font-weight: 700; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .card-name { font-weight: 800; font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #0f172a; }
     .card-type { font-size: 0.78rem; color: #64748b; margin-top: 2px; }
     .card-lic-count { font-size: 0.75rem; color: #94a3b8; white-space: nowrap; }
 
@@ -689,11 +720,11 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     .hours-wrap { display: flex; flex-direction: column; align-items: center; gap: 3px; }
     .hours-text { font-size: .78rem; color: #475569; white-space: nowrap; }
 
-    .status-badge { display: inline-block; padding: 4px 10px; border-radius: 99px; font-size: .72rem; font-weight: 600; white-space: nowrap; }
-    .status-complete { background: #dcfce7; color: #15803d; }
-    .status-progress { background: #fef3c7; color: #b45309; }
-    .status-risk     { background: #fee2e2; color: #b91c1c; }
-    .status-unknown  { background: #f1f5f9; color: #64748b; }
+    .status-badge { display: inline-block; padding: 4px 12px; border-radius: 99px; font-size: .75rem; font-weight: 700; white-space: nowrap; }
+    .status-complete { background: #bbf7d0; color: #14532d; }
+    .status-progress { background: #fde68a; color: #92400e; }
+    .status-risk     { background: #fca5a5; color: #7f1d1d; }
+    .status-unknown  { background: #e2e8f0; color: #475569; }
 
     .course-link { display: inline-block; padding: 4px 10px; background: #eff6ff; color: #1d4ed8; border-radius: 6px; font-size: .76rem; text-decoration: none; font-weight: 500; }
     .course-link:hover { background: #dbeafe; }
@@ -719,9 +750,9 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     footer { text-align: center; padding: 16px; font-size: .76rem; color: #94a3b8; border-top: 1px solid #e2e8f0; margin-top: 8px; }
 
     /* ─ Tabs ─ */
-    .tab-bar { display: flex; gap: 0; padding: 28px 40px 0; border-bottom: 2px solid #e2e8f0; margin-bottom: 0; }
+    .tab-bar { display: flex; gap: 4px; padding: 28px 40px 0; border-bottom: 2px solid #e2e8f0; margin-bottom: 0; }
     .tab-btn {
-      padding: 10px 22px;
+      padding: 9px 20px;
       border: none;
       border-bottom: 3px solid transparent;
       background: none;
@@ -730,9 +761,16 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
       font-weight: 600;
       color: #64748b;
       margin-bottom: -2px;
+      border-radius: 8px 8px 0 0;
       transition: all .15s;
     }
-    .tab-btn.active { color: #1d4ed8; border-bottom-color: #1d4ed8; }
+    .tab-btn:hover { background: #e8f0ee; color: #1e293b; }
+    .tab-btn.active {
+      color: #0f172a;
+      border-bottom-color: #0d9488;
+      background: #fff;
+      box-shadow: 0 -2px 6px rgba(0,0,0,.05);
+    }
     .tab-panel { display: none; }
     .tab-panel.active { display: block; }
 
@@ -756,10 +794,10 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     .about-step { display: flex; gap: 14px; align-items: flex-start; font-size: 0.88rem; color: #334155; line-height: 1.5; }
     .step-num { background: #1d4ed8; color: #fff; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
     .platform-overview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; padding: 0 40px; }
-    .poc { background: #fff; border-radius: 12px; padding: 16px 18px; box-shadow: 0 2px 8px rgba(0,0,0,.06); display: flex; flex-direction: column; gap: 6px; border-top: 3px solid #e2e8f0; }
-    .poc-connected  { border-top-color: #16a34a; }
-    .poc-ce-broker  { border-top-color: #1d4ed8; }
-    .poc-pending    { border-top-color: #e2e8f0; opacity: 0.75; }
+    .poc { background: #fff; border-radius: 12px; padding: 16px 18px; box-shadow: 0 2px 8px rgba(0,0,0,.06); display: flex; flex-direction: column; gap: 6px; border-top: 3px solid #e2e8f0; border-left: 4px solid transparent; }
+    .poc-connected  { border-top-color: #16a34a; border-left-color: #16a34a; }
+    .poc-ce-broker  { border-top-color: #0d9488; border-left-color: #0d9488; }
+    .poc-pending    { border-top-color: #e2e8f0; border-left-color: #e2e8f0; opacity: 0.75; }
     .poc-hdr { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
     .poc-name { font-weight: 700; font-size: 0.95rem; color: #1e293b; }
     .poc-badge { font-size: 0.68rem; font-weight: 600; padding: 2px 8px; border-radius: 10px; white-space: nowrap; }
@@ -822,7 +860,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     .detail-hdr { display: flex; align-items: center; gap: 16px; margin-bottom: 28px; flex-wrap: wrap; }
     .detail-avatar {
       width: 56px; height: 56px; border-radius: 50%;
-      background: #1d4ed8; color: #fff; font-size: 1.1rem; font-weight: 700;
+      background: #64748b; color: #fff; font-size: 1.1rem; font-weight: 700;
       display: flex; align-items: center; justify-content: center; flex-shrink: 0;
     }
     .detail-name { font-size: 1.25rem; font-weight: 700; color: #1e293b; }
@@ -1020,6 +1058,11 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
       .detail-sa-table { font-size: 0.72rem; }
       .detail-sa-table th, .detail-sa-table td { padding: 5px 7px; }
       .course-list { max-height: 220px; }
+      .platform-overview-grid { padding: 0 16px; gap: 10px; }
+      .coverage-wrap { padding: 0 16px 28px; }
+      .about-box { margin: 0 16px 8px; padding: 16px; }
+      .chart-canvas-wrap { height: 260px; }
+      .poc { padding: 12px 14px; }
     }
 
     /* ─ Print / Export PDF ─ */
@@ -1121,7 +1164,8 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
   </div>
   <div class="header-meta">
     <div class="last-scraped-label">Last Scraped</div>
-    <div class="last-scraped-value" id="lastScrapedValue">${escHtml(runDate)}</div>
+    <div class="last-scraped-value" id="lastScrapedValue" data-iso="${escHtml(runIso)}">${escHtml(runDate)}</div>
+    <div class="last-scraped-ago" id="lastScrapedAgo"></div>
     <div class="run-badge">
       <span class="run-pill ok">✓ ${runResults.filter(r => r.status === 'success').length} succeeded</span>
       ${runResults.filter(r => r.status === 'failed').length > 0
@@ -1534,6 +1578,26 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
       }
     });
   }
+
+  // ── "Updated X ago" live ticker ──────────────────────────────────────────
+  (function() {
+    const el  = document.getElementById('lastScrapedAgo');
+    const src = document.getElementById('lastScrapedValue');
+    if (!el || !src) return;
+    const runTime = new Date(src.dataset.iso).getTime();
+    if (isNaN(runTime)) return;
+    function tick() {
+      const diff = Math.floor((Date.now() - runTime) / 60000);
+      if (diff < 1)       el.textContent = 'just now';
+      else if (diff < 60) el.textContent = diff + 'm ago';
+      else {
+        const h = Math.floor(diff / 60), m = diff % 60;
+        el.textContent = h + 'h' + (m ? ' ' + m + 'm' : '') + ' ago';
+      }
+    }
+    tick();
+    setInterval(tick, 60000);
+  })();
 </script>
 </body>
 </html>`;
@@ -1644,12 +1708,12 @@ function buildPlatformSection(platformResults) {
     const courseListHtml = courses.length > 0
       ? `<div class="platform-courses-title">Recent Courses (${courses.length})</div>
          <div class="platform-course-list">
-           ${courses.slice(0, 5).map(c => `
+           ${courses.slice(0, 15).map(c => `
              <div class="platform-course-item">
                <span class="platform-course-name">${escHtml(c.name || 'Course')}</span>
                <span class="platform-course-meta">${c.hours}h${c.date ? ' · ' + escHtml(c.date) : ''}</span>
              </div>`).join('')}
-           ${courses.length > 5 ? `<div class="platform-no-courses">+${courses.length - 5} more courses</div>` : ''}
+           ${courses.length > 15 ? `<div class="platform-no-courses">+${courses.length - 15} more courses</div>` : ''}
          </div>`
       : `<div class="platform-no-courses">No course data found</div>`;
 
