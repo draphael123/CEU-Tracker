@@ -74,6 +74,22 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     platformByProvider[pr.providerName].push(pr);
   }
 
+  // ── Platform overview data ────────────────────────────────────────────────
+  const ALL_PLATFORMS = [
+    { name: 'NetCE',              url: 'https://www.netce.com',         slug: 'netce',   desc: 'Online continuing education courses' },
+    { name: 'CEUfast',            url: 'https://www.ceufast.com',       slug: 'ceufast', desc: 'Online CEU courses' },
+    { name: 'AANP Cert',          url: 'https://www.aanpcert.org',      slug: 'aanp',    desc: 'NP certification & CE tracking' },
+    { name: 'AANP',               url: 'https://account.aanp.org',      slug: 'aanp2',   desc: 'AANP member account' },
+    { name: 'ExclamationCE',      url: 'https://exclamationce.com',     slug: 'excl',    desc: 'CE courses platform' },
+    { name: 'Nursing CE Central', url: 'https://nursingcecentral.com',  slug: 'ncc',     desc: 'Nursing CE courses' },
+  ];
+  const platformStats = {};
+  for (const pr of platformData) {
+    if (!platformStats[pr.platform]) platformStats[pr.platform] = { providers: [], totalHours: 0 };
+    platformStats[pr.platform].providers.push(pr.providerName);
+    if (pr.status === 'success' && pr.hoursEarned) platformStats[pr.platform].totalHours += pr.hoursEarned;
+  }
+
   // ── Aggregate stats ──────────────────────────────────────────────────────
   const getS = (rec) => getStatus(rec.hoursRemaining, daysUntil(parseDate(rec.renewalDeadline)));
   const total    = flat.length;
@@ -734,6 +750,39 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     .card-clickable:hover { box-shadow: 0 8px 24px rgba(0,0,0,.14); transform: translateY(-3px); }
     .card-arrow { color: #94a3b8; font-size: 1rem; transition: color .15s; }
     .card-clickable:hover .card-arrow { color: #1d4ed8; }
+    /* ─ Overview tab ─ */
+    .about-box { margin: 0 40px 8px; background: #fff; border-radius: 14px; padding: 24px 28px; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+    .about-steps { display: flex; flex-direction: column; gap: 14px; }
+    .about-step { display: flex; gap: 14px; align-items: flex-start; font-size: 0.88rem; color: #334155; line-height: 1.5; }
+    .step-num { background: #1d4ed8; color: #fff; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+    .platform-overview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; padding: 0 40px; }
+    .poc { background: #fff; border-radius: 12px; padding: 16px 18px; box-shadow: 0 2px 8px rgba(0,0,0,.06); display: flex; flex-direction: column; gap: 6px; border-top: 3px solid #e2e8f0; }
+    .poc-connected  { border-top-color: #16a34a; }
+    .poc-ce-broker  { border-top-color: #1d4ed8; }
+    .poc-pending    { border-top-color: #e2e8f0; opacity: 0.75; }
+    .poc-hdr { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .poc-name { font-weight: 700; font-size: 0.95rem; color: #1e293b; }
+    .poc-badge { font-size: 0.68rem; font-weight: 600; padding: 2px 8px; border-radius: 10px; white-space: nowrap; }
+    .poc-on  { background: #dcfce7; color: #166534; }
+    .poc-off { background: #f1f5f9; color: #64748b; }
+    .poc-desc { font-size: 0.78rem; color: #64748b; }
+    .poc-stats { display: flex; gap: 12px; margin-top: 2px; }
+    .poc-stat { font-size: 0.8rem; color: #475569; }
+    .poc-stat strong { color: #1e293b; }
+    .poc-providers { font-size: 0.73rem; color: #94a3b8; line-height: 1.4; }
+    .poc-unconfigured { font-size: 0.75rem; color: #94a3b8; font-style: italic; margin-top: 2px; }
+    .poc-link { font-size: 0.73rem; color: #1d4ed8; text-decoration: none; margin-top: auto; padding-top: 6px; }
+    .poc-link:hover { text-decoration: underline; }
+    .coverage-wrap { padding: 0 40px 28px; overflow-x: auto; }
+    .coverage-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.06); font-size: 0.82rem; }
+    .coverage-table th { background: #f8fafc; padding: 10px 14px; text-align: center; font-weight: 600; color: #475569; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
+    .coverage-table th:first-child { text-align: left; }
+    .coverage-table td { padding: 9px 14px; border-bottom: 1px solid #f1f5f9; }
+    .cov-name { font-weight: 500; color: #1e293b; white-space: nowrap; }
+    .cov-cell { text-align: center; }
+    .cov-yes { color: #16a34a; font-weight: 700; }
+    .cov-no  { color: #cbd5e1; }
+
     .card-states { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
     .card-state-chip { font-size: 0.67rem; font-weight: 600; padding: 2px 6px; border-radius: 8px; }
     .sc-green  { background: #dcfce7; color: #166534; }
@@ -1092,15 +1141,82 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
 
 <!-- ── Tabs ───────────────────────────────────────────────────────────── -->
 <div class="tab-bar">
-  <button class="tab-btn active" onclick="showTab('profiles')">Provider Profiles</button>
+  <button class="tab-btn active" onclick="showTab('overview')">Overview</button>
+  <button class="tab-btn"        onclick="showTab('profiles')">Provider Profiles</button>
   <button class="tab-btn"        onclick="showTab('table')">Full Table</button>
   <button class="tab-btn"        onclick="showTab('runlog')">Run Log</button>
   <button class="tab-btn"        onclick="showTab('chart')">Progress Chart</button>
   <button class="tab-btn"        onclick="showTab('calendar')">Deadline Calendar</button>
 </div>
 
+<!-- ── Tab: Overview ──────────────────────────────────────────────────── -->
+<div class="tab-panel active" id="tab-overview">
+  <div class="section-title">About This Dashboard</div>
+  <div class="about-box">
+    <div class="about-steps">
+      <div class="about-step"><span class="step-num">1</span><div><strong>CE Broker</strong> — Logs into each provider's CE Broker account to pull license status, hours completed, renewal deadlines, and subject-area requirements.</div></div>
+      <div class="about-step"><span class="step-num">2</span><div><strong>Platform Accounts</strong> — Logs into connected third-party CE platforms (NetCE, CEUfast, AANP Cert, etc.) to pull additional course records and certification status.</div></div>
+      <div class="about-step"><span class="step-num">3</span><div><strong>Auto-Publish</strong> — Builds this dashboard and pushes it to GitHub, triggering an automatic Vercel redeploy so the data is always current.</div></div>
+    </div>
+  </div>
+
+  <div class="section-title">CE Platform Integrations</div>
+  <div class="platform-overview-grid">
+    <div class="poc poc-ce-broker">
+      <div class="poc-hdr"><span class="poc-name">CE Broker</span><span class="poc-badge poc-on">● Connected</span></div>
+      <div class="poc-desc">Primary state licensure tracking</div>
+      <div class="poc-stats"><span class="poc-stat"><strong>${Object.keys(providerMap).length}</strong> providers</span><span class="poc-stat"><strong>${flat.length}</strong> licenses</span></div>
+      <div class="poc-providers">${Object.keys(providerMap).map(n => escHtml(n.split(',')[0])).join(', ')}</div>
+      <a class="poc-link" href="https://cebroker.com" target="_blank" rel="noopener">Visit ↗</a>
+    </div>
+    ${ALL_PLATFORMS.map(p => {
+      const stats = platformStats[p.name];
+      const connected = !!stats;
+      const provCount = stats ? stats.providers.length : 0;
+      const totalH    = stats ? Math.round(stats.totalHours * 10) / 10 : 0;
+      const provList  = stats ? stats.providers.map(n => escHtml(n.split(',')[0])).join(', ') : '';
+      return `<div class="poc ${connected ? 'poc-connected' : 'poc-pending'}">
+        <div class="poc-hdr"><span class="poc-name">${escHtml(p.name)}</span><span class="poc-badge ${connected ? 'poc-on' : 'poc-off'}">${connected ? '● Connected' : '○ Not configured'}</span></div>
+        <div class="poc-desc">${escHtml(p.desc)}</div>
+        ${connected
+          ? `<div class="poc-stats">
+               <span class="poc-stat"><strong>${provCount}</strong> provider${provCount !== 1 ? 's' : ''}</span>
+               ${totalH > 0 ? `<span class="poc-stat"><strong>${totalH}h</strong> tracked</span>` : ''}
+             </div>
+             <div class="poc-providers">${provList}</div>`
+          : `<div class="poc-unconfigured">No credentials configured yet</div>`}
+        <a class="poc-link" href="${escHtml(p.url)}" target="_blank" rel="noopener">Visit ↗</a>
+      </div>`;
+    }).join('')}
+  </div>
+
+  <div class="section-title">Provider Coverage</div>
+  <div class="coverage-wrap">
+    <table class="coverage-table">
+      <thead><tr>
+        <th>Provider</th>
+        <th>CE Broker</th>
+        ${ALL_PLATFORMS.filter(p => platformStats[p.name]).map(p => `<th>${escHtml(p.name)}</th>`).join('')}
+      </tr></thead>
+      <tbody>
+        ${Object.keys(providerMap).map(name => {
+          const provPlats = platformByProvider[name] || [];
+          return `<tr>
+            <td class="cov-name">${escHtml(name)}</td>
+            <td class="cov-cell cov-yes">✓</td>
+            ${ALL_PLATFORMS.filter(p => platformStats[p.name]).map(p => {
+              const has = provPlats.some(pr => pr.platform === p.name && pr.status === 'success');
+              return `<td class="cov-cell ${has ? 'cov-yes' : 'cov-no'}">${has ? '✓' : '—'}</td>`;
+            }).join('')}
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+  </div>
+</div>
+
 <!-- ── Tab: Provider Profiles ─────────────────────────────────────────── -->
-<div class="tab-panel active" id="tab-profiles">
+<div class="tab-panel" id="tab-profiles">
   <div class="section-title">Provider Profiles</div>
   <div class="state-chips">
     <button class="state-chip active" id="schip-all" onclick="setStateFilter('all')">All States</button>
@@ -1203,7 +1319,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.getElementById('tab-' + name).classList.add('active');
     const btns = document.querySelectorAll('.tab-btn');
-    const labels = ['profiles','table','runlog','chart','calendar'];
+    const labels = ['overview','profiles','table','runlog','chart','calendar'];
     btns[labels.indexOf(name)]?.classList.add('active');
     if (name === 'chart') initCharts();
   }
