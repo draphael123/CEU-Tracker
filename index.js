@@ -6,6 +6,7 @@
 const path      = require('path');
 const { execSync } = require('child_process');
 const { launchBrowser, loginProvider, scrapeLicenseData, closePage } = require('./scraper');
+const { runPlatformScrapers } = require('./platform-scrapers');
 const { buildReport } = require('./exporter');
 const { buildDashboard } = require('./dashboard-builder');
 const { logger, randomDelay, printSummary, ensureScreenshotsDir } = require('./utils');
@@ -75,6 +76,18 @@ async function main() {
     }
   }
 
+  // ── Platform scrapers (CEUfast, AANP Cert, NetCE) ─────────────────────────
+  let platformData = [];
+  try {
+    logger.info('\n── Running platform CEU scrapers ────────────────────────────');
+    platformData = await runPlatformScrapers(browser, providers);
+    const pOk   = platformData.filter(r => r.status === 'success').length;
+    const pFail = platformData.filter(r => r.status === 'failed').length;
+    logger.success(`Platform scrapers done: ${pOk} succeeded, ${pFail} failed`);
+  } catch (platformErr) {
+    logger.error(`Platform scraper error: ${platformErr.message}`);
+  }
+
   // ── Close browser ──────────────────────────────────────────────────────────
   await browser.close();
   logger.info('Browser closed');
@@ -89,7 +102,7 @@ async function main() {
 
   // ── Build HTML dashboard ───────────────────────────────────────────────────
   try {
-    const dashPath = buildDashboard(allRecords, allResults);
+    const dashPath = buildDashboard(allRecords, allResults, platformData);
     logger.success(`Dashboard saved: ${dashPath}`);
   } catch (dashErr) {
     logger.error(`Dashboard build failed: ${dashErr.message}`);

@@ -61,11 +61,18 @@ function saveHistory(allProviderRecords, runResults) {
  * @param {LicenseRecord[][]} allProviderRecords
  * @param {{ name:string, status:string, error?:string }[]} [runResults]
  */
-function buildDashboard(allProviderRecords, runResults = []) {
+function buildDashboard(allProviderRecords, runResults = [], platformData = []) {
   const history = saveHistory(allProviderRecords, runResults);
 
   const flat    = allProviderRecords.flat();
   const runDate = new Date().toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' });
+
+  // ── Group platform results by provider name ──────────────────────────────
+  const platformByProvider = {};
+  for (const pr of platformData) {
+    if (!platformByProvider[pr.providerName]) platformByProvider[pr.providerName] = [];
+    platformByProvider[pr.providerName].push(pr);
+  }
 
   // ── Aggregate stats ──────────────────────────────────────────────────────
   const getS = (rec) => getStatus(rec.hoursRemaining, daysUntil(parseDate(rec.renewalDeadline)));
@@ -128,7 +135,10 @@ function buildDashboard(allProviderRecords, runResults = []) {
         : days < 0   ? `<span class="overdue">${Math.abs(days)}d overdue</span>`
         : days <= 60 ? `<span class="urgent">${days}d left</span>`
         : `${days}d left`;
-      const cUrl    = courseSearchUrl(licState, lic.licenseType || info.type);
+      const cUrl         = courseSearchUrl(licState, lic.licenseType || info.type);
+      const cebrokerUrl  = lic.licenseId
+        ? `https://licensees.cebroker.com/license/${lic.licenseId}/overview`
+        : null;
 
       const saRows = (lic.subjectAreas || []).map(sa => {
         const rem  = (sa.hoursRequired != null && sa.hoursCompleted != null) ? Math.max(0, sa.hoursRequired - sa.hoursCompleted) : null;
@@ -140,10 +150,58 @@ function buildDashboard(allProviderRecords, runResults = []) {
         </tr>`;
       }).join('');
 
+      // ── Still Needed section ──────────────────────────────────────────────
+      const neededAreas = (lic.subjectAreas || []).filter(sa => {
+        if (sa.hoursNeeded != null) return sa.hoursNeeded > 0;
+        if (sa.hoursRequired != null && sa.hoursCompleted != null) return sa.hoursCompleted < sa.hoursRequired;
+        return false;
+      });
+      const neededSection = neededAreas.length > 0
+        ? `<div class="drawer-section">
+            <div class="drawer-section-title">Still Needed</div>
+            ${neededAreas.map(sa => {
+              const needed = sa.hoursNeeded ?? Math.max(0, (sa.hoursRequired || 0) - (sa.hoursCompleted || 0));
+              return `<div class="need-item">
+                <span class="need-topic">${escHtml(sa.topicName)}</span>
+                <span class="need-hours">${needed} hr${needed !== 1 ? 's' : ''} needed</span>
+                ${cUrl ? `<a href="${cUrl}" target="_blank" rel="noopener" class="need-search">Search →</a>` : ''}
+              </div>`;
+            }).join('')}
+          </div>`
+        : (lic.hoursRemaining > 0
+            ? `<div class="drawer-section">
+                <div class="drawer-section-title">Still Needed</div>
+                <div class="need-item">
+                  <span class="need-topic">General CEUs</span>
+                  <span class="need-hours">${lic.hoursRemaining} hrs needed</span>
+                  ${cUrl ? `<a href="${cUrl}" target="_blank" rel="noopener" class="need-search">Search →</a>` : ''}
+                </div>
+              </div>`
+            : '');
+
+      // ── Completed Courses section ─────────────────────────────────────────
+      const courses = lic.completedCourses || [];
+      const completedSection = courses.length > 0
+        ? `<div class="drawer-section">
+            <div class="drawer-section-title">Completed Courses (${courses.length})</div>
+            <div class="course-list">
+              ${courses.map(c => `
+                <div class="course-item">
+                  <span class="course-item-name${c.name ? '' : ' unnamed'}">${escHtml(c.name || 'Course name unavailable')}</span>
+                  <div class="course-item-meta">
+                    ${c.date ? `<span class="course-item-date">${escHtml(c.date)}</span>` : ''}
+                    <span class="course-item-hours">${c.hours} hr${c.hours !== 1 ? 's' : ''}</span>
+                  </div>
+                </div>`).join('')}
+            </div>
+          </div>`
+        : '';
+
       return `<div class="detail-lic-card ${dlCls}">
         <div class="detail-lic-hdr">
           <span class="detail-state-badge">${escHtml(licState)}</span>
           <span class="detail-lic-type">${escHtml(lic.licenseType || info.type || '')}</span>
+          ${lic.licenseNumber ? `<span class="detail-lic-num">Lic# ${escHtml(lic.licenseNumber)}</span>` : ''}
           <span class="status-badge ${stCls}" style="margin-left:auto">${stLabel}</span>
         </div>
         <div class="detail-deadline">
@@ -167,19 +225,96 @@ function buildDashboard(allProviderRecords, runResults = []) {
             </table>`
           : '<p class="detail-no-sa">No subject area breakdown available.</p>'
         }
-        ${cUrl ? `<a class="detail-course-btn" href="${cUrl}" target="_blank" rel="noopener">Search Available Courses ↗</a>` : ''}
+        ${neededSection}
+        ${completedSection}
+        <div class="detail-btn-row">
+          ${cebrokerUrl ? `<a class="cebroker-link" href="${cebrokerUrl}" target="_blank" rel="noopener">View in CE Broker ↗</a>` : ''}
+          ${cUrl ? `<a class="detail-course-btn" href="${cUrl}" target="_blank" rel="noopener">Search Available Courses ↗</a>` : ''}
+        </div>
       </div>`;
     }).join('');
 
+    const contactEmail = info.licenses[0]?.providerEmail;
+    const contactPhone = info.licenses[0]?.providerPhone;
+    const contactHtml  = (contactEmail || contactPhone)
+      ? `<div class="detail-contact">
+          ${contactEmail ? `<a href="mailto:${escHtml(contactEmail)}" class="contact-link">${escHtml(contactEmail)}</a>` : ''}
+          ${contactPhone ? `<span class="contact-phone">${escHtml(contactPhone)}</span>` : ''}
+        </div>`
+      : '';
+
+    const platformSection = buildPlatformSection(platformByProvider[pName] || []);
+
     drawerHtmlMap[pName] = `<div class="detail-hdr">
       <div class="detail-avatar">${escHtml(ini)}</div>
-      <div>
+      <div style="flex:1;min-width:0">
         <div class="detail-name">${escHtml(pName)}</div>
         <div class="detail-type-lbl">${escHtml(info.type || 'Healthcare Provider')}</div>
+        ${contactHtml}
       </div>
       <div class="detail-overall"><span class="status-badge ${ovCls}">${ovLabel}</span></div>
     </div>
-    <div>${licCards}</div>`;
+    <div>${licCards}</div>
+    ${platformSection}`;
+  }
+
+  // ── Renewal deadline calendar (pre-rendered HTML) ────────────────────────
+  const today = new Date();
+  const calendarData = {};
+  for (const rec of flat) {
+    const d = parseDate(rec.renewalDeadline);
+    if (!d) continue;
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    if (!calendarData[key]) calendarData[key] = [];
+    calendarData[key].push({
+      name:     rec.providerName,
+      state:    rec.state || '??',
+      deadline: rec.renewalDeadline,
+      days:     daysUntil(d),
+      status:   getS(rec),
+    });
+  }
+  const calendarKeys = Object.keys(calendarData).sort();
+  let calendarHtml = '';
+  if (calendarKeys.length === 0) {
+    calendarHtml = '<p class="cal-empty">No renewal deadlines found.</p>';
+  } else {
+    calendarHtml = calendarKeys.map(key => {
+      const [yr, mo] = key.split('-');
+      const monthName = new Date(+yr, +mo - 1, 1).toLocaleString('en-US', { month: 'long', year: 'numeric' });
+      const isPast    = new Date(+yr, +mo, 0) < today;
+      const entries   = calendarData[key].slice().sort((a, b) => {
+        const da = parseDate(a.deadline), db = parseDate(b.deadline);
+        return (da ? da.getTime() : 0) - (db ? db.getTime() : 0);
+      });
+      const entriesHtml = entries.map(e => {
+        const stCls = {
+          Complete:      'status-complete',
+          'In Progress': 'status-progress',
+          'At Risk':     'status-risk',
+          Unknown:       'status-unknown',
+        }[e.status] || 'status-unknown';
+        const daysStr = e.days === null ? ''
+          : e.days < 0   ? `<span class="overdue">${Math.abs(e.days)}d overdue</span>`
+          : e.days <= 60 ? `<span class="urgent">${e.days}d left</span>`
+          : `${e.days}d left`;
+        return `<div class="cal-entry">
+          <div class="cal-entry-left">
+            <span class="cal-entry-state">${escHtml(e.state)}</span>
+            <span class="cal-entry-name">${escHtml(e.name)}</span>
+          </div>
+          <div class="cal-entry-right">
+            <span class="cal-entry-date">${escHtml(e.deadline)}</span>
+            ${daysStr ? `<span class="cal-entry-days">${daysStr}</span>` : ''}
+            <span class="status-badge ${stCls}" style="font-size:0.7rem;padding:2px 7px">${escHtml(e.status)}</span>
+          </div>
+        </div>`;
+      }).join('');
+      return `<div class="cal-month${isPast ? ' cal-past' : ''}">
+        <div class="cal-month-hdr">${escHtml(monthName)}${isPast ? ' <span class="cal-past-lbl">Past</span>' : ''}</div>
+        <div class="cal-entries">${entriesHtml}</div>
+      </div>`;
+    }).join('');
   }
 
   const profileCards = Object.entries(providerMap).map(([name, info]) => {
@@ -335,13 +470,13 @@ function buildDashboard(allProviderRecords, runResults = []) {
   <title>CE Broker — Compliance Dashboard</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f2f5; color: #1a1a2e; min-height: 100vh; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #eff6ff; color: #1e3a8a; min-height: 100vh; }
 
     /* ─ Header ─ */
     header {
-      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%);
+      background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 60%, #2563eb 100%);
       color: #fff;
-      padding: 24px 40px;
+      padding: 20px 40px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -349,8 +484,13 @@ function buildDashboard(allProviderRecords, runResults = []) {
       gap: 12px;
       box-shadow: 0 4px 20px rgba(0,0,0,.35);
     }
-    header h1 { font-size: 1.55rem; font-weight: 700; }
-    header h1 span { color: #e94560; }
+    .header-brand { display: flex; align-items: center; gap: 16px; }
+    .header-logo  { height: 38px; width: auto; display: block; }
+    .header-divider {
+      width: 1px; height: 32px; background: rgba(255,255,255,0.3); flex-shrink: 0;
+    }
+    header h1 { font-size: 1.4rem; font-weight: 700; }
+    header h1 span { color: #93c5fd; }
     .header-meta { text-align: right; }
     .last-scraped-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px; color: #64748b; }
     .last-scraped-value { font-size: 0.95rem; color: #e2e8f0; font-weight: 500; margin-top: 2px; }
@@ -364,7 +504,7 @@ function buildDashboard(allProviderRecords, runResults = []) {
     .stat-card { background: #fff; border-radius: 12px; padding: 18px 22px; min-width: 130px; box-shadow: 0 2px 8px rgba(0,0,0,.07); }
     .stat-card .num { font-size: 2rem; font-weight: 700; }
     .stat-card .lbl { font-size: 0.72rem; text-transform: uppercase; letter-spacing: .8px; color: #64748b; margin-top: 3px; }
-    .stat-card.total .num { color: #334155; }
+    .stat-card.total .num { color: #1d4ed8; }
     .stat-card.ok    .num { color: #16a34a; }
     .stat-card.prog  .num { color: #d97706; }
     .stat-card.risk  .num { color: #dc2626; }
@@ -405,12 +545,12 @@ function buildDashboard(allProviderRecords, runResults = []) {
     .provider-card.card-ok   { border-left-color: #16a34a; }
     .provider-card.card-prog { border-left-color: #d97706; }
     .provider-card.card-risk { border-left-color: #dc2626; }
-    .provider-card.card-unk  { border-left-color: #94a3b8; }
+    .provider-card.card-unk  { border-left-color: #93c5fd; }
 
     .card-top { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
     .avatar {
       width: 42px; height: 42px; border-radius: 50%;
-      background: #1a1a2e; color: #fff;
+      background: #1d4ed8; color: #fff;
       display: flex; align-items: center; justify-content: center;
       font-size: 0.9rem; font-weight: 700; flex-shrink: 0;
     }
@@ -478,7 +618,7 @@ function buildDashboard(allProviderRecords, runResults = []) {
       width: 220px;
       outline: none;
     }
-    .search-box:focus { border-color: #0f3460; }
+    .search-box:focus { border-color: #1d4ed8; }
     .filter-btn {
       padding: 7px 16px;
       border: 1.5px solid #cbd5e1;
@@ -488,13 +628,13 @@ function buildDashboard(allProviderRecords, runResults = []) {
       font-size: 0.82rem;
       transition: all .15s;
     }
-    .filter-btn:hover, .filter-btn.active { background: #0f3460; color: #fff; border-color: #0f3460; }
+    .filter-btn:hover, .filter-btn.active { background: #1d4ed8; color: #fff; border-color: #1d4ed8; }
 
     /* ─ Table ─ */
     .table-wrap { padding: 0 40px 16px; overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,.07); font-size: 0.86rem; }
-    thead th { background: #1a1a2e; color: #fff; padding: 12px 16px; text-align: left; font-weight: 600; font-size: 0.76rem; text-transform: uppercase; letter-spacing: .6px; white-space: nowrap; cursor: pointer; user-select: none; }
-    thead th:hover { background: #0f3460; }
+    thead th { background: #1e3a8a; color: #fff; padding: 12px 16px; text-align: left; font-weight: 600; font-size: 0.76rem; text-transform: uppercase; letter-spacing: .6px; white-space: nowrap; cursor: pointer; user-select: none; }
+    thead th:hover { background: #2563eb; }
     thead th .sort-icon { opacity: .4; margin-left: 4px; font-size: .68rem; }
     thead th.sorted .sort-icon { opacity: 1; }
     tbody tr.summary-row { border-bottom: 1px solid #f1f5f9; transition: background .1s; }
@@ -550,7 +690,7 @@ function buildDashboard(allProviderRecords, runResults = []) {
       margin-bottom: -2px;
       transition: all .15s;
     }
-    .tab-btn.active { color: #0f3460; border-bottom-color: #0f3460; }
+    .tab-btn.active { color: #1d4ed8; border-bottom-color: #1d4ed8; }
     .tab-panel { display: none; }
     .tab-panel.active { display: block; }
 
@@ -561,18 +701,18 @@ function buildDashboard(allProviderRecords, runResults = []) {
       background: #fff; cursor: pointer; font-size: 0.78rem; font-weight: 600; color: #475569;
       transition: all .15s;
     }
-    .state-chip:hover, .state-chip.active { background: #0f3460; color: #fff; border-color: #0f3460; }
+    .state-chip:hover, .state-chip.active { background: #1d4ed8; color: #fff; border-color: #1d4ed8; }
 
     /* ─ Clickable card ─ */
     .card-clickable { cursor: pointer; }
     .card-clickable:hover { box-shadow: 0 8px 24px rgba(0,0,0,.14); transform: translateY(-3px); }
     .card-arrow { color: #94a3b8; font-size: 1rem; transition: color .15s; }
-    .card-clickable:hover .card-arrow { color: #0f3460; }
+    .card-clickable:hover .card-arrow { color: #1d4ed8; }
 
     /* ─ Provider detail drawer ─ */
     .drawer-overlay {
       display: none; position: fixed; inset: 0;
-      background: rgba(15,52,96,0.45); z-index: 1000;
+      background: rgba(30,58,138,0.45); z-index: 1000;
       align-items: flex-start; justify-content: center;
       padding: 32px 16px 48px; overflow-y: auto;
     }
@@ -595,7 +735,7 @@ function buildDashboard(allProviderRecords, runResults = []) {
     .detail-hdr { display: flex; align-items: center; gap: 16px; margin-bottom: 28px; flex-wrap: wrap; }
     .detail-avatar {
       width: 56px; height: 56px; border-radius: 50%;
-      background: #1a1a2e; color: #fff; font-size: 1.1rem; font-weight: 700;
+      background: #1d4ed8; color: #fff; font-size: 1.1rem; font-weight: 700;
       display: flex; align-items: center; justify-content: center; flex-shrink: 0;
     }
     .detail-name { font-size: 1.25rem; font-weight: 700; color: #1e293b; }
@@ -632,13 +772,65 @@ function buildDashboard(allProviderRecords, runResults = []) {
     .sa-done  { color: #15803d; font-weight: 600; }
     .sa-short { color: #b91c1c; font-weight: 600; }
 
+    .detail-lic-num {
+      font-size: 0.72rem; color: #64748b; background: #f1f5f9;
+      padding: 2px 8px; border-radius: 6px; white-space: nowrap;
+    }
+    .detail-btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+    .cebroker-link {
+      display: inline-block; padding: 6px 14px;
+      background: #1d4ed8; color: #fff; border-radius: 8px;
+      font-size: 0.78rem; text-decoration: none; font-weight: 600;
+    }
+    .cebroker-link:hover { background: #1e40af; }
     .detail-course-btn {
-      display: inline-block; margin-top: 6px; padding: 6px 14px;
+      display: inline-block; padding: 6px 14px;
       background: #eff6ff; color: #1d4ed8; border-radius: 8px;
       font-size: 0.78rem; text-decoration: none; font-weight: 600;
+      border: 1px solid #bfdbfe;
     }
     .detail-course-btn:hover { background: #dbeafe; }
     .detail-no-sa { font-size: 0.8rem; color: #94a3b8; font-style: italic; margin-bottom: 8px; }
+    .detail-contact { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 5px; }
+    .contact-link {
+      font-size: 0.78rem; color: #1d4ed8; text-decoration: none; font-weight: 500;
+    }
+    .contact-link:hover { text-decoration: underline; }
+    .contact-phone { font-size: 0.78rem; color: #475569; }
+
+    /* ─ Needs / Completed sections ─ */
+    .drawer-section { margin-top: 18px; }
+    .drawer-section-title {
+      font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.7px; color: #64748b; margin-bottom: 10px;
+      padding-bottom: 6px; border-bottom: 1px solid #e2e8f0;
+    }
+    .need-item {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      padding: 7px 10px; background: #fff5f5; border: 1px solid #fecaca;
+      border-radius: 8px; margin-bottom: 6px;
+    }
+    .need-topic  { font-size: 0.82rem; font-weight: 600; color: #991b1b; flex: 1; }
+    .need-hours  { font-size: 0.78rem; color: #b91c1c; white-space: nowrap; }
+    .need-search {
+      font-size: 0.75rem; padding: 3px 10px; background: #fee2e2;
+      color: #b91c1c; border-radius: 6px; text-decoration: none; font-weight: 600;
+      white-space: nowrap;
+    }
+    .need-search:hover { background: #fecaca; }
+
+    .course-list { display: flex; flex-direction: column; gap: 6px; max-height: 320px; overflow-y: auto; }
+    .course-item {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      padding: 8px 12px; background: #f8fafc; border: 1px solid #e2e8f0;
+      border-radius: 8px; gap: 10px;
+    }
+    .course-item-name { font-size: 0.82rem; color: #1e293b; flex: 1; line-height: 1.4; }
+    .course-item-name.unnamed { color: #94a3b8; font-style: italic; }
+    .course-item-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; white-space: nowrap; flex-shrink: 0; }
+    .course-item-date  { font-size: 0.72rem; color: #94a3b8; }
+    .course-item-hours { font-size: 0.75rem; font-weight: 600; color: #16a34a;
+                         background: #dcfce7; padding: 1px 7px; border-radius: 99px; }
 
     /* ─ Chart section ─ */
     .chart-wrap { padding: 28px 40px 40px; }
@@ -647,13 +839,187 @@ function buildDashboard(allProviderRecords, runResults = []) {
     .chart-canvas-wrap { position: relative; height: 380px; }
     .chart-no-data { text-align: center; padding: 40px; color: #94a3b8; font-size: 0.88rem; }
 
-    @media (max-width: 640px) {
-      header, .stats, .controls, .table-wrap, .cards-grid, .section-title, .tab-bar, .run-table-wrap {
-        padding-left: 16px;
-        padding-right: 16px;
-      }
-      .chart-wrap { padding-left: 16px; padding-right: 16px; }
+    /* ─ Print button (inside drawer) ─ */
+    .print-btn {
+      position: absolute; top: 18px; right: 60px;
+      background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px;
+      padding: 6px 13px; cursor: pointer; font-size: 0.78rem; font-weight: 600;
+      color: #1d4ed8;
     }
+    .print-btn:hover { background: #dbeafe; }
+
+    /* ─ Calendar ─ */
+    .cal-wrap { padding: 20px 40px 40px; display: flex; flex-direction: column; gap: 16px; }
+    .cal-empty { text-align: center; color: #94a3b8; font-size: 0.88rem; padding: 40px 0; }
+    .cal-month {
+      background: #fff; border-radius: 12px; padding: 20px 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.07);
+    }
+    .cal-month.cal-past { opacity: 0.5; }
+    .cal-month-hdr {
+      font-size: 0.95rem; font-weight: 700; color: #1e293b;
+      margin-bottom: 14px; padding-bottom: 10px;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .cal-past-lbl {
+      font-size: 0.68rem; font-weight: 600; background: #f1f5f9; color: #94a3b8;
+      padding: 2px 8px; border-radius: 99px; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .cal-entries { display: flex; flex-direction: column; gap: 8px; }
+    .cal-entry {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 14px; background: #f8fafc; border: 1px solid #e2e8f0;
+      border-radius: 8px; gap: 12px; flex-wrap: wrap;
+    }
+    .cal-entry-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+    .cal-entry-state {
+      font-size: 0.78rem; font-weight: 700; background: #e2e8f0; color: #334155;
+      padding: 2px 8px; border-radius: 6px; white-space: nowrap; flex-shrink: 0;
+    }
+    .cal-entry-name {
+      font-size: 0.88rem; font-weight: 600; color: #1e293b;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .cal-entry-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex-shrink: 0; }
+    .cal-entry-date  { font-size: 0.78rem; color: #64748b; white-space: nowrap; }
+    .cal-entry-days  { font-size: 0.75rem; white-space: nowrap; }
+
+    /* ─ Mobile (768px and below) ─ */
+    @media (max-width: 768px) {
+      header {
+        padding: 16px; flex-direction: column; align-items: flex-start; gap: 8px;
+      }
+      .header-logo  { height: 30px; }
+      .header-brand { gap: 10px; }
+      header h1 { font-size: 1.1rem; }
+      .header-meta { text-align: left; }
+      .run-badge { justify-content: flex-start; }
+
+      .stats { padding: 16px 16px 0; gap: 10px; }
+      .stat-card { min-width: calc(50% - 5px); flex: 1; padding: 12px 14px; }
+      .stat-card .num { font-size: 1.5rem; }
+
+      .cards-grid { padding-left: 16px; padding-right: 16px; grid-template-columns: 1fr; gap: 12px; }
+      .section-title { padding-left: 16px; padding-right: 16px; }
+      .state-chips    { padding-left: 16px; padding-right: 16px; }
+      .controls { padding-left: 16px; padding-right: 16px; flex-wrap: wrap; }
+      .search-box { width: 100%; }
+
+      .tab-bar { padding-left: 16px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      .tab-btn { flex-shrink: 0; padding: 10px 15px; font-size: 0.82rem; }
+
+      .table-wrap { padding: 0 0 16px; }
+      .run-table-wrap { padding: 0 0 24px; }
+      table { font-size: 0.78rem; }
+      td, th { padding: 7px 10px; }
+
+      .chart-wrap { padding-left: 16px; padding-right: 16px; }
+      .cal-wrap   { padding: 12px 16px 32px; }
+      .cal-month  { padding: 14px 16px; }
+      .cal-entry  { flex-direction: column; align-items: flex-start; gap: 6px; }
+      .cal-entry-right { width: 100%; justify-content: flex-start; }
+
+      /* Drawer: bottom-sheet on mobile */
+      .drawer-overlay { padding: 0; align-items: flex-end; }
+      .drawer-panel {
+        border-radius: 20px 20px 0 0; max-height: 90vh;
+        overflow-y: auto; padding: 24px 16px 32px;
+        margin: 0; width: 100%; max-width: 100%;
+        animation: slideUp .22s ease;
+      }
+      .drawer-close { top: 16px; right: 16px; }
+      .print-btn    { top: 16px; right: 58px; padding: 5px 10px; font-size: 0.72rem; }
+      .detail-sa-table { font-size: 0.72rem; }
+      .detail-sa-table th, .detail-sa-table td { padding: 5px 7px; }
+      .course-list { max-height: 220px; }
+    }
+
+    /* ─ Print / Export PDF ─ */
+    @media print {
+      body > *:not(.drawer-overlay) { display: none !important; }
+      .drawer-overlay {
+        display: block !important; position: static !important;
+        background: none !important; padding: 0 !important; overflow: visible !important;
+      }
+      .drawer-panel {
+        box-shadow: none !important; max-width: 100% !important; width: 100% !important;
+        animation: none !important; padding: 24px !important;
+        margin: 0 !important; border-radius: 0 !important;
+        max-height: none !important; overflow: visible !important;
+      }
+      .drawer-close, .print-btn { display: none !important; }
+      .course-list { max-height: none !important; overflow: visible !important; }
+      .detail-lic-card { break-inside: avoid; }
+    }
+
+    /* ─ Platform CEU Accounts section ─ */
+    .platform-section { margin-top: 24px; }
+    .platform-section-title {
+      font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.7px; color: #64748b; margin-bottom: 12px;
+      padding-bottom: 6px; border-bottom: 1px solid #e2e8f0;
+    }
+    .platform-cards { display: flex; flex-wrap: wrap; gap: 12px; }
+    .platform-card {
+      flex: 1 1 260px; border: 1px solid #e2e8f0; border-radius: 10px;
+      overflow: hidden; background: #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    }
+    .platform-card-hdr {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 12px; font-size: 0.8rem; font-weight: 700; color: #fff;
+    }
+    .platform-card.plat-netce   .platform-card-hdr { background: #0d9488; }
+    .platform-card.plat-ceufast .platform-card-hdr { background: #7c3aed; }
+    .platform-card.plat-aanp    .platform-card-hdr { background: #1d4ed8; }
+    .platform-card.plat-error   .platform-card-hdr { background: #64748b; }
+    .platform-hdr-status {
+      font-size: 0.72rem; font-weight: 600; padding: 2px 8px;
+      border-radius: 99px; background: rgba(255,255,255,.25);
+    }
+    .platform-card-body { padding: 12px; }
+    .platform-hours-row {
+      display: flex; align-items: baseline; gap: 6px; margin-bottom: 8px;
+    }
+    .platform-hours-big { font-size: 1.5rem; font-weight: 700; color: #1e3a8a; }
+    .platform-hours-lbl { font-size: 0.75rem; color: #64748b; }
+    .platform-prog-wrap { margin-bottom: 10px; }
+    .platform-prog-row {
+      display: flex; justify-content: space-between;
+      font-size: 0.72rem; color: #64748b; margin-bottom: 4px;
+    }
+    .platform-prog-track {
+      height: 7px; background: #e2e8f0; border-radius: 99px; overflow: hidden;
+    }
+    .platform-prog-fill {
+      height: 100%; border-radius: 99px; background: #1d4ed8;
+      transition: width .4s ease;
+    }
+    .platform-prog-fill.pp-complete { background: #16a34a; }
+    .platform-cert-row {
+      font-size: 0.78rem; color: #475569; margin-bottom: 6px; display: flex; gap: 8px; flex-wrap: wrap;
+    }
+    .platform-cert-status {
+      font-weight: 600; padding: 1px 8px; border-radius: 99px; font-size: 0.72rem;
+    }
+    .platform-cert-status.cert-active   { background: #dcfce7; color: #166534; }
+    .platform-cert-status.cert-inactive { background: #fee2e2; color: #7f1d1d; }
+    .platform-courses-title {
+      font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.5px; color: #94a3b8; margin-bottom: 6px;
+    }
+    .platform-course-list { display: flex; flex-direction: column; gap: 4px; }
+    .platform-course-item {
+      font-size: 0.75rem; color: #475569; display: flex;
+      justify-content: space-between; gap: 8px; align-items: baseline;
+      padding: 3px 0; border-bottom: 1px solid #f1f5f9;
+    }
+    .platform-course-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .platform-course-meta { color: #94a3b8; white-space: nowrap; font-size: 0.7rem; }
+    .platform-error-msg { font-size: 0.75rem; color: #ef4444; font-style: italic; padding: 8px 0; }
+    .platform-updated { font-size: 0.68rem; color: #94a3b8; padding: 6px 12px; border-top: 1px solid #f1f5f9; }
+    .platform-no-courses { font-size: 0.75rem; color: #94a3b8; font-style: italic; }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 </head>
@@ -661,7 +1027,9 @@ function buildDashboard(allProviderRecords, runResults = []) {
 
 <!-- ── Header ─────────────────────────────────────────────────────────── -->
 <header>
-  <div>
+  <div class="header-brand">
+    <img src="fountain-logo.png" alt="Fountain" class="header-logo" />
+    <div class="header-divider"></div>
     <h1>CE Broker <span>Compliance</span> Dashboard</h1>
   </div>
   <div class="header-meta">
@@ -690,6 +1058,7 @@ function buildDashboard(allProviderRecords, runResults = []) {
   <button class="tab-btn"        onclick="showTab('table')">Full Table</button>
   <button class="tab-btn"        onclick="showTab('runlog')">Run Log</button>
   <button class="tab-btn"        onclick="showTab('chart')">Progress Chart</button>
+  <button class="tab-btn"        onclick="showTab('calendar')">Deadline Calendar</button>
 </div>
 
 <!-- ── Tab: Provider Profiles ─────────────────────────────────────────── -->
@@ -770,10 +1139,19 @@ function buildDashboard(allProviderRecords, runResults = []) {
   </div>
 </div>
 
+<!-- ── Tab: Deadline Calendar ─────────────────────────────────────────── -->
+<div class="tab-panel" id="tab-calendar">
+  <div class="section-title">Renewal Deadline Calendar</div>
+  <div class="cal-wrap">
+    ${calendarHtml}
+  </div>
+</div>
+
 <!-- ── Provider detail drawer ──────────────────────────────────────────── -->
 <div class="drawer-overlay" id="drawerOverlay" onclick="if(event.target===this)closeProvider()">
   <div class="drawer-panel" id="drawerPanel">
     <button class="drawer-close" onclick="closeProvider()">✕</button>
+    <button class="print-btn"   onclick="printProvider()">Print / Export PDF</button>
     <div id="drawerContent"></div>
   </div>
 </div>
@@ -787,7 +1165,7 @@ function buildDashboard(allProviderRecords, runResults = []) {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.getElementById('tab-' + name).classList.add('active');
     const btns = document.querySelectorAll('.tab-btn');
-    const labels = ['profiles','table','runlog','chart'];
+    const labels = ['profiles','table','runlog','chart','calendar'];
     btns[labels.indexOf(name)]?.classList.add('active');
     if (name === 'chart') initCharts();
   }
@@ -838,6 +1216,9 @@ function buildDashboard(allProviderRecords, runResults = []) {
   function closeProvider() {
     document.getElementById('drawerOverlay').classList.remove('open');
     document.body.style.overflow = '';
+  }
+  function printProvider() {
+    window.print();
   }
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeProvider(); });
 
@@ -1040,6 +1421,100 @@ function buildHoursBar(completed, required) {
   return `<div class="hours-wrap">
     <div class="hours-text">${c} / ${r} hrs</div>
     <div class="bar-track"><div class="bar-fill ${cls}" style="width:${pct}%"></div></div>
+  </div>`;
+}
+
+/**
+ * Build the "Platform CEU Accounts" section HTML for a provider drawer.
+ * @param {Array} platformResults  Array of platform result objects for one provider
+ */
+function buildPlatformSection(platformResults) {
+  if (!platformResults || platformResults.length === 0) return '';
+
+  const cards = platformResults.map(pr => {
+    const platformKey =
+      pr.platform === 'NetCE'     ? 'plat-netce'
+    : pr.platform === 'CEUfast'   ? 'plat-ceufast'
+    : pr.platform === 'AANP Cert' ? 'plat-aanp'
+    :                               'plat-error';
+
+    const statusLabel = pr.status === 'success' ? '✓ Connected' : '✗ Failed';
+
+    // ── Error card ──────────────────────────────────────────────────────────
+    if (pr.status === 'failed') {
+      return `<div class="platform-card ${platformKey}">
+        <div class="platform-card-hdr">
+          <span>${escHtml(pr.platform)}</span>
+          <span class="platform-hdr-status">${statusLabel}</span>
+        </div>
+        <div class="platform-card-body">
+          <div class="platform-error-msg">${escHtml(pr.error || 'Scrape failed')}</div>
+        </div>
+        ${pr.lastUpdated ? `<div class="platform-updated">Last run: ${escHtml(pr.lastUpdated)}</div>` : ''}
+      </div>`;
+    }
+
+    // ── AANP Cert — show cycle progress bar ─────────────────────────────────
+    let progressHtml = '';
+    if (pr.platform === 'AANP Cert' && pr.hoursRequired != null) {
+      const earned = pr.hoursEarned ?? 0;
+      const req    = pr.hoursRequired;
+      const pct    = req > 0 ? Math.min(100, Math.round((earned / req) * 100)) : 0;
+      const fillCls = pct >= 100 ? 'pp-complete' : '';
+      const certStatusCls = (pr.certStatus || '').toLowerCase() === 'active' ? 'cert-active' : 'cert-inactive';
+
+      progressHtml = `
+        <div class="platform-prog-wrap">
+          <div class="platform-prog-row">
+            <span>${earned} / ${req} CE credits</span>
+            <span>${pct}%</span>
+          </div>
+          <div class="platform-prog-track">
+            <div class="platform-prog-fill ${fillCls}" style="width:${pct}%"></div>
+          </div>
+        </div>
+        <div class="platform-cert-row">
+          ${pr.certStatus ? `<span class="platform-cert-status ${certStatusCls}">${escHtml(pr.certStatus)}</span>` : ''}
+          ${pr.certExpires ? `<span>Cert expires: <strong>${escHtml(pr.certExpires)}</strong></span>` : ''}
+        </div>`;
+    } else if (pr.hoursEarned != null) {
+      progressHtml = `
+        <div class="platform-hours-row">
+          <span class="platform-hours-big">${pr.hoursEarned}</span>
+          <span class="platform-hours-lbl">hrs earned on this platform</span>
+        </div>`;
+    }
+
+    // ── Course list (up to 5 shown) ─────────────────────────────────────────
+    const courses = pr.courses || [];
+    const courseListHtml = courses.length > 0
+      ? `<div class="platform-courses-title">Recent Courses (${courses.length})</div>
+         <div class="platform-course-list">
+           ${courses.slice(0, 5).map(c => `
+             <div class="platform-course-item">
+               <span class="platform-course-name">${escHtml(c.name || 'Course')}</span>
+               <span class="platform-course-meta">${c.hours}h${c.date ? ' · ' + escHtml(c.date) : ''}</span>
+             </div>`).join('')}
+           ${courses.length > 5 ? `<div class="platform-no-courses">+${courses.length - 5} more courses</div>` : ''}
+         </div>`
+      : `<div class="platform-no-courses">No course data found</div>`;
+
+    return `<div class="platform-card ${platformKey}">
+      <div class="platform-card-hdr">
+        <span>${escHtml(pr.platform)}</span>
+        <span class="platform-hdr-status">${statusLabel}</span>
+      </div>
+      <div class="platform-card-body">
+        ${progressHtml}
+        ${courseListHtml}
+      </div>
+      ${pr.lastUpdated ? `<div class="platform-updated">Last updated: ${escHtml(pr.lastUpdated)}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  return `<div class="platform-section">
+    <div class="platform-section-title">Platform CEU Accounts</div>
+    <div class="platform-cards">${cards}</div>
   </div>`;
 }
 
