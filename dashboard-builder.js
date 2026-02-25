@@ -383,7 +383,14 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
 
     const statesList = info.licenses.map(l => l.state).filter(Boolean).join(',');
 
-    // Platform tags visible on the card
+    // State chips — one per license
+    const stateChips = info.licenses.map(lic => {
+      const st  = getS(lic);
+      const cls = { Complete: 'sc-green', 'In Progress': 'sc-yellow', 'At Risk': 'sc-red', Unknown: 'sc-gray' }[st] || 'sc-gray';
+      return `<span class="card-state-chip ${cls}">${escHtml(lic.state || '?')} ${escHtml(lic.licenseType || info.type || '')}</span>`;
+    }).join('');
+
+    // Platform tags — show platform, hours, and course count
     const platTags = (platformByProvider[name] || [])
       .filter(pr => pr.status === 'success')
       .map(pr => {
@@ -395,7 +402,8 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
           ? `${pr.hoursEarned ?? '?'}/${pr.hoursRequired} cr`
           : pr.hoursEarned !== null ? `${pr.hoursEarned} h` : '';
         if (pr.certStatus) detail += ` · ${pr.certStatus}`;
-        return `<span class="card-plat-tag plat-tag-${slug}">${escHtml(pr.platform)}${detail ? `: ${escHtml(detail)}` : ''}</span>`;
+        const count = pr.courses && pr.courses.length > 0 ? ` (${pr.courses.length} courses)` : '';
+        return `<span class="card-plat-tag plat-tag-${slug}">${escHtml(pr.platform)}${detail ? `: ${escHtml(detail)}` : ''}${count}</span>`;
       }).join('');
     const platTagsRow = platTags ? `<div class="card-plat-tags">${platTags}</div>` : '';
 
@@ -408,7 +416,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
         <div class="avatar">${escHtml(initials)}</div>
         <div class="card-info">
           <div class="card-name">${escHtml(name)}</div>
-          <div class="card-type">${escHtml(info.type || '')}</div>
+          <div class="card-states">${stateChips}</div>
         </div>
         <div class="card-lic-count">${info.licenses.length} license${info.licenses.length !== 1 ? 's' : ''} <span class="card-arrow">›</span></div>
       </div>
@@ -726,6 +734,12 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     .card-clickable:hover { box-shadow: 0 8px 24px rgba(0,0,0,.14); transform: translateY(-3px); }
     .card-arrow { color: #94a3b8; font-size: 1rem; transition: color .15s; }
     .card-clickable:hover .card-arrow { color: #1d4ed8; }
+    .card-states { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+    .card-state-chip { font-size: 0.67rem; font-weight: 600; padding: 2px 6px; border-radius: 8px; }
+    .sc-green  { background: #dcfce7; color: #166534; }
+    .sc-yellow { background: #fef9c3; color: #854d0e; }
+    .sc-red    { background: #fee2e2; color: #7f1d1d; }
+    .sc-gray   { background: #f1f5f9; color: #475569; }
     .card-plat-tags { display: flex; flex-wrap: wrap; gap: 5px; padding: 8px 12px 4px; border-top: 1px solid #f1f5f9; }
     .card-plat-tag { font-size: 0.68rem; font-weight: 600; padding: 2px 7px; border-radius: 10px; }
     .plat-tag-netce   { background: #ccfbf1; color: #0f766e; }
