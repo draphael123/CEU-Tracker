@@ -520,7 +520,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CE Broker — Compliance Dashboard</title>
+  <title>CEU Tracker</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f4f2; color: #1e3a8a; min-height: 100vh; }
@@ -1160,7 +1160,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
   <div class="header-brand">
     <img src="fountain-logo.png" alt="Fountain" class="header-logo" />
     <div class="header-divider"></div>
-    <h1>CE Broker <span>Compliance</span> Dashboard</h1>
+    <h1>CEU <span>Tracker</span></h1>
   </div>
   <div class="header-meta">
     <div class="last-scraped-label">Last Scraped</div>
@@ -1354,7 +1354,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
   </div>
 </div>
 
-<footer>CE Broker Automation &nbsp;·&nbsp; Last scraped: ${escHtml(runDate)}</footer>
+<footer>CEU Tracker &nbsp;·&nbsp; Last scraped: ${escHtml(runDate)}</footer>
 
 <script>
   // ── Tabs ──
