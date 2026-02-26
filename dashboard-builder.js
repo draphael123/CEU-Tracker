@@ -52,7 +52,7 @@ function saveHistory(allProviderRecords, runResults) {
 
   // Also save a simple last_run.json for the server's health check
   fs.writeFileSync(LAST_RUN_FILE, JSON.stringify({
-    timestamp: snapshot.timestamp, total: flat.length, succeeded, failed,
+    timestamp: snapshot.timestamp, total: flat.length, succeeded, failed: loginErrors,
   }, null, 2), 'utf8');
 
   return history;
@@ -341,7 +341,16 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     }).join('');
   }
 
-  const profileCards = Object.entries(providerMap).map(([name, info]) => {
+  // ── RN identification (first name matching) ─────────────────────────────
+  const RN_FIRST_NAMES = ['Camryn', 'Daniel', 'Brooklyn', 'Brittany', 'Shelby', 'Mackinzie', 'Bryce', 'Hilary'];
+  const isRN = (name, type) => {
+    if (type === 'RN') return true;
+    const firstName = name.split(/[\s,]+/)[0];
+    return RN_FIRST_NAMES.some(rn => firstName.toLowerCase().startsWith(rn.toLowerCase()));
+  };
+
+  // ── Helper to build a single provider card ───────────────────────────────
+  const buildProviderCard = ([name, info]) => {
     const licBadges = info.licenses.map(lic => {
       const status    = getS(lic);
       const state     = lic.state || '??';
@@ -452,7 +461,24 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
       <div class="lic-blocks">${licBadges}</div>
       ${platTagsRow}
     </div>`;
-  }).join('');
+  };
+
+  // ── Split providers into clinicians and RNs ──────────────────────────────
+  const providerEntries = Object.entries(providerMap);
+  const clinicianEntries = providerEntries.filter(([name, info]) => !isRN(name, info.type));
+  const rnEntries = providerEntries.filter(([name, info]) => isRN(name, info.type));
+
+  const clinicianCards = clinicianEntries.map(buildProviderCard).join('');
+  const rnCards = rnEntries.map(buildProviderCard).join('');
+  const profileCards = providerEntries.map(buildProviderCard).join(''); // Keep for backward compat
+
+  // ── Coverage gaps (no CE Broker and/or no platform credentials) ──────────
+  const noCEBrokerList = (runResults || [])
+    .filter(r => r.status === 'not_configured')
+    .map(r => r.name);
+  const withPlatforms = new Set(platformData.map(p => p.providerName));
+  const noPlatformList = Object.keys(providerMap).filter(name => !withPlatforms.has(name));
+  const noCredentialsList = noCEBrokerList.filter(name => noPlatformList.includes(name));
 
   // ── Summary table rows ───────────────────────────────────────────────────
   const rows = flat.map(rec => {
@@ -830,6 +856,14 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     .cov-yes { color: #16a34a; font-weight: 700; }
     .cov-no  { color: #cbd5e1; }
 
+    .coverage-gaps-box { margin: 0 40px 28px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 12px; padding: 20px 24px; }
+    .gap-section { margin-bottom: 16px; }
+    .gap-section:last-child { margin-bottom: 0; }
+    .gap-title { font-weight: 600; color: #c2410c; font-size: 0.9rem; margin-bottom: 6px; }
+    .gap-desc { font-size: 0.78rem; color: #9a3412; margin-bottom: 10px; line-height: 1.4; }
+    .gap-list { display: flex; flex-wrap: wrap; gap: 6px; }
+    .gap-name { font-size: 0.78rem; font-weight: 500; padding: 4px 10px; background: #fff; border: 1px solid #fdba74; border-radius: 14px; color: #9a3412; }
+
     .card-states { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
     .card-state-chip { font-size: 0.67rem; font-weight: 600; padding: 2px 6px; border-radius: 8px; }
     .sc-green  { background: #dcfce7; color: #166534; }
@@ -1069,6 +1103,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
       .course-list { max-height: 220px; }
       .platform-overview-grid { padding: 0 16px; gap: 10px; }
       .coverage-wrap { padding: 0 16px 28px; }
+      .coverage-gaps-box { margin: 0 16px 28px; padding: 16px; }
       .about-box { margin: 0 16px 8px; padding: 16px; }
       .chart-canvas-wrap { height: 260px; }
       .poc { padding: 12px 14px; }
@@ -1269,11 +1304,28 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
       </tbody>
     </table>
   </div>
+
+  ${(noCEBrokerList.length > 0 || noPlatformList.length > 0) ? `
+  <div class="section-title">Coverage Gaps</div>
+  <div class="coverage-gaps-box">
+    ${noCEBrokerList.length > 0 ? `
+    <div class="gap-section">
+      <div class="gap-title">No CE Broker Credentials (${noCEBrokerList.length})</div>
+      <div class="gap-desc">These team members don't have CE Broker login credentials configured. Their license status cannot be tracked directly.</div>
+      <div class="gap-list">${noCEBrokerList.map(n => `<span class="gap-name">${escHtml(n)}</span>`).join('')}</div>
+    </div>` : ''}
+    ${noPlatformList.length > 0 ? `
+    <div class="gap-section">
+      <div class="gap-title">No Platform Credentials (${noPlatformList.length})</div>
+      <div class="gap-desc">These team members don't have credentials for any CE platform (NetCE, CEUfast, AANP, etc.).</div>
+      <div class="gap-list">${noPlatformList.map(n => `<span class="gap-name">${escHtml(n)}</span>`).join('')}</div>
+    </div>` : ''}
+  </div>
+  ` : ''}
 </div>
 
 <!-- ── Tab: Provider Profiles ─────────────────────────────────────────── -->
 <div class="tab-panel" id="tab-profiles">
-  <div class="section-title">Provider Profiles</div>
   <div class="state-chips">
     <button class="state-chip active" id="schip-all" onclick="setStateFilter('all')">All States</button>
     ${allStates.map(s => `<button class="state-chip" id="schip-${escHtml(s)}" onclick="setStateFilter('${escHtml(s)}')">${escHtml(s)}</button>`).join('')}
@@ -1285,9 +1337,18 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     <button class="filter-btn"        id="cbtn-In Progress" onclick="setCardFilter('In Progress')">In Progress</button>
     <button class="filter-btn"        id="cbtn-At Risk"     onclick="setCardFilter('At Risk')">At Risk</button>
   </div>
+
+  <div class="section-title" style="margin-top:24px">Clinicians (${clinicianEntries.length})</div>
   <div class="cards-grid" id="cardsGrid">
-    ${profileCards}
+    ${clinicianCards}
   </div>
+
+  ${rnEntries.length > 0 ? `
+  <div class="section-title" style="margin-top:32px;border-top:1px solid #e2e8f0;padding-top:24px">Support Staff — RN (${rnEntries.length})</div>
+  <div class="cards-grid" id="rnCardsGrid">
+    ${rnCards}
+  </div>
+  ` : ''}
 </div>
 
 <!-- ── Tab: Full Table ────────────────────────────────────────────────── -->

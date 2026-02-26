@@ -348,6 +348,85 @@ async function scrapeAANPCert(browser, credentials, providerName) {
   }
 }
 
+// ─── Exclamation CE ───────────────────────────────────────────────────────────
+
+async function scrapeExclamationCE(browser, credentials, providerName) {
+  const { username, password } = credentials;
+  logger.info(`[ExclamationCE] ${providerName} — logging in as ${username}`);
+
+  const context = await makeContext(browser);
+  const page    = await context.newPage();
+
+  try {
+    // ── Login ────────────────────────────────────────────────────────────────
+    await page.goto('https://www.exclamationce.com/login', {
+      waitUntil: 'domcontentloaded', timeout: 30000,
+    });
+    await sleep(1500);
+
+    // Find and fill login form
+    const userSel = 'input[name="email"], input[type="email"], input[name="username"], #email, #username';
+    await page.waitForSelector(userSel, { timeout: 15000 });
+    await page.fill(userSel, username);
+    await sleep(300);
+    await page.fill('input[name="password"], input[type="password"]', password);
+    await sleep(300);
+    await page.click('button[type="submit"], input[type="submit"], button:has-text("Log In"), button:has-text("Sign In")');
+    await sleep(3000);
+
+    // Wait for redirect away from login
+    await page.waitForURL(u => !u.toString().includes('/login'), { timeout: 20000 }).catch(() => {});
+    await sleep(1500);
+
+    // ── Navigate to transcript/completed courses ──────────────────────────────
+    // Try common transcript URLs
+    const transcriptUrls = [
+      'https://www.exclamationce.com/my-courses',
+      'https://www.exclamationce.com/transcript',
+      'https://www.exclamationce.com/completed',
+      'https://www.exclamationce.com/account/courses',
+      'https://www.exclamationce.com/dashboard',
+    ];
+
+    let courses = [];
+    for (const url of transcriptUrls) {
+      try {
+        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 });
+        await sleep(2000);
+        courses = await extractCourseRows(page);
+        if (courses.length > 0) break;
+      } catch (e) {
+        // Try next URL
+      }
+    }
+
+    const totalHoursEarned = Math.round(courses.reduce((s, c) => s + (c.hours || 0), 0) * 10) / 10;
+
+    logger.success(`[ExclamationCE] ${providerName}: ${courses.length} courses, ${totalHoursEarned}h earned`);
+
+    return {
+      platform:       'ExclamationCE',
+      providerName,
+      hoursEarned:    totalHoursEarned || null,
+      hoursRequired:  null,
+      hoursRemaining: null,
+      certExpires:    null,
+      certStatus:     null,
+      courses:        courses.slice(0, 100),
+      lastUpdated:    new Date().toLocaleDateString('en-US'),
+      status:         'success',
+      error:          null,
+    };
+
+  } catch (err) {
+    await screenshotOnError(page, providerName, 'exclamationce_error');
+    logger.error(`[ExclamationCE] ${providerName}: ${err.message}`);
+    return emptyResult('ExclamationCE', providerName, err.message);
+  } finally {
+    await context.close();
+  }
+}
+
 // ─── Orchestrator ─────────────────────────────────────────────────────────────
 
 /**
@@ -376,6 +455,9 @@ async function runPlatformScrapers(browser, providers) {
             break;
           case 'AANP Cert':
             result = await scrapeAANPCert(browser, creds, provider.name);
+            break;
+          case 'ExclamationCE':
+            result = await scrapeExclamationCE(browser, creds, provider.name);
             break;
           default:
             logger.warn(`[Platform] Unknown platform "${creds.platform}" for ${provider.name}`);
