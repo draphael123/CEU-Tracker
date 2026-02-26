@@ -1365,8 +1365,8 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
 <!-- ── Tabs ───────────────────────────────────────────────────────────── -->
 <div class="tab-bar">
   <button class="tab-btn active" onclick="showTab('overview')">Overview</button>
+  <button class="tab-btn"        onclick="showTab('profiles')">Team Members</button>
   <button class="tab-btn"        onclick="showTab('attention')">Needs Attention${(atRisk + noCredentialsProviders.length) > 0 ? ` <span class="tab-badge">${atRisk + noCredentialsProviders.length}</span>` : ''}</button>
-  <button class="tab-btn"        onclick="showTab('profiles')">Provider Profiles</button>
   <button class="tab-btn"        onclick="showTab('table')">Full Table</button>
   <button class="tab-btn"        onclick="showTab('runlog')">Run Log</button>
   <button class="tab-btn"        onclick="showTab('chart')">Progress Chart</button>
@@ -1735,7 +1735,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.getElementById('tab-' + name).classList.add('active');
     const btns = document.querySelectorAll('.tab-btn');
-    const labels = ['overview','attention','profiles','table','runlog','chart','calendar'];
+    const labels = ['overview','profiles','attention','table','runlog','chart','calendar'];
     btns[labels.indexOf(name)]?.classList.add('active');
     if (name === 'chart') initCharts();
   }
