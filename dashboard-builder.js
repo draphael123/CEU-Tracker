@@ -18,15 +18,17 @@ function ensurePublicDir() {
  * tracked across multiple scrape runs over time.
  */
 function saveHistory(allProviderRecords, runResults) {
-  const flat      = allProviderRecords.flat();
-  const succeeded = (runResults || []).filter(r => r.status === 'success').length;
-  const failed    = (runResults || []).filter(r => r.status === 'failed').length;
+  const flat         = allProviderRecords.flat();
+  const succeeded    = (runResults || []).filter(r => r.status === 'success').length;
+  const notConfigured = (runResults || []).filter(r => r.status === 'not_configured').length;
+  const loginErrors  = (runResults || []).filter(r => r.status === 'login_error' || r.status === 'failed').length;
 
   // Build a lean snapshot — just the numbers we need for charts
   const snapshot = {
     timestamp: new Date().toISOString(),
     succeeded,
-    failed,
+    failed: loginErrors,  // Keep 'failed' key for backward compatibility
+    notConfigured,
     providers: flat.map(rec => ({
       name:            rec.providerName,
       state:           rec.state,
@@ -508,9 +510,14 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
   }).join('');
 
   // ── Run result table ─────────────────────────────────────────────────────
+  const getStatusBadge = (status) => {
+    if (status === 'success') return '<span class="status-badge status-complete">✓ Success</span>';
+    if (status === 'not_configured') return '<span class="status-badge status-pending">○ Not Configured</span>';
+    return '<span class="status-badge status-risk">✗ Login Error</span>';
+  };
   const runRows = runResults.map(r => `<tr>
     <td>${escHtml(r.name)}</td>
-    <td class="center"><span class="status-badge ${r.status === 'success' ? 'status-complete' : 'status-risk'}">${r.status === 'success' ? '✓ Success' : '✗ Failed'}</span></td>
+    <td class="center">${getStatusBadge(r.status)}</td>
     <td>${r.error ? `<span style="color:#dc2626;font-size:0.8rem">${escHtml(r.error)}</span>` : '<span style="color:#94a3b8">—</span>'}</td>
   </tr>`).join('');
 
@@ -558,6 +565,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     .run-badge { margin-top: 6px; display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
     .run-pill { padding: 3px 10px; border-radius: 99px; font-size: 0.75rem; font-weight: 600; }
     .run-pill.ok   { background: #166534; color: #dcfce7; }
+    .run-pill.notconfig { background: #475569; color: #e2e8f0; }
     .run-pill.fail { background: #7f1d1d; color: #fee2e2; }
 
     /* ─ Stat cards ─ */
@@ -724,6 +732,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     .status-complete { background: #bbf7d0; color: #14532d; }
     .status-progress { background: #fde68a; color: #92400e; }
     .status-risk     { background: #fca5a5; color: #7f1d1d; }
+    .status-pending  { background: #cbd5e1; color: #334155; }
     .status-unknown  { background: #e2e8f0; color: #475569; }
 
     .course-link { display: inline-block; padding: 4px 10px; background: #eff6ff; color: #1d4ed8; border-radius: 6px; font-size: .76rem; text-decoration: none; font-weight: 500; }
@@ -1168,8 +1177,11 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     <div class="last-scraped-ago" id="lastScrapedAgo"></div>
     <div class="run-badge">
       <span class="run-pill ok">✓ ${runResults.filter(r => r.status === 'success').length} succeeded</span>
-      ${runResults.filter(r => r.status === 'failed').length > 0
-        ? `<span class="run-pill fail">✗ ${runResults.filter(r => r.status === 'failed').length} failed</span>`
+      ${runResults.filter(r => r.status === 'not_configured').length > 0
+        ? `<span class="run-pill notconfig">○ ${runResults.filter(r => r.status === 'not_configured').length} not configured</span>`
+        : ''}
+      ${runResults.filter(r => r.status === 'login_error' || r.status === 'failed').length > 0
+        ? `<span class="run-pill fail">✗ ${runResults.filter(r => r.status === 'login_error' || r.status === 'failed').length} login errors</span>`
         : ''}
     </div>
   </div>

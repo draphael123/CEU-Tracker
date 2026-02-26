@@ -31,6 +31,27 @@ async function main() {
     const provider = providers[i];
     logger.info(`\n[${i + 1}/${providers.length}] Processing: ${provider.name}`);
 
+    // ── Check if CE Broker credentials are configured ───────────────────────
+    const hasCEBrokerCreds = provider.username && provider.password;
+
+    if (!hasCEBrokerCreds) {
+      logger.info(`${provider.name}: No CE Broker credentials configured (platform-only)`);
+      allResults.push({ name: provider.name, status: 'not_configured' });
+      allRecords.push([{
+        providerName:    provider.name,
+        providerType:    provider.type,
+        state:           null,
+        licenseType:     provider.type,
+        renewalDeadline: null,
+        hoursRequired:   null,
+        hoursCompleted:  null,
+        hoursRemaining:  null,
+        lastUpdated:     null,
+        subjectAreas:    [],
+      }]);
+      continue;
+    }
+
     let page = null;
     try {
       // ── Login ──────────────────────────────────────────────────────────────
@@ -48,8 +69,8 @@ async function main() {
       allResults.push({ name: provider.name, status: 'success' });
 
     } catch (err) {
-      logger.error(`Failed for ${provider.name}: ${err.message}`);
-      allResults.push({ name: provider.name, status: 'failed', error: err.message });
+      logger.error(`Login error for ${provider.name}: ${err.message}`);
+      allResults.push({ name: provider.name, status: 'login_error', error: err.message });
 
       // Push an empty placeholder so the export still shows the provider
       allRecords.push([{
