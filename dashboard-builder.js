@@ -481,6 +481,10 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
   const noPlatformList = Object.keys(providerMap).filter(name => !withPlatforms.has(name) && noCEBrokerList.includes(name));
   const noCredentialsList = noCEBrokerList.filter(name => noPlatformList.includes(name));
 
+  // ── No CE Credentials Found (providers flagged with noCredentials: true) ──
+  const providers = require('./providers.json');
+  const noCredentialsProviders = providers.filter(p => p.noCredentials === true).map(p => p.name);
+
   // ── Summary table rows ───────────────────────────────────────────────────
   const rows = flat.map(rec => {
     const status     = getS(rec);
@@ -1321,6 +1325,17 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
       <div class="gap-desc">These team members don't have credentials for any CE platform (NetCE, CEUfast, AANP, etc.).</div>
       <div class="gap-list">${noPlatformList.map(n => `<span class="gap-name">${escHtml(n)}</span>`).join('')}</div>
     </div>` : ''}
+  </div>
+  ` : ''}
+
+  ${noCredentialsProviders.length > 0 ? `
+  <div class="section-title">No CE Credentials Found</div>
+  <div class="coverage-gaps-box" style="background: #fef2f2; border-color: #fecaca;">
+    <div class="gap-section">
+      <div class="gap-title" style="color: #dc2626;">Team Members Without Any CE Credentials (${noCredentialsProviders.length})</div>
+      <div class="gap-desc" style="color: #991b1b;">These team members do not have any CE Broker or CE platform credentials on file. CEU tracking is not possible until credentials are provided.</div>
+      <div class="gap-list">${noCredentialsProviders.map(n => `<span class="gap-name" style="border-color: #fca5a5; color: #991b1b;">${escHtml(n)}</span>`).join('')}</div>
+    </div>
   </div>
   ` : ''}
 </div>
