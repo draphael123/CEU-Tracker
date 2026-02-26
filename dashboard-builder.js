@@ -477,7 +477,8 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     .filter(r => r.status === 'not_configured')
     .map(r => r.name);
   const withPlatforms = new Set(platformData.map(p => p.providerName));
-  const noPlatformList = Object.keys(providerMap).filter(name => !withPlatforms.has(name));
+  // Only show in "No Platform" if they ALSO lack CE Broker credentials
+  const noPlatformList = Object.keys(providerMap).filter(name => !withPlatforms.has(name) && noCEBrokerList.includes(name));
   const noCredentialsList = noCEBrokerList.filter(name => noPlatformList.includes(name));
 
   // ── Summary table rows ───────────────────────────────────────────────────
