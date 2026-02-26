@@ -1177,7 +1177,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
 
 <!-- ── Stats ──────────────────────────────────────────────────────────── -->
 <div class="stats">
-  <div class="stat-card total"><div class="num">${total}</div><div class="lbl">Total Licenses</div></div>
+  <div class="stat-card total"><div class="num">${total}</div><div class="lbl">Clinical Team Members</div></div>
   <div class="stat-card ok">  <div class="num">${complete}</div><div class="lbl">Complete</div></div>
   <div class="stat-card prog"><div class="num">${inProg}</div><div class="lbl">In Progress</div></div>
   <div class="stat-card risk"><div class="num">${atRisk}</div><div class="lbl">At Risk</div></div>
@@ -1234,7 +1234,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     }).join('')}
   </div>
 
-  <div class="section-title">Provider Coverage</div>
+  <div class="section-title">Clinical Team Coverage</div>
   <div class="coverage-wrap">
     <table class="coverage-table">
       <thead><tr>
