@@ -14,11 +14,28 @@ function ensurePublicDir() {
 }
 
 /**
+ * Flatten provider records, using runResults names as fallback if providerName is missing.
+ */
+function flattenRecords(allProviderRecords, runResults) {
+  const flat = [];
+  for (let i = 0; i < allProviderRecords.length; i++) {
+    const providerNameFallback = runResults[i]?.name || 'Unknown';
+    for (const rec of allProviderRecords[i]) {
+      flat.push({
+        ...rec,
+        providerName: rec.providerName || providerNameFallback,
+      });
+    }
+  }
+  return flat;
+}
+
+/**
  * Append the current run snapshot to history.json so progress can be
  * tracked across multiple scrape runs over time.
  */
 function saveHistory(allProviderRecords, runResults) {
-  const flat         = allProviderRecords.flat();
+  const flat = flattenRecords(allProviderRecords, runResults);
   const succeeded    = (runResults || []).filter(r => r.status === 'success').length;
   const notConfigured = (runResults || []).filter(r => r.status === 'not_configured').length;
   const loginErrors  = (runResults || []).filter(r => r.status === 'login_error' || r.status === 'failed').length;
@@ -65,8 +82,7 @@ function saveHistory(allProviderRecords, runResults) {
  */
 function buildDashboard(allProviderRecords, runResults = [], platformData = []) {
   const history = saveHistory(allProviderRecords, runResults);
-
-  const flat    = allProviderRecords.flat();
+  const flat    = flattenRecords(allProviderRecords, runResults);
   const runDate = new Date().toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' });
   const runIso  = new Date().toISOString();
 
