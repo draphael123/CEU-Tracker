@@ -9,6 +9,7 @@ const { launchBrowser, loginProvider, scrapeLicenseData, closePage } = require('
 const { runPlatformScrapers } = require('./platform-scrapers');
 const { buildReport } = require('./exporter');
 const { buildDashboard } = require('./dashboard-builder');
+const { parseLicenseData } = require('./license-parser');
 const { logger, randomDelay, printSummary, ensureScreenshotsDir } = require('./utils');
 
 // ─── Load Providers ──────────────────────────────────────────────────────────
@@ -113,6 +114,15 @@ async function main() {
   await browser.close();
   logger.info('Browser closed');
 
+  // ── Parse license data from spreadsheet ───────────────────────────────────
+  let licenseData = { licenses: [], applications: [], renewals: [], stats: {} };
+  try {
+    logger.info('\n── Parsing license data from spreadsheet ───────────────────');
+    licenseData = await parseLicenseData();
+  } catch (licenseErr) {
+    logger.error(`License data parse error: ${licenseErr.message}`);
+  }
+
   // ── Export to Excel ────────────────────────────────────────────────────────
   try {
     const outputPath = await buildReport(allRecords);
@@ -123,7 +133,7 @@ async function main() {
 
   // ── Build HTML dashboard ───────────────────────────────────────────────────
   try {
-    const dashPath = buildDashboard(allRecords, allResults, platformData);
+    const dashPath = buildDashboard(allRecords, allResults, platformData, licenseData);
     logger.success(`Dashboard saved: ${dashPath}`);
   } catch (dashErr) {
     logger.error(`Dashboard build failed: ${dashErr.message}`);

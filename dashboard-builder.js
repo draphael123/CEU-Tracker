@@ -80,7 +80,7 @@ function saveHistory(allProviderRecords, runResults) {
  * @param {LicenseRecord[][]} allProviderRecords
  * @param {{ name:string, status:string, error?:string }[]} [runResults]
  */
-function buildDashboard(allProviderRecords, runResults = [], platformData = []) {
+function buildDashboard(allProviderRecords, runResults = [], platformData = [], licenseData = {}) {
   const history = saveHistory(allProviderRecords, runResults);
   const flat    = flattenRecords(allProviderRecords, runResults);
   const runDate = new Date().toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' });
@@ -800,6 +800,37 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     .status-pending  { background: #cbd5e1; color: #334155; }
     .status-unknown  { background: #e2e8f0; color: #475569; }
 
+    /* ─ Licenses & Applications tab ─ */
+    .license-summary { display: flex; flex-wrap: wrap; gap: 12px; padding: 0 40px 20px; }
+    .license-summary .stat-card { flex: 1; min-width: 140px; text-align: center; }
+    .license-summary .stat-card .stat-num { font-size: 2rem; font-weight: 800; }
+    .license-summary .stat-card .stat-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: .5px; color: #64748b; margin-top: 4px; }
+    .license-summary .stat-card.complete { border-top: 4px solid #16a34a; }
+    .license-summary .stat-card.complete .stat-num { color: #15803d; }
+    .license-summary .stat-card.warning { border-top: 4px solid #d97706; }
+    .license-summary .stat-card.warning .stat-num { color: #b45309; }
+    .license-summary .stat-card.at-risk { border-top: 4px solid #dc2626; }
+    .license-summary .stat-card.at-risk .stat-num { color: #b91c1c; }
+    .license-summary .stat-card.expired { border-top: 4px solid #6b7280; }
+    .license-summary .stat-card.expired .stat-num { color: #4b5563; }
+
+    .data-table { width: 100%; border-collapse: collapse; margin: 0 40px 40px; max-width: calc(100% - 80px); font-size: 0.84rem; }
+    .data-table th, .data-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+    .data-table th { background: #f8fafc; color: #475569; font-weight: 600; cursor: pointer; white-space: nowrap; }
+    .data-table th:hover { background: #f1f5f9; }
+    .data-table tbody tr:hover { background: #f8fafc; }
+    .data-table code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 0.82rem; }
+    .notes-cell { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #64748b; font-size: 0.8rem; }
+
+    .status-pill { display: inline-block; padding: 3px 10px; border-radius: 99px; font-size: .72rem; font-weight: 600; }
+    .status-pill.complete { background: #dcfce7; color: #15803d; }
+    .status-pill.warning { background: #fef3c7; color: #b45309; }
+    .status-pill.at-risk { background: #fee2e2; color: #b91c1c; }
+    .status-pill.expired { background: #e5e7eb; color: #374151; }
+    .status-pill.in-progress { background: #dbeafe; color: #1d4ed8; }
+
+    .section-subtitle { font-size: 1.1rem; font-weight: 600; color: #1e293b; padding: 0 40px 16px; }
+
     .course-link { display: inline-block; padding: 4px 10px; background: #eff6ff; color: #1d4ed8; border-radius: 6px; font-size: .76rem; text-decoration: none; font-weight: 500; }
     .course-link:hover { background: #dbeafe; }
     .toggle-btn { display: inline-block; margin-left: 6px; padding: 3px 8px; background: #f1f5f9; color: #475569; border: none; border-radius: 6px; font-size: .73rem; cursor: pointer; }
@@ -944,6 +975,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     .action-name-info { background: #e0f2fe; border-color: #7dd3fc; color: #0c4a6e; }
     /* ─ Tab badge ─ */
     .tab-badge { background: #dc2626; color: #fff; font-size: 0.7rem; font-weight: 700; padding: 2px 6px; border-radius: 10px; margin-left: 6px; }
+    .tab-badge-sm { background: #64748b; color: #fff; font-size: 0.65rem; font-weight: 600; padding: 1px 5px; border-radius: 8px; margin-left: 4px; }
     /* ─ Needs Attention tab ─ */
     .deadlines-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 0 40px 24px; }
     .deadline-group { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.06); overflow: hidden; }
@@ -1391,6 +1423,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
   <button class="tab-btn"        onclick="showTab('runlog')">Run Log</button>
   <button class="tab-btn"        onclick="showTab('chart')">Progress Chart</button>
   <button class="tab-btn"        onclick="showTab('calendar')">Deadline Calendar</button>
+  <button class="tab-btn"        onclick="showTab('licenses')">Licenses & Applications${(licenseData.stats?.criticalLicenses || 0) + (licenseData.stats?.expiredLicenses || 0) > 0 ? ` <span class="tab-badge">${(licenseData.stats?.criticalLicenses || 0) + (licenseData.stats?.expiredLicenses || 0)}</span>` : ''}</button>
 </div>
 
 <!-- ── Tab: Overview ──────────────────────────────────────────────────── -->
@@ -1751,6 +1784,136 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
   </div>
 </div>
 
+<!-- ── Tab: Licenses & Applications ──────────────────────────────────────── -->
+<div class="tab-panel" id="tab-licenses">
+  <div class="section-title">Licenses & Applications</div>
+
+  <!-- Sub-tabs -->
+  <div class="sub-tab-bar">
+    <button class="sub-tab active" onclick="showLicenseSubTab('all-licenses')">All Licenses</button>
+    <button class="sub-tab" onclick="showLicenseSubTab('applications')">Pending Applications${(licenseData.applications?.filter(a => a.status !== 'Issued').length || 0) > 0 ? ` <span class="tab-badge-sm">${licenseData.applications?.filter(a => a.status !== 'Issued').length || 0}</span>` : ''}</button>
+    <button class="sub-tab" onclick="showLicenseSubTab('renewals')">Upcoming Renewals${(licenseData.renewals?.length || 0) > 0 ? ` <span class="tab-badge-sm">${licenseData.renewals?.length || 0}</span>` : ''}</button>
+  </div>
+
+  <!-- Filters -->
+  <div class="controls" style="margin-top: 16px;">
+    <input class="search-box" type="text" id="licenseSearch" placeholder="Search licenses..." oninput="filterLicenses()" />
+    <div class="control-group">
+      <label class="control-label">Status:</label>
+      <button class="filter-btn active" id="lbtn-all" onclick="setLicenseFilter('all')">All</button>
+      <button class="filter-btn" id="lbtn-Active" onclick="setLicenseFilter('Active')">Active</button>
+      <button class="filter-btn" id="lbtn-Warning" onclick="setLicenseFilter('Warning')">Warning</button>
+      <button class="filter-btn" id="lbtn-Critical" onclick="setLicenseFilter('Critical')">Critical</button>
+      <button class="filter-btn" id="lbtn-Expired" onclick="setLicenseFilter('Expired')">Expired</button>
+    </div>
+  </div>
+
+  <!-- All Licenses Sub-panel -->
+  <div class="sub-panel active" id="sub-all-licenses">
+    <div class="license-summary">
+      <div class="stat-card"><div class="stat-num">${licenseData.stats?.totalLicenses || 0}</div><div class="stat-label">Total Licenses</div></div>
+      <div class="stat-card complete"><div class="stat-num">${licenseData.stats?.activeLicenses || 0}</div><div class="stat-label">Active</div></div>
+      <div class="stat-card warning"><div class="stat-num">${licenseData.stats?.warningLicenses || 0}</div><div class="stat-label">Warning (30-90 days)</div></div>
+      <div class="stat-card at-risk"><div class="stat-num">${licenseData.stats?.criticalLicenses || 0}</div><div class="stat-label">Critical (&lt;30 days)</div></div>
+      <div class="stat-card expired"><div class="stat-num">${licenseData.stats?.expiredLicenses || 0}</div><div class="stat-label">Expired</div></div>
+    </div>
+    <table class="data-table" id="licensesTable">
+      <thead>
+        <tr>
+          <th onclick="sortLicenseTable(0)">Provider</th>
+          <th onclick="sortLicenseTable(1)">State</th>
+          <th onclick="sortLicenseTable(2)">Type</th>
+          <th onclick="sortLicenseTable(3)">License #</th>
+          <th onclick="sortLicenseTable(4)">Issued</th>
+          <th onclick="sortLicenseTable(5)">Expires</th>
+          <th onclick="sortLicenseTable(6)">Status</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${(licenseData.licenses || []).map(lic => {
+          const statusClass = lic.status === 'Active' ? 'complete' : lic.status === 'Warning' ? 'warning' : lic.status === 'Critical' ? 'at-risk' : lic.status === 'Expired' ? 'expired' : '';
+          const statusText = lic.status === 'Active' ? 'Active' : lic.status === 'Warning' ? `${lic.daysUntil}d` : lic.status === 'Critical' ? `${lic.daysUntil}d` : lic.status === 'Expired' ? 'Expired' : 'Unknown';
+          return `<tr data-status="${lic.status}" data-provider="${escHtml(lic.provider)}" data-state="${escHtml(lic.state)}">
+            <td>${escHtml(lic.provider)}</td>
+            <td>${escHtml(lic.state)}</td>
+            <td>${escHtml(lic.licenseType)}</td>
+            <td><code>${escHtml(lic.licenseNumber)}</code></td>
+            <td>${escHtml(lic.issued)}</td>
+            <td>${escHtml(lic.expires)}</td>
+            <td><span class="status-pill ${statusClass}">${statusText}</span></td>
+            <td class="notes-cell">${escHtml(lic.notes)}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pending Applications Sub-panel -->
+  <div class="sub-panel" id="sub-applications">
+    <div class="section-subtitle">Pending License Applications</div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Provider</th>
+          <th>State</th>
+          <th>Type</th>
+          <th>License Type</th>
+          <th>Status</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${(licenseData.applications || []).filter(app => app.status !== 'Issued').map(app => {
+          const statusClass = app.status === 'Submitted' ? 'warning' : app.status === 'In Progress' ? 'in-progress' : app.status === 'Not Started' ? '' : 'complete';
+          return `<tr>
+            <td>${escHtml(app.provider)}</td>
+            <td>${escHtml(app.state)}</td>
+            <td>${escHtml(app.type)}</td>
+            <td>${escHtml(app.licenseType)}</td>
+            <td><span class="status-pill ${statusClass}">${escHtml(app.status)}</span></td>
+            <td class="notes-cell">${escHtml(app.notes)}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Upcoming Renewals Sub-panel -->
+  <div class="sub-panel" id="sub-renewals">
+    <div class="section-subtitle">Upcoming License Renewals</div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Provider</th>
+          <th>State</th>
+          <th>Type</th>
+          <th>License Type</th>
+          <th>Expires</th>
+          <th>Status</th>
+          <th>Assigned</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${(licenseData.renewals || []).map(ren => {
+          const statusClass = ren.licenseStatus === 'Critical' ? 'at-risk' : ren.licenseStatus === 'Warning' ? 'warning' : '';
+          return `<tr>
+            <td>${escHtml(ren.provider)}</td>
+            <td>${escHtml(ren.state)}</td>
+            <td>${escHtml(ren.type)}</td>
+            <td>${escHtml(ren.licenseType)}</td>
+            <td>${escHtml(ren.expires)}</td>
+            <td><span class="status-pill ${statusClass}">${ren.daysUntil !== null ? ren.daysUntil + 'd' : escHtml(ren.status)}</span></td>
+            <td>${escHtml(ren.assigned)}</td>
+            <td class="notes-cell">${escHtml(ren.notes)}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+  </div>
+</div>
+
 <!-- ── Provider detail drawer ──────────────────────────────────────────── -->
 <div class="drawer-overlay" id="drawerOverlay" onclick="if(event.target===this)closeProvider()">
   <div class="drawer-panel" id="drawerPanel">
@@ -1769,7 +1932,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.getElementById('tab-' + name).classList.add('active');
     const btns = document.querySelectorAll('.tab-btn');
-    const labels = ['overview','profiles','attention','table','runlog','chart','calendar'];
+    const labels = ['overview','profiles','attention','table','runlog','chart','calendar','licenses'];
     btns[labels.indexOf(name)]?.classList.add('active');
     if (name === 'chart') initCharts();
   }
@@ -1782,6 +1945,67 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     const btns = document.querySelectorAll('.sub-tab');
     const labels = ['clinicians','rns','all-providers'];
     btns[labels.indexOf(name)]?.classList.add('active');
+  }
+
+  // ── Sub-tabs (within Licenses & Applications) ──
+  function showLicenseSubTab(name) {
+    const licensesTab = document.getElementById('tab-licenses');
+    licensesTab.querySelectorAll('.sub-panel').forEach(p => p.classList.remove('active'));
+    licensesTab.querySelectorAll('.sub-tab').forEach(b => b.classList.remove('active'));
+    document.getElementById('sub-' + name)?.classList.add('active');
+    const btns = licensesTab.querySelectorAll('.sub-tab');
+    const labels = ['all-licenses','applications','renewals'];
+    btns[labels.indexOf(name)]?.classList.add('active');
+  }
+
+  // ── License filter ──
+  let licenseFilter = 'all';
+  function filterLicenses() {
+    const q = document.getElementById('licenseSearch')?.value.toLowerCase() || '';
+    const rows = document.querySelectorAll('#licensesTable tbody tr');
+    rows.forEach(row => {
+      const provider = (row.dataset.provider || '').toLowerCase();
+      const state = (row.dataset.state || '').toLowerCase();
+      const status = row.dataset.status || '';
+      const matchQ = !q || provider.includes(q) || state.includes(q);
+      const matchF = licenseFilter === 'all' || status === licenseFilter;
+      row.style.display = (matchQ && matchF) ? '' : 'none';
+    });
+  }
+  function setLicenseFilter(f) {
+    licenseFilter = f;
+    document.querySelectorAll('[id^="lbtn-"]').forEach(b => b.classList.remove('active'));
+    document.getElementById('lbtn-' + f)?.classList.add('active');
+    filterLicenses();
+  }
+
+  // ── License table sort ──
+  let licenseSortCol = -1;
+  let licenseSortAsc = true;
+  function sortLicenseTable(colIdx) {
+    const table = document.getElementById('licensesTable');
+    const tbody = table.querySelector('tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    if (licenseSortCol === colIdx) {
+      licenseSortAsc = !licenseSortAsc;
+    } else {
+      licenseSortCol = colIdx;
+      licenseSortAsc = true;
+    }
+    rows.sort((a, b) => {
+      const aVal = a.cells[colIdx]?.textContent || '';
+      const bVal = b.cells[colIdx]?.textContent || '';
+      // Try date sort for columns 4, 5 (Issued, Expires)
+      if (colIdx === 4 || colIdx === 5) {
+        const aDate = new Date(aVal);
+        const bDate = new Date(bVal);
+        if (!isNaN(aDate) && !isNaN(bDate)) {
+          return licenseSortAsc ? aDate - bDate : bDate - aDate;
+        }
+      }
+      return licenseSortAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+    });
+    rows.forEach(row => tbody.appendChild(row));
   }
 
   // ── Sort cards ──
