@@ -100,6 +100,18 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
   const atRisk   = flat.filter(r => getS(r) === 'At Risk').length;
   const inProg   = flat.filter(r => getS(r) === 'In Progress').length;
 
+  // ── Upcoming deadlines (30/60/90 days) ─────────────────────────────────
+  const upcomingDeadlines = flat
+    .map(r => ({ ...r, days: daysUntil(parseDate(r.renewalDeadline)), status: getS(r) }))
+    .filter(r => r.days !== null && r.days >= 0 && r.days <= 90)
+    .sort((a, b) => a.days - b.days);
+  const deadlines30 = upcomingDeadlines.filter(r => r.days <= 30);
+  const deadlines60 = upcomingDeadlines.filter(r => r.days > 30 && r.days <= 60);
+  const deadlines90 = upcomingDeadlines.filter(r => r.days > 60 && r.days <= 90);
+
+  // ── Login errors from run results ─────────────────────────────────────
+  const loginErrors = (runResults || []).filter(r => r.status === 'login_error' || r.status === 'failed');
+
   // ── Chart data (for embedded bar chart) ─────────────────────────────────
   const chartData = { labels: [], completed: [], required: [], colors: [] };
   for (const rec of flat) {
@@ -404,6 +416,9 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
                       : info.licenses.some(l => getS(l) === 'In Progress')  ? 'In Progress'
                       : info.licenses.every(l => getS(l) === 'Complete')    ? 'Complete'
                       : 'Unknown';
+
+    // Earliest deadline (for sorting)
+    const earliestDeadline = Math.min(...info.licenses.map(l => daysUntil(parseDate(l.renewalDeadline)) ?? 9999));
     const cardBorderCls = {
       Complete:      'card-ok',
       'In Progress': 'card-prog',
@@ -444,6 +459,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
         data-provider="${escHtml(name)}"
         data-status="${worstStatus}"
         data-states="${escHtml(statesList)}"
+        data-deadline="${earliestDeadline}"
         onclick="openProvider(this.dataset.provider)">
       <div class="card-top">
         <div class="avatar" style="background:${
@@ -828,6 +844,20 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     .card-clickable:hover { box-shadow: 0 8px 24px rgba(0,0,0,.14); transform: translateY(-3px); }
     .card-arrow { color: #94a3b8; font-size: 1rem; transition: color .15s; }
     .card-clickable:hover .card-arrow { color: #1d4ed8; }
+    /* ─ Stats Cards ─ */
+    .stats-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; padding: 0 40px 24px; }
+    .stat-card { background: #fff; border-radius: 14px; padding: 20px 24px; box-shadow: 0 2px 8px rgba(0,0,0,.06); position: relative; overflow: hidden; }
+    .stat-number { font-size: 2.5rem; font-weight: 800; line-height: 1; }
+    .stat-label { font-size: 0.85rem; font-weight: 600; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-icon { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); font-size: 2.5rem; opacity: 0.15; }
+    .stat-at-risk { border-left: 4px solid #dc2626; }
+    .stat-at-risk .stat-number, .stat-at-risk .stat-label { color: #dc2626; }
+    .stat-in-progress { border-left: 4px solid #d97706; }
+    .stat-in-progress .stat-number, .stat-in-progress .stat-label { color: #d97706; }
+    .stat-complete { border-left: 4px solid #16a34a; }
+    .stat-complete .stat-number, .stat-complete .stat-label { color: #16a34a; }
+    .stat-no-creds { border-left: 4px solid #6b7280; }
+    .stat-no-creds .stat-number, .stat-no-creds .stat-label { color: #6b7280; }
     /* ─ Overview tab ─ */
     .about-box { margin: 0 40px 8px; background: #fff; border-radius: 14px; padding: 24px 28px; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
     .about-steps { display: flex; flex-direction: column; gap: 14px; }
@@ -860,8 +890,88 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     .cov-cell { text-align: center; }
     .cov-yes { color: #16a34a; font-weight: 700; }
     .cov-no  { color: #cbd5e1; }
+    .cov-none { color: #dc2626; font-weight: 700; }
+    .cov-pending { color: #d97706; }
+    .cov-row-none { background: #fef2f2; }
+    .coverage-matrix { border-collapse: separate; border-spacing: 0; }
+    .matrix-legend { display: flex; gap: 20px; margin-bottom: 12px; padding-left: 4px; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: #64748b; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .legend-dot.dot-green { background: #16a34a; }
+    .legend-dot.dot-gray { background: #cbd5e1; }
+    .legend-dot.dot-red { background: #dc2626; }
 
     .coverage-gaps-box { margin: 0 40px 28px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 12px; padding: 20px 24px; }
+    /* ─ Action Required section ─ */
+    .action-required-box { margin: 0 40px 28px; background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.04); }
+    .action-section { padding: 18px 24px; border-bottom: 1px solid #e2e8f0; }
+    .action-section:last-child { border-bottom: none; }
+    .action-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .action-icon { font-size: 1.1rem; width: 24px; text-align: center; }
+    .action-title { font-weight: 700; font-size: 0.95rem; }
+    .action-desc { font-size: 0.82rem; color: #64748b; margin-bottom: 12px; line-height: 1.4; }
+    .action-list { display: flex; flex-wrap: wrap; gap: 6px; }
+    .action-name { font-size: 0.78rem; font-weight: 500; padding: 4px 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; }
+    .action-critical { background: #fef2f2; }
+    .action-critical .action-icon, .action-critical .action-title { color: #dc2626; }
+    .action-name-critical { background: #fee2e2; border-color: #fca5a5; color: #991b1b; }
+    .action-no-creds { background: #fefce8; }
+    .action-no-creds .action-icon, .action-no-creds .action-title { color: #a16207; }
+    .action-name-none { background: #fef9c3; border-color: #fde047; color: #854d0e; }
+    .action-warning { background: #fff7ed; }
+    .action-warning .action-icon, .action-warning .action-title { color: #c2410c; }
+    .action-name-warning { background: #ffedd5; border-color: #fed7aa; color: #9a3412; }
+    .action-info { background: #f0f9ff; }
+    .action-info .action-icon, .action-info .action-title { color: #0369a1; }
+    .action-name-info { background: #e0f2fe; border-color: #7dd3fc; color: #0c4a6e; }
+    /* ─ Tab badge ─ */
+    .tab-badge { background: #dc2626; color: #fff; font-size: 0.7rem; font-weight: 700; padding: 2px 6px; border-radius: 10px; margin-left: 6px; }
+    /* ─ Needs Attention tab ─ */
+    .deadlines-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 0 40px 24px; }
+    .deadline-group { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.06); overflow: hidden; }
+    .deadline-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-bottom: 1px solid #e2e8f0; }
+    .deadline-badge { font-size: 0.8rem; font-weight: 700; padding: 4px 10px; border-radius: 12px; }
+    .deadline-badge.urgent { background: #fee2e2; color: #dc2626; }
+    .deadline-badge.soon { background: #fef3c7; color: #d97706; }
+    .deadline-badge.upcoming { background: #dbeafe; color: #2563eb; }
+    .deadline-count { font-size: 0.8rem; color: #64748b; }
+    .deadline-list { padding: 8px 0; }
+    .deadline-item { display: grid; grid-template-columns: 1fr auto auto auto auto; gap: 8px; padding: 10px 18px; align-items: center; border-bottom: 1px solid #f1f5f9; }
+    .deadline-item:last-child { border-bottom: none; }
+    .di-name { font-weight: 600; font-size: 0.85rem; color: #1e293b; }
+    .di-state { font-size: 0.75rem; font-weight: 600; padding: 2px 6px; background: #f1f5f9; border-radius: 4px; color: #475569; }
+    .di-days { font-size: 0.8rem; font-weight: 700; min-width: 40px; text-align: right; }
+    .di-date { font-size: 0.75rem; color: #64748b; min-width: 80px; }
+    .di-status { font-size: 0.9rem; }
+    .di-risk { background: #fef2f2; }
+    .di-risk .di-days { color: #dc2626; }
+    .di-complete { background: #f0fdf4; }
+    .di-complete .di-days { color: #16a34a; }
+    .di-progress { background: #fffbeb; }
+    .di-progress .di-days { color: #d97706; }
+    .deadline-empty { padding: 24px 18px; text-align: center; color: #94a3b8; font-size: 0.85rem; }
+    .login-errors-box { margin: 0 40px 24px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; padding: 18px 24px; }
+    .error-desc { font-size: 0.85rem; color: #991b1b; margin-bottom: 14px; }
+    .error-list { display: flex; flex-direction: column; gap: 8px; }
+    .error-item { display: flex; justify-content: space-between; align-items: center; background: #fff; border-radius: 8px; padding: 10px 14px; }
+    .error-name { font-weight: 600; color: #1e293b; }
+    .error-msg { font-size: 0.8rem; color: #dc2626; max-width: 50%; text-align: right; }
+    .missing-creds-box { margin: 0 40px 24px; background: #fefce8; border: 1px solid #fde047; border-radius: 12px; padding: 18px 24px; }
+    .missing-desc { font-size: 0.85rem; color: #854d0e; margin-bottom: 14px; }
+    .missing-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
+    .missing-card { background: #fff; border: 1px solid #fde047; border-radius: 8px; padding: 10px 14px; font-weight: 600; font-size: 0.85rem; color: #854d0e; }
+    /* ─ Provider Profiles sub-tabs ─ */
+    .profiles-header { padding: 0 40px 16px; }
+    .sub-tabs { display: flex; gap: 8px; }
+    .sub-tab { background: #f1f5f9; border: none; padding: 10px 18px; border-radius: 10px; font-size: 0.85rem; font-weight: 600; color: #475569; cursor: pointer; transition: all .15s; }
+    .sub-tab:hover { background: #e2e8f0; }
+    .sub-tab.active { background: #1d4ed8; color: #fff; }
+    .sub-panel { display: none; }
+    .sub-panel.active { display: block; }
+    .control-group { display: flex; align-items: center; gap: 8px; }
+    .control-label { font-size: 0.8rem; font-weight: 600; color: #64748b; }
+    .sort-select { padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.82rem; background: #fff; color: #1e293b; cursor: pointer; min-width: 140px; }
+    .sort-select:focus { outline: none; border-color: #1d4ed8; }
     .gap-section { margin-bottom: 16px; }
     .gap-section:last-child { margin-bottom: 0; }
     .gap-title { font-weight: 600; color: #c2410c; font-size: 0.9rem; margin-bottom: 6px; }
@@ -1070,7 +1180,10 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
       .run-badge { justify-content: flex-start; }
 
       .stats { padding: 16px 16px 0; gap: 10px; }
+      .stats-cards { grid-template-columns: repeat(2, 1fr); padding: 0 16px 16px; gap: 10px; }
       .stat-card { min-width: calc(50% - 5px); flex: 1; padding: 12px 14px; }
+      .stat-card .stat-number { font-size: 1.8rem; }
+      .stat-card .stat-icon { font-size: 1.8rem; right: 10px; }
       .stat-card .num { font-size: 1.5rem; }
 
       .cards-grid { padding-left: 16px; padding-right: 16px; grid-template-columns: 1fr; gap: 12px; }
@@ -1109,6 +1222,20 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
       .platform-overview-grid { padding: 0 16px; gap: 10px; }
       .coverage-wrap { padding: 0 16px 28px; }
       .coverage-gaps-box { margin: 0 16px 28px; padding: 16px; }
+      .action-required-box { margin: 0 16px 28px; }
+      .action-section { padding: 14px 16px; }
+      .deadlines-container { grid-template-columns: 1fr; padding: 0 16px 16px; }
+      .deadline-item { grid-template-columns: 1fr auto auto; }
+      .di-date { display: none; }
+      .login-errors-box, .missing-creds-box { margin: 0 16px 16px; padding: 14px 16px; }
+      .error-item { flex-direction: column; align-items: flex-start; gap: 4px; }
+      .error-msg { max-width: 100%; text-align: left; }
+      .profiles-header { padding: 0 16px 12px; }
+      .sub-tabs { flex-wrap: wrap; }
+      .sub-tab { padding: 8px 14px; font-size: 0.8rem; }
+      .controls { flex-wrap: wrap; }
+      .control-group { width: 100%; margin-top: 8px; }
+      .sort-select { flex: 1; }
       .about-box { margin: 0 16px 8px; padding: 16px; }
       .chart-canvas-wrap { height: 260px; }
       .poc { padding: 12px 14px; }
@@ -1238,6 +1365,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
 <!-- ── Tabs ───────────────────────────────────────────────────────────── -->
 <div class="tab-bar">
   <button class="tab-btn active" onclick="showTab('overview')">Overview</button>
+  <button class="tab-btn"        onclick="showTab('attention')">Needs Attention${(atRisk + noCredentialsProviders.length) > 0 ? ` <span class="tab-badge">${atRisk + noCredentialsProviders.length}</span>` : ''}</button>
   <button class="tab-btn"        onclick="showTab('profiles')">Provider Profiles</button>
   <button class="tab-btn"        onclick="showTab('table')">Full Table</button>
   <button class="tab-btn"        onclick="showTab('runlog')">Run Log</button>
@@ -1247,6 +1375,29 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
 
 <!-- ── Tab: Overview ──────────────────────────────────────────────────── -->
 <div class="tab-panel active" id="tab-overview">
+  <div class="stats-cards">
+    <div class="stat-card stat-at-risk">
+      <div class="stat-number">${atRisk}</div>
+      <div class="stat-label">At Risk</div>
+      <div class="stat-icon">⚠</div>
+    </div>
+    <div class="stat-card stat-in-progress">
+      <div class="stat-number">${inProg}</div>
+      <div class="stat-label">In Progress</div>
+      <div class="stat-icon">◷</div>
+    </div>
+    <div class="stat-card stat-complete">
+      <div class="stat-number">${complete}</div>
+      <div class="stat-label">Complete</div>
+      <div class="stat-icon">✓</div>
+    </div>
+    <div class="stat-card stat-no-creds">
+      <div class="stat-number">${noCredentialsProviders.length}</div>
+      <div class="stat-label">No Credentials</div>
+      <div class="stat-icon">✗</div>
+    </div>
+  </div>
+
   <div class="section-title">About This Dashboard</div>
   <div class="about-box">
     <div class="about-steps">
@@ -1286,23 +1437,33 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     }).join('')}
   </div>
 
-  <div class="section-title">Clinical Team Coverage</div>
+  <div class="section-title">Platform Coverage Matrix</div>
   <div class="coverage-wrap">
-    <table class="coverage-table">
+    <div class="matrix-legend">
+      <span class="legend-item"><span class="legend-dot dot-green"></span> Connected</span>
+      <span class="legend-item"><span class="legend-dot dot-gray"></span> Not configured</span>
+      <span class="legend-item"><span class="legend-dot dot-red"></span> No credentials</span>
+    </div>
+    <table class="coverage-table coverage-matrix">
       <thead><tr>
         <th>Provider</th>
         <th>CE Broker</th>
         ${ALL_PLATFORMS.filter(p => platformStats[p.name]).map(p => `<th>${escHtml(p.name)}</th>`).join('')}
       </tr></thead>
       <tbody>
-        ${Object.keys(providerMap).map(name => {
+        ${providers.map(prov => {
+          const name = prov.name;
           const provPlats = platformByProvider[name] || [];
-          return `<tr>
+          const hasCEBroker = prov.username && prov.password;
+          const hasNoCreds = prov.noCredentials === true;
+          const rowClass = hasNoCreds ? 'cov-row-none' : '';
+          return `<tr class="${rowClass}">
             <td class="cov-name">${escHtml(name)}</td>
-            <td class="cov-cell cov-yes">✓</td>
+            <td class="cov-cell ${hasNoCreds ? 'cov-none' : hasCEBroker ? 'cov-yes' : 'cov-no'}">${hasNoCreds ? '✗' : hasCEBroker ? '✓' : '—'}</td>
             ${ALL_PLATFORMS.filter(p => platformStats[p.name]).map(p => {
               const has = provPlats.some(pr => pr.platform === p.name && pr.status === 'success');
-              return `<td class="cov-cell ${has ? 'cov-yes' : 'cov-no'}">${has ? '✓' : '—'}</td>`;
+              const configured = (prov.platforms || []).some(pl => pl.platform === p.name);
+              return `<td class="cov-cell ${hasNoCreds ? 'cov-none' : has ? 'cov-yes' : configured ? 'cov-pending' : 'cov-no'}">${hasNoCreds ? '✗' : has ? '✓' : configured ? '○' : '—'}</td>`;
             }).join('')}
           </tr>`;
         }).join('')}
@@ -1310,31 +1471,126 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     </table>
   </div>
 
-  ${(noCEBrokerList.length > 0 || noPlatformList.length > 0) ? `
-  <div class="section-title">Coverage Gaps</div>
-  <div class="coverage-gaps-box">
+  ${(noCEBrokerList.length > 0 || noPlatformList.length > 0 || noCredentialsProviders.length > 0 || atRisk > 0) ? `
+  <div class="section-title">Action Required</div>
+  <div class="action-required-box">
+    ${atRisk > 0 ? `
+    <div class="action-section action-critical">
+      <div class="action-header">
+        <span class="action-icon">⚠</span>
+        <span class="action-title">At Risk — Immediate Attention (${atRisk})</span>
+      </div>
+      <div class="action-desc">These licenses are at risk of non-compliance. Hours are not on track to meet requirements before the renewal deadline.</div>
+      <div class="action-list">${flat.filter(r => getS(r) === 'At Risk').map(r => `<span class="action-name action-name-critical">${escHtml(r.providerName)} (${escHtml(r.state || '?')})</span>`).join('')}</div>
+    </div>` : ''}
+    ${noCredentialsProviders.length > 0 ? `
+    <div class="action-section action-no-creds">
+      <div class="action-header">
+        <span class="action-icon">✗</span>
+        <span class="action-title">No CE Credentials on File (${noCredentialsProviders.length})</span>
+      </div>
+      <div class="action-desc">CEU tracking is not possible for these team members until CE Broker or platform credentials are provided.</div>
+      <div class="action-list">${noCredentialsProviders.map(n => `<span class="action-name action-name-none">${escHtml(n)}</span>`).join('')}</div>
+    </div>` : ''}
     ${noCEBrokerList.length > 0 ? `
-    <div class="gap-section">
-      <div class="gap-title">No CE Broker Credentials (${noCEBrokerList.length})</div>
-      <div class="gap-desc">These team members don't have CE Broker login credentials configured. Their license status cannot be tracked directly.</div>
-      <div class="gap-list">${noCEBrokerList.map(n => `<span class="gap-name">${escHtml(n)}</span>`).join('')}</div>
+    <div class="action-section action-warning">
+      <div class="action-header">
+        <span class="action-icon">○</span>
+        <span class="action-title">No CE Broker Credentials (${noCEBrokerList.length})</span>
+      </div>
+      <div class="action-desc">These team members don't have CE Broker login credentials configured. Their license status cannot be tracked directly.</div>
+      <div class="action-list">${noCEBrokerList.map(n => `<span class="action-name action-name-warning">${escHtml(n)}</span>`).join('')}</div>
     </div>` : ''}
     ${noPlatformList.length > 0 ? `
-    <div class="gap-section">
-      <div class="gap-title">No Platform Credentials (${noPlatformList.length})</div>
-      <div class="gap-desc">These team members don't have credentials for any CE platform (NetCE, CEUfast, AANP, etc.).</div>
-      <div class="gap-list">${noPlatformList.map(n => `<span class="gap-name">${escHtml(n)}</span>`).join('')}</div>
+    <div class="action-section action-info">
+      <div class="action-header">
+        <span class="action-icon">○</span>
+        <span class="action-title">No Platform Credentials (${noPlatformList.length})</span>
+      </div>
+      <div class="action-desc">These team members don't have credentials for any CE platform (NetCE, CEUfast, AANP, etc.).</div>
+      <div class="action-list">${noPlatformList.map(n => `<span class="action-name action-name-info">${escHtml(n)}</span>`).join('')}</div>
     </div>` : ''}
+  </div>
+  ` : ''}
+</div>
+
+<!-- ── Tab: Needs Attention ───────────────────────────────────────────── -->
+<div class="tab-panel" id="tab-attention">
+  <div class="section-title">Upcoming Deadlines</div>
+  <div class="deadlines-container">
+    <div class="deadline-group deadline-urgent">
+      <div class="deadline-header">
+        <span class="deadline-badge urgent">Within 30 Days</span>
+        <span class="deadline-count">${deadlines30.length} license${deadlines30.length !== 1 ? 's' : ''}</span>
+      </div>
+      ${deadlines30.length > 0 ? `
+      <div class="deadline-list">
+        ${deadlines30.map(r => `
+        <div class="deadline-item ${r.status === 'At Risk' ? 'di-risk' : r.status === 'Complete' ? 'di-complete' : 'di-progress'}">
+          <div class="di-name">${escHtml(r.providerName)}</div>
+          <div class="di-state">${escHtml(r.state || '?')}</div>
+          <div class="di-days">${r.days}d</div>
+          <div class="di-date">${r.renewalDeadline || '—'}</div>
+          <div class="di-status">${r.status === 'Complete' ? '✓' : r.status === 'At Risk' ? '⚠' : '◷'}</div>
+        </div>`).join('')}
+      </div>` : '<div class="deadline-empty">No deadlines in this period</div>'}
+    </div>
+    <div class="deadline-group deadline-soon">
+      <div class="deadline-header">
+        <span class="deadline-badge soon">31-60 Days</span>
+        <span class="deadline-count">${deadlines60.length} license${deadlines60.length !== 1 ? 's' : ''}</span>
+      </div>
+      ${deadlines60.length > 0 ? `
+      <div class="deadline-list">
+        ${deadlines60.map(r => `
+        <div class="deadline-item ${r.status === 'At Risk' ? 'di-risk' : r.status === 'Complete' ? 'di-complete' : 'di-progress'}">
+          <div class="di-name">${escHtml(r.providerName)}</div>
+          <div class="di-state">${escHtml(r.state || '?')}</div>
+          <div class="di-days">${r.days}d</div>
+          <div class="di-date">${r.renewalDeadline || '—'}</div>
+          <div class="di-status">${r.status === 'Complete' ? '✓' : r.status === 'At Risk' ? '⚠' : '◷'}</div>
+        </div>`).join('')}
+      </div>` : '<div class="deadline-empty">No deadlines in this period</div>'}
+    </div>
+    <div class="deadline-group deadline-upcoming">
+      <div class="deadline-header">
+        <span class="deadline-badge upcoming">61-90 Days</span>
+        <span class="deadline-count">${deadlines90.length} license${deadlines90.length !== 1 ? 's' : ''}</span>
+      </div>
+      ${deadlines90.length > 0 ? `
+      <div class="deadline-list">
+        ${deadlines90.map(r => `
+        <div class="deadline-item ${r.status === 'At Risk' ? 'di-risk' : r.status === 'Complete' ? 'di-complete' : 'di-progress'}">
+          <div class="di-name">${escHtml(r.providerName)}</div>
+          <div class="di-state">${escHtml(r.state || '?')}</div>
+          <div class="di-days">${r.days}d</div>
+          <div class="di-date">${r.renewalDeadline || '—'}</div>
+          <div class="di-status">${r.status === 'Complete' ? '✓' : r.status === 'At Risk' ? '⚠' : '◷'}</div>
+        </div>`).join('')}
+      </div>` : '<div class="deadline-empty">No deadlines in this period</div>'}
+    </div>
+  </div>
+
+  ${loginErrors.length > 0 ? `
+  <div class="section-title">Login Errors</div>
+  <div class="login-errors-box">
+    <div class="error-desc">These accounts had login failures during the last run. Credentials may need updating.</div>
+    <div class="error-list">
+      ${loginErrors.map(e => `
+      <div class="error-item">
+        <span class="error-name">${escHtml(e.name)}</span>
+        <span class="error-msg">${escHtml(e.error || 'Login failed')}</span>
+      </div>`).join('')}
+    </div>
   </div>
   ` : ''}
 
   ${noCredentialsProviders.length > 0 ? `
-  <div class="section-title">No CE Credentials Found</div>
-  <div class="coverage-gaps-box" style="background: #fef2f2; border-color: #fecaca;">
-    <div class="gap-section">
-      <div class="gap-title" style="color: #dc2626;">Team Members Without Any CE Credentials (${noCredentialsProviders.length})</div>
-      <div class="gap-desc" style="color: #991b1b;">These team members do not have any CE Broker or CE platform credentials on file. CEU tracking is not possible until credentials are provided.</div>
-      <div class="gap-list">${noCredentialsProviders.map(n => `<span class="gap-name" style="border-color: #fca5a5; color: #991b1b;">${escHtml(n)}</span>`).join('')}</div>
+  <div class="section-title">Missing Credentials</div>
+  <div class="missing-creds-box">
+    <div class="missing-desc">These team members have no CE credentials on file. Add their CE Broker or platform login to enable tracking.</div>
+    <div class="missing-grid">
+      ${noCredentialsProviders.map(n => `<div class="missing-card">${escHtml(n)}</div>`).join('')}
     </div>
   </div>
   ` : ''}
@@ -1342,29 +1598,56 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
 
 <!-- ── Tab: Provider Profiles ─────────────────────────────────────────── -->
 <div class="tab-panel" id="tab-profiles">
+  <div class="profiles-header">
+    <div class="sub-tabs">
+      <button class="sub-tab active" onclick="showSubTab('clinicians')">Clinicians (${clinicianEntries.length})</button>
+      <button class="sub-tab" onclick="showSubTab('rns')">Support Staff (${rnEntries.length})</button>
+      <button class="sub-tab" onclick="showSubTab('all-providers')">All (${providerEntries.length})</button>
+    </div>
+  </div>
   <div class="state-chips">
     <button class="state-chip active" id="schip-all" onclick="setStateFilter('all')">All States</button>
     ${allStates.map(s => `<button class="state-chip" id="schip-${escHtml(s)}" onclick="setStateFilter('${escHtml(s)}')">${escHtml(s)}</button>`).join('')}
   </div>
   <div class="controls">
     <input class="search-box" type="text" id="cardSearch" placeholder="Search provider..." oninput="filterCards()" />
-    <button class="filter-btn active" id="cbtn-all"         onclick="setCardFilter('all')">All</button>
-    <button class="filter-btn"        id="cbtn-Complete"    onclick="setCardFilter('Complete')">Complete</button>
-    <button class="filter-btn"        id="cbtn-In Progress" onclick="setCardFilter('In Progress')">In Progress</button>
-    <button class="filter-btn"        id="cbtn-At Risk"     onclick="setCardFilter('At Risk')">At Risk</button>
+    <div class="control-group">
+      <label class="control-label">Filter:</label>
+      <button class="filter-btn active" id="cbtn-all"         onclick="setCardFilter('all')">All</button>
+      <button class="filter-btn"        id="cbtn-Complete"    onclick="setCardFilter('Complete')">Complete</button>
+      <button class="filter-btn"        id="cbtn-In Progress" onclick="setCardFilter('In Progress')">In Progress</button>
+      <button class="filter-btn"        id="cbtn-At Risk"     onclick="setCardFilter('At Risk')">At Risk</button>
+    </div>
+    <div class="control-group">
+      <label class="control-label">Sort:</label>
+      <select class="sort-select" id="cardSort" onchange="sortCards()">
+        <option value="name">Name (A-Z)</option>
+        <option value="name-desc">Name (Z-A)</option>
+        <option value="status">Status (Risk First)</option>
+        <option value="status-asc">Status (Complete First)</option>
+        <option value="deadline">Deadline (Soonest)</option>
+        <option value="deadline-desc">Deadline (Latest)</option>
+      </select>
+    </div>
   </div>
 
-  <div class="section-title" style="margin-top:24px">Clinicians (${clinicianEntries.length})</div>
-  <div class="cards-grid" id="cardsGrid">
-    ${clinicianCards}
+  <div class="sub-panel active" id="sub-clinicians">
+    <div class="cards-grid" id="cardsGrid">
+      ${clinicianCards}
+    </div>
   </div>
 
-  ${rnEntries.length > 0 ? `
-  <div class="section-title" style="margin-top:32px;border-top:1px solid #e2e8f0;padding-top:24px">Support Staff — RN (${rnEntries.length})</div>
-  <div class="cards-grid" id="rnCardsGrid">
-    ${rnCards}
+  <div class="sub-panel" id="sub-rns">
+    <div class="cards-grid" id="rnCardsGrid">
+      ${rnCards}
+    </div>
   </div>
-  ` : ''}
+
+  <div class="sub-panel" id="sub-all-providers">
+    <div class="cards-grid" id="allCardsGrid">
+      ${profileCards}
+    </div>
+  </div>
 </div>
 
 <!-- ── Tab: Full Table ────────────────────────────────────────────────── -->
@@ -1452,9 +1735,49 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.getElementById('tab-' + name).classList.add('active');
     const btns = document.querySelectorAll('.tab-btn');
-    const labels = ['overview','profiles','table','runlog','chart','calendar'];
+    const labels = ['overview','attention','profiles','table','runlog','chart','calendar'];
     btns[labels.indexOf(name)]?.classList.add('active');
     if (name === 'chart') initCharts();
+  }
+
+  // ── Sub-tabs (within Provider Profiles) ──
+  function showSubTab(name) {
+    document.querySelectorAll('.sub-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.sub-tab').forEach(b => b.classList.remove('active'));
+    document.getElementById('sub-' + name)?.classList.add('active');
+    const btns = document.querySelectorAll('.sub-tab');
+    const labels = ['clinicians','rns','all-providers'];
+    btns[labels.indexOf(name)]?.classList.add('active');
+  }
+
+  // ── Sort cards ──
+  function sortCards() {
+    const sortBy = document.getElementById('cardSort').value;
+    const grids = ['cardsGrid', 'rnCardsGrid', 'allCardsGrid'];
+    grids.forEach(gridId => {
+      const grid = document.getElementById(gridId);
+      if (!grid) return;
+      const cards = Array.from(grid.querySelectorAll('.provider-card'));
+      cards.sort((a, b) => {
+        const nameA = (a.dataset.provider || '').toLowerCase();
+        const nameB = (b.dataset.provider || '').toLowerCase();
+        const statusA = a.dataset.status || '';
+        const statusB = b.dataset.status || '';
+        const deadlineA = parseInt(a.dataset.deadline) || 9999;
+        const deadlineB = parseInt(b.dataset.deadline) || 9999;
+        const statusOrder = { 'At Risk': 0, 'In Progress': 1, 'Complete': 2, 'Unknown': 3 };
+        switch (sortBy) {
+          case 'name': return nameA.localeCompare(nameB);
+          case 'name-desc': return nameB.localeCompare(nameA);
+          case 'status': return (statusOrder[statusA] ?? 3) - (statusOrder[statusB] ?? 3);
+          case 'status-asc': return (statusOrder[statusB] ?? 3) - (statusOrder[statusA] ?? 3);
+          case 'deadline': return deadlineA - deadlineB;
+          case 'deadline-desc': return deadlineB - deadlineA;
+          default: return 0;
+        }
+      });
+      cards.forEach(card => grid.appendChild(card));
+    });
   }
 
   // ── Provider drawer HTML (pre-rendered at build time, embedded as JSON) ──
@@ -1474,14 +1797,19 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
   let cardFilter = 'all';
   function filterCards() {
     const q = document.getElementById('cardSearch').value.toLowerCase();
-    document.querySelectorAll('#cardsGrid .provider-card').forEach(card => {
-      const name   = (card.dataset.provider || '').toLowerCase();
-      const status = card.dataset.status || '';
-      const states = (card.dataset.states || '').split(',');
-      const matchQ = !q || name.includes(q);
-      const matchF = cardFilter === 'all' || status === cardFilter;
-      const matchS = stateFilter === 'all' || states.includes(stateFilter);
-      card.style.display = (matchQ && matchF && matchS) ? '' : 'none';
+    const grids = ['cardsGrid', 'rnCardsGrid', 'allCardsGrid'];
+    grids.forEach(gridId => {
+      const grid = document.getElementById(gridId);
+      if (!grid) return;
+      grid.querySelectorAll('.provider-card').forEach(card => {
+        const name   = (card.dataset.provider || '').toLowerCase();
+        const status = card.dataset.status || '';
+        const states = (card.dataset.states || '').split(',');
+        const matchQ = !q || name.includes(q);
+        const matchF = cardFilter === 'all' || status === cardFilter;
+        const matchS = stateFilter === 'all' || states.includes(stateFilter);
+        card.style.display = (matchQ && matchF && matchS) ? '' : 'none';
+      });
     });
   }
   function setCardFilter(f) {

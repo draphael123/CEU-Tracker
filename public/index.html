@@ -273,6 +273,20 @@
     .card-clickable:hover { box-shadow: 0 8px 24px rgba(0,0,0,.14); transform: translateY(-3px); }
     .card-arrow { color: #94a3b8; font-size: 1rem; transition: color .15s; }
     .card-clickable:hover .card-arrow { color: #1d4ed8; }
+    /* ─ Stats Cards ─ */
+    .stats-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; padding: 0 40px 24px; }
+    .stat-card { background: #fff; border-radius: 14px; padding: 20px 24px; box-shadow: 0 2px 8px rgba(0,0,0,.06); position: relative; overflow: hidden; }
+    .stat-number { font-size: 2.5rem; font-weight: 800; line-height: 1; }
+    .stat-label { font-size: 0.85rem; font-weight: 600; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-icon { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); font-size: 2.5rem; opacity: 0.15; }
+    .stat-at-risk { border-left: 4px solid #dc2626; }
+    .stat-at-risk .stat-number, .stat-at-risk .stat-label { color: #dc2626; }
+    .stat-in-progress { border-left: 4px solid #d97706; }
+    .stat-in-progress .stat-number, .stat-in-progress .stat-label { color: #d97706; }
+    .stat-complete { border-left: 4px solid #16a34a; }
+    .stat-complete .stat-number, .stat-complete .stat-label { color: #16a34a; }
+    .stat-no-creds { border-left: 4px solid #6b7280; }
+    .stat-no-creds .stat-number, .stat-no-creds .stat-label { color: #6b7280; }
     /* ─ Overview tab ─ */
     .about-box { margin: 0 40px 8px; background: #fff; border-radius: 14px; padding: 24px 28px; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
     .about-steps { display: flex; flex-direction: column; gap: 14px; }
@@ -305,8 +319,88 @@
     .cov-cell { text-align: center; }
     .cov-yes { color: #16a34a; font-weight: 700; }
     .cov-no  { color: #cbd5e1; }
+    .cov-none { color: #dc2626; font-weight: 700; }
+    .cov-pending { color: #d97706; }
+    .cov-row-none { background: #fef2f2; }
+    .coverage-matrix { border-collapse: separate; border-spacing: 0; }
+    .matrix-legend { display: flex; gap: 20px; margin-bottom: 12px; padding-left: 4px; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: #64748b; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .legend-dot.dot-green { background: #16a34a; }
+    .legend-dot.dot-gray { background: #cbd5e1; }
+    .legend-dot.dot-red { background: #dc2626; }
 
     .coverage-gaps-box { margin: 0 40px 28px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 12px; padding: 20px 24px; }
+    /* ─ Action Required section ─ */
+    .action-required-box { margin: 0 40px 28px; background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.04); }
+    .action-section { padding: 18px 24px; border-bottom: 1px solid #e2e8f0; }
+    .action-section:last-child { border-bottom: none; }
+    .action-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .action-icon { font-size: 1.1rem; width: 24px; text-align: center; }
+    .action-title { font-weight: 700; font-size: 0.95rem; }
+    .action-desc { font-size: 0.82rem; color: #64748b; margin-bottom: 12px; line-height: 1.4; }
+    .action-list { display: flex; flex-wrap: wrap; gap: 6px; }
+    .action-name { font-size: 0.78rem; font-weight: 500; padding: 4px 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; }
+    .action-critical { background: #fef2f2; }
+    .action-critical .action-icon, .action-critical .action-title { color: #dc2626; }
+    .action-name-critical { background: #fee2e2; border-color: #fca5a5; color: #991b1b; }
+    .action-no-creds { background: #fefce8; }
+    .action-no-creds .action-icon, .action-no-creds .action-title { color: #a16207; }
+    .action-name-none { background: #fef9c3; border-color: #fde047; color: #854d0e; }
+    .action-warning { background: #fff7ed; }
+    .action-warning .action-icon, .action-warning .action-title { color: #c2410c; }
+    .action-name-warning { background: #ffedd5; border-color: #fed7aa; color: #9a3412; }
+    .action-info { background: #f0f9ff; }
+    .action-info .action-icon, .action-info .action-title { color: #0369a1; }
+    .action-name-info { background: #e0f2fe; border-color: #7dd3fc; color: #0c4a6e; }
+    /* ─ Tab badge ─ */
+    .tab-badge { background: #dc2626; color: #fff; font-size: 0.7rem; font-weight: 700; padding: 2px 6px; border-radius: 10px; margin-left: 6px; }
+    /* ─ Needs Attention tab ─ */
+    .deadlines-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 0 40px 24px; }
+    .deadline-group { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.06); overflow: hidden; }
+    .deadline-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-bottom: 1px solid #e2e8f0; }
+    .deadline-badge { font-size: 0.8rem; font-weight: 700; padding: 4px 10px; border-radius: 12px; }
+    .deadline-badge.urgent { background: #fee2e2; color: #dc2626; }
+    .deadline-badge.soon { background: #fef3c7; color: #d97706; }
+    .deadline-badge.upcoming { background: #dbeafe; color: #2563eb; }
+    .deadline-count { font-size: 0.8rem; color: #64748b; }
+    .deadline-list { padding: 8px 0; }
+    .deadline-item { display: grid; grid-template-columns: 1fr auto auto auto auto; gap: 8px; padding: 10px 18px; align-items: center; border-bottom: 1px solid #f1f5f9; }
+    .deadline-item:last-child { border-bottom: none; }
+    .di-name { font-weight: 600; font-size: 0.85rem; color: #1e293b; }
+    .di-state { font-size: 0.75rem; font-weight: 600; padding: 2px 6px; background: #f1f5f9; border-radius: 4px; color: #475569; }
+    .di-days { font-size: 0.8rem; font-weight: 700; min-width: 40px; text-align: right; }
+    .di-date { font-size: 0.75rem; color: #64748b; min-width: 80px; }
+    .di-status { font-size: 0.9rem; }
+    .di-risk { background: #fef2f2; }
+    .di-risk .di-days { color: #dc2626; }
+    .di-complete { background: #f0fdf4; }
+    .di-complete .di-days { color: #16a34a; }
+    .di-progress { background: #fffbeb; }
+    .di-progress .di-days { color: #d97706; }
+    .deadline-empty { padding: 24px 18px; text-align: center; color: #94a3b8; font-size: 0.85rem; }
+    .login-errors-box { margin: 0 40px 24px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; padding: 18px 24px; }
+    .error-desc { font-size: 0.85rem; color: #991b1b; margin-bottom: 14px; }
+    .error-list { display: flex; flex-direction: column; gap: 8px; }
+    .error-item { display: flex; justify-content: space-between; align-items: center; background: #fff; border-radius: 8px; padding: 10px 14px; }
+    .error-name { font-weight: 600; color: #1e293b; }
+    .error-msg { font-size: 0.8rem; color: #dc2626; max-width: 50%; text-align: right; }
+    .missing-creds-box { margin: 0 40px 24px; background: #fefce8; border: 1px solid #fde047; border-radius: 12px; padding: 18px 24px; }
+    .missing-desc { font-size: 0.85rem; color: #854d0e; margin-bottom: 14px; }
+    .missing-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
+    .missing-card { background: #fff; border: 1px solid #fde047; border-radius: 8px; padding: 10px 14px; font-weight: 600; font-size: 0.85rem; color: #854d0e; }
+    /* ─ Provider Profiles sub-tabs ─ */
+    .profiles-header { padding: 0 40px 16px; }
+    .sub-tabs { display: flex; gap: 8px; }
+    .sub-tab { background: #f1f5f9; border: none; padding: 10px 18px; border-radius: 10px; font-size: 0.85rem; font-weight: 600; color: #475569; cursor: pointer; transition: all .15s; }
+    .sub-tab:hover { background: #e2e8f0; }
+    .sub-tab.active { background: #1d4ed8; color: #fff; }
+    .sub-panel { display: none; }
+    .sub-panel.active { display: block; }
+    .control-group { display: flex; align-items: center; gap: 8px; }
+    .control-label { font-size: 0.8rem; font-weight: 600; color: #64748b; }
+    .sort-select { padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.82rem; background: #fff; color: #1e293b; cursor: pointer; min-width: 140px; }
+    .sort-select:focus { outline: none; border-color: #1d4ed8; }
     .gap-section { margin-bottom: 16px; }
     .gap-section:last-child { margin-bottom: 0; }
     .gap-title { font-weight: 600; color: #c2410c; font-size: 0.9rem; margin-bottom: 6px; }
@@ -515,7 +609,10 @@
       .run-badge { justify-content: flex-start; }
 
       .stats { padding: 16px 16px 0; gap: 10px; }
+      .stats-cards { grid-template-columns: repeat(2, 1fr); padding: 0 16px 16px; gap: 10px; }
       .stat-card { min-width: calc(50% - 5px); flex: 1; padding: 12px 14px; }
+      .stat-card .stat-number { font-size: 1.8rem; }
+      .stat-card .stat-icon { font-size: 1.8rem; right: 10px; }
       .stat-card .num { font-size: 1.5rem; }
 
       .cards-grid { padding-left: 16px; padding-right: 16px; grid-template-columns: 1fr; gap: 12px; }
@@ -554,6 +651,20 @@
       .platform-overview-grid { padding: 0 16px; gap: 10px; }
       .coverage-wrap { padding: 0 16px 28px; }
       .coverage-gaps-box { margin: 0 16px 28px; padding: 16px; }
+      .action-required-box { margin: 0 16px 28px; }
+      .action-section { padding: 14px 16px; }
+      .deadlines-container { grid-template-columns: 1fr; padding: 0 16px 16px; }
+      .deadline-item { grid-template-columns: 1fr auto auto; }
+      .di-date { display: none; }
+      .login-errors-box, .missing-creds-box { margin: 0 16px 16px; padding: 14px 16px; }
+      .error-item { flex-direction: column; align-items: flex-start; gap: 4px; }
+      .error-msg { max-width: 100%; text-align: left; }
+      .profiles-header { padding: 0 16px 12px; }
+      .sub-tabs { flex-wrap: wrap; }
+      .sub-tab { padding: 8px 14px; font-size: 0.8rem; }
+      .controls { flex-wrap: wrap; }
+      .control-group { width: 100%; margin-top: 8px; }
+      .sort-select { flex: 1; }
       .about-box { margin: 0 16px 8px; padding: 16px; }
       .chart-canvas-wrap { height: 260px; }
       .poc { padding: 12px 14px; }
@@ -658,7 +769,7 @@
   </div>
   <div class="header-meta">
     <div class="last-scraped-label">Last Scraped</div>
-    <div class="last-scraped-value" id="lastScrapedValue" data-iso="2026-02-26T19:15:45.262Z">Thursday, February 26, 2026 at 2:15 PM</div>
+    <div class="last-scraped-value" id="lastScrapedValue" data-iso="2026-02-26T19:28:29.124Z">Thursday, February 26, 2026 at 2:28 PM</div>
     <div class="last-scraped-ago" id="lastScrapedAgo"></div>
     <div class="run-badge">
       <span class="run-pill ok">✓ 10 succeeded</span>
@@ -679,6 +790,7 @@
 <!-- ── Tabs ───────────────────────────────────────────────────────────── -->
 <div class="tab-bar">
   <button class="tab-btn active" onclick="showTab('overview')">Overview</button>
+  <button class="tab-btn"        onclick="showTab('attention')">Needs Attention <span class="tab-badge">12</span></button>
   <button class="tab-btn"        onclick="showTab('profiles')">Provider Profiles</button>
   <button class="tab-btn"        onclick="showTab('table')">Full Table</button>
   <button class="tab-btn"        onclick="showTab('runlog')">Run Log</button>
@@ -688,6 +800,29 @@
 
 <!-- ── Tab: Overview ──────────────────────────────────────────────────── -->
 <div class="tab-panel active" id="tab-overview">
+  <div class="stats-cards">
+    <div class="stat-card stat-at-risk">
+      <div class="stat-number">0</div>
+      <div class="stat-label">At Risk</div>
+      <div class="stat-icon">⚠</div>
+    </div>
+    <div class="stat-card stat-in-progress">
+      <div class="stat-number">6</div>
+      <div class="stat-label">In Progress</div>
+      <div class="stat-icon">◷</div>
+    </div>
+    <div class="stat-card stat-complete">
+      <div class="stat-number">3</div>
+      <div class="stat-label">Complete</div>
+      <div class="stat-icon">✓</div>
+    </div>
+    <div class="stat-card stat-no-creds">
+      <div class="stat-number">12</div>
+      <div class="stat-label">No Credentials</div>
+      <div class="stat-icon">✗</div>
+    </div>
+  </div>
+
   <div class="section-title">About This Dashboard</div>
   <div class="about-box">
     <div class="about-steps">
@@ -755,44 +890,229 @@
       </div>
   </div>
 
-  <div class="section-title">Clinical Team Coverage</div>
+  <div class="section-title">Platform Coverage Matrix</div>
   <div class="coverage-wrap">
-    <table class="coverage-table">
+    <div class="matrix-legend">
+      <span class="legend-item"><span class="legend-dot dot-green"></span> Connected</span>
+      <span class="legend-item"><span class="legend-dot dot-gray"></span> Not configured</span>
+      <span class="legend-item"><span class="legend-dot dot-red"></span> No credentials</span>
+    </div>
+    <table class="coverage-table coverage-matrix">
       <thead><tr>
         <th>Provider</th>
         <th>CE Broker</th>
         <th>NetCE</th><th>CEUfast</th><th>AANP Cert</th><th>ExclamationCE</th>
       </tr></thead>
       <tbody>
-        <tr>
-            <td class="cov-name">Unknown</td>
+        <tr class="">
+            <td class="cov-name">Ashley Grout, NP</td>
+            <td class="cov-cell cov-yes">✓</td>
+            <td class="cov-cell cov-no">—</td><td class="cov-cell cov-no">—</td><td class="cov-cell cov-yes">✓</td><td class="cov-cell cov-no">—</td>
+          </tr><tr class="">
+            <td class="cov-name">Bill Carbonneau, NP</td>
+            <td class="cov-cell cov-yes">✓</td>
+            <td class="cov-cell cov-yes">✓</td><td class="cov-cell cov-no">—</td><td class="cov-cell cov-no">—</td><td class="cov-cell cov-no">—</td>
+          </tr><tr class="">
+            <td class="cov-name">Bryana Anderson, NP</td>
+            <td class="cov-cell cov-yes">✓</td>
+            <td class="cov-cell cov-yes">✓</td><td class="cov-cell cov-no">—</td><td class="cov-cell cov-yes">✓</td><td class="cov-cell cov-no">—</td>
+          </tr><tr class="">
+            <td class="cov-name">Bryce Amos, NP</td>
+            <td class="cov-cell cov-yes">✓</td>
+            <td class="cov-cell cov-no">—</td><td class="cov-cell cov-yes">✓</td><td class="cov-cell cov-yes">✓</td><td class="cov-cell cov-no">—</td>
+          </tr><tr class="">
+            <td class="cov-name">Catherine Herrington, MD</td>
             <td class="cov-cell cov-yes">✓</td>
             <td class="cov-cell cov-no">—</td><td class="cov-cell cov-no">—</td><td class="cov-cell cov-no">—</td><td class="cov-cell cov-no">—</td>
+          </tr><tr class="">
+            <td class="cov-name">Doron Stember, MD</td>
+            <td class="cov-cell cov-yes">✓</td>
+            <td class="cov-cell cov-yes">✓</td><td class="cov-cell cov-no">—</td><td class="cov-cell cov-no">—</td><td class="cov-cell cov-no">—</td>
+          </tr><tr class="">
+            <td class="cov-name">Hilary Morgan, RN</td>
+            <td class="cov-cell cov-no">—</td>
+            <td class="cov-cell cov-yes">✓</td><td class="cov-cell cov-no">—</td><td class="cov-cell cov-no">—</td><td class="cov-cell cov-no">—</td>
+          </tr><tr class="">
+            <td class="cov-name">Jacquelyn Sexton, NP</td>
+            <td class="cov-cell cov-no">—</td>
+            <td class="cov-cell cov-no">—</td><td class="cov-cell cov-no">—</td><td class="cov-cell cov-yes">✓</td><td class="cov-cell cov-no">—</td>
+          </tr><tr class="">
+            <td class="cov-name">Lindsay Burden, NP</td>
+            <td class="cov-cell cov-no">—</td>
+            <td class="cov-cell cov-no">—</td><td class="cov-cell cov-yes">✓</td><td class="cov-cell cov-yes">✓</td><td class="cov-cell cov-no">—</td>
+          </tr><tr class="">
+            <td class="cov-name">Liz Gloor, NP</td>
+            <td class="cov-cell cov-no">—</td>
+            <td class="cov-cell cov-no">—</td><td class="cov-cell cov-no">—</td><td class="cov-cell cov-yes">✓</td><td class="cov-cell cov-no">—</td>
+          </tr><tr class="">
+            <td class="cov-name">Mackinzie Johnson, RN</td>
+            <td class="cov-cell cov-no">—</td>
+            <td class="cov-cell cov-yes">✓</td><td class="cov-cell cov-no">—</td><td class="cov-cell cov-no">—</td><td class="cov-cell cov-no">—</td>
+          </tr><tr class="">
+            <td class="cov-name">Martin Van Dongen, NP</td>
+            <td class="cov-cell cov-yes">✓</td>
+            <td class="cov-cell cov-yes">✓</td><td class="cov-cell cov-yes">✓</td><td class="cov-cell cov-yes">✓</td><td class="cov-cell cov-no">—</td>
+          </tr><tr class="">
+            <td class="cov-name">Priya Chaudhari, NP</td>
+            <td class="cov-cell cov-yes">✓</td>
+            <td class="cov-cell cov-no">—</td><td class="cov-cell cov-no">—</td><td class="cov-cell cov-no">—</td><td class="cov-cell cov-no">—</td>
+          </tr><tr class="">
+            <td class="cov-name">Rachel Razi, NP</td>
+            <td class="cov-cell cov-no">—</td>
+            <td class="cov-cell cov-no">—</td><td class="cov-cell cov-no">—</td><td class="cov-cell cov-yes">✓</td><td class="cov-cell cov-no">—</td>
+          </tr><tr class="">
+            <td class="cov-name">Summer Denny, NP</td>
+            <td class="cov-cell cov-yes">✓</td>
+            <td class="cov-cell cov-no">—</td><td class="cov-cell cov-no">—</td><td class="cov-cell cov-yes">✓</td><td class="cov-cell cov-no">—</td>
+          </tr><tr class="">
+            <td class="cov-name">Terray Humphrey, NP</td>
+            <td class="cov-cell cov-no">—</td>
+            <td class="cov-cell cov-yes">✓</td><td class="cov-cell cov-no">—</td><td class="cov-cell cov-no">—</td><td class="cov-cell cov-no">—</td>
+          </tr><tr class="">
+            <td class="cov-name">Tim Mack, NP</td>
+            <td class="cov-cell cov-yes">✓</td>
+            <td class="cov-cell cov-yes">✓</td><td class="cov-cell cov-no">—</td><td class="cov-cell cov-yes">✓</td><td class="cov-cell cov-no">—</td>
+          </tr><tr class="">
+            <td class="cov-name">Tzvi Doron, DO</td>
+            <td class="cov-cell cov-no">—</td>
+            <td class="cov-cell cov-yes">✓</td><td class="cov-cell cov-no">—</td><td class="cov-cell cov-no">—</td><td class="cov-cell cov-no">—</td>
+          </tr><tr class="">
+            <td class="cov-name">Vivien Lee, NP</td>
+            <td class="cov-cell cov-no">—</td>
+            <td class="cov-cell cov-yes">✓</td><td class="cov-cell cov-no">—</td><td class="cov-cell cov-no">—</td><td class="cov-cell cov-no">—</td>
+          </tr><tr class="">
+            <td class="cov-name">Victor Lopez, NP</td>
+            <td class="cov-cell cov-no">—</td>
+            <td class="cov-cell cov-no">—</td><td class="cov-cell cov-yes">✓</td><td class="cov-cell cov-no">—</td><td class="cov-cell cov-no">—</td>
+          </tr><tr class="">
+            <td class="cov-name">Camryn Burden, RN</td>
+            <td class="cov-cell cov-no">—</td>
+            <td class="cov-cell cov-no">—</td><td class="cov-cell cov-no">—</td><td class="cov-cell cov-no">—</td><td class="cov-cell cov-yes">✓</td>
+          </tr><tr class="cov-row-none">
+            <td class="cov-name">Alexis Foster-Horton, NP</td>
+            <td class="cov-cell cov-none">✗</td>
+            <td class="cov-cell cov-none">✗</td><td class="cov-cell cov-none">✗</td><td class="cov-cell cov-none">✗</td><td class="cov-cell cov-none">✗</td>
+          </tr><tr class="cov-row-none">
+            <td class="cov-name">Megan Ryan-Riffle, NP</td>
+            <td class="cov-cell cov-none">✗</td>
+            <td class="cov-cell cov-none">✗</td><td class="cov-cell cov-none">✗</td><td class="cov-cell cov-none">✗</td><td class="cov-cell cov-none">✗</td>
+          </tr><tr class="cov-row-none">
+            <td class="cov-name">Michele Foster, NP</td>
+            <td class="cov-cell cov-none">✗</td>
+            <td class="cov-cell cov-none">✗</td><td class="cov-cell cov-none">✗</td><td class="cov-cell cov-none">✗</td><td class="cov-cell cov-none">✗</td>
+          </tr><tr class="cov-row-none">
+            <td class="cov-name">Danielle Board, NP</td>
+            <td class="cov-cell cov-none">✗</td>
+            <td class="cov-cell cov-none">✗</td><td class="cov-cell cov-none">✗</td><td class="cov-cell cov-none">✗</td><td class="cov-cell cov-none">✗</td>
+          </tr><tr class="cov-row-none">
+            <td class="cov-name">DeAnna Maher, NP</td>
+            <td class="cov-cell cov-none">✗</td>
+            <td class="cov-cell cov-none">✗</td><td class="cov-cell cov-none">✗</td><td class="cov-cell cov-none">✗</td><td class="cov-cell cov-none">✗</td>
+          </tr><tr class="cov-row-none">
+            <td class="cov-name">Skye Sauls, NP</td>
+            <td class="cov-cell cov-none">✗</td>
+            <td class="cov-cell cov-none">✗</td><td class="cov-cell cov-none">✗</td><td class="cov-cell cov-none">✗</td><td class="cov-cell cov-none">✗</td>
+          </tr><tr class="cov-row-none">
+            <td class="cov-name">Brooklyn Kimble, RN</td>
+            <td class="cov-cell cov-none">✗</td>
+            <td class="cov-cell cov-none">✗</td><td class="cov-cell cov-none">✗</td><td class="cov-cell cov-none">✗</td><td class="cov-cell cov-none">✗</td>
+          </tr><tr class="cov-row-none">
+            <td class="cov-name">Daniel Fis, RN</td>
+            <td class="cov-cell cov-none">✗</td>
+            <td class="cov-cell cov-none">✗</td><td class="cov-cell cov-none">✗</td><td class="cov-cell cov-none">✗</td><td class="cov-cell cov-none">✗</td>
+          </tr><tr class="cov-row-none">
+            <td class="cov-name">Bryce Hanley, RN</td>
+            <td class="cov-cell cov-none">✗</td>
+            <td class="cov-cell cov-none">✗</td><td class="cov-cell cov-none">✗</td><td class="cov-cell cov-none">✗</td><td class="cov-cell cov-none">✗</td>
+          </tr><tr class="cov-row-none">
+            <td class="cov-name">Shelby Bailey, RN</td>
+            <td class="cov-cell cov-none">✗</td>
+            <td class="cov-cell cov-none">✗</td><td class="cov-cell cov-none">✗</td><td class="cov-cell cov-none">✗</td><td class="cov-cell cov-none">✗</td>
+          </tr><tr class="cov-row-none">
+            <td class="cov-name">Brittany Alexander, RN</td>
+            <td class="cov-cell cov-none">✗</td>
+            <td class="cov-cell cov-none">✗</td><td class="cov-cell cov-none">✗</td><td class="cov-cell cov-none">✗</td><td class="cov-cell cov-none">✗</td>
+          </tr><tr class="cov-row-none">
+            <td class="cov-name">Lauren Dovin, RN</td>
+            <td class="cov-cell cov-none">✗</td>
+            <td class="cov-cell cov-none">✗</td><td class="cov-cell cov-none">✗</td><td class="cov-cell cov-none">✗</td><td class="cov-cell cov-none">✗</td>
           </tr>
       </tbody>
     </table>
   </div>
 
   
-  <div class="section-title">Coverage Gaps</div>
-  <div class="coverage-gaps-box">
+  <div class="section-title">Action Required</div>
+  <div class="action-required-box">
     
-    <div class="gap-section">
-      <div class="gap-title">No CE Broker Credentials (23)</div>
-      <div class="gap-desc">These team members don't have CE Broker login credentials configured. Their license status cannot be tracked directly.</div>
-      <div class="gap-list"><span class="gap-name">Hilary Morgan, RN</span><span class="gap-name">Jacquelyn Sexton, NP</span><span class="gap-name">Lindsay Burden, NP</span><span class="gap-name">Liz Gloor, NP</span><span class="gap-name">Mackinzie Johnson, RN</span><span class="gap-name">Rachel Razi, NP</span><span class="gap-name">Terray Humphrey, NP</span><span class="gap-name">Tzvi Doron, DO</span><span class="gap-name">Vivien Lee, NP</span><span class="gap-name">Victor Lopez, NP</span><span class="gap-name">Camryn Burden, RN</span><span class="gap-name">Alexis Foster-Horton, NP</span><span class="gap-name">Megan Ryan-Riffle, NP</span><span class="gap-name">Michele Foster, NP</span><span class="gap-name">Danielle Board, NP</span><span class="gap-name">DeAnna Maher, NP</span><span class="gap-name">Skye Sauls, NP</span><span class="gap-name">Brooklyn Kimble, RN</span><span class="gap-name">Daniel Fis, RN</span><span class="gap-name">Bryce Hanley, RN</span><span class="gap-name">Shelby Bailey, RN</span><span class="gap-name">Brittany Alexander, RN</span><span class="gap-name">Lauren Dovin, RN</span></div>
+    
+    <div class="action-section action-no-creds">
+      <div class="action-header">
+        <span class="action-icon">✗</span>
+        <span class="action-title">No CE Credentials on File (12)</span>
+      </div>
+      <div class="action-desc">CEU tracking is not possible for these team members until CE Broker or platform credentials are provided.</div>
+      <div class="action-list"><span class="action-name action-name-none">Alexis Foster-Horton, NP</span><span class="action-name action-name-none">Megan Ryan-Riffle, NP</span><span class="action-name action-name-none">Michele Foster, NP</span><span class="action-name action-name-none">Danielle Board, NP</span><span class="action-name action-name-none">DeAnna Maher, NP</span><span class="action-name action-name-none">Skye Sauls, NP</span><span class="action-name action-name-none">Brooklyn Kimble, RN</span><span class="action-name action-name-none">Daniel Fis, RN</span><span class="action-name action-name-none">Bryce Hanley, RN</span><span class="action-name action-name-none">Shelby Bailey, RN</span><span class="action-name action-name-none">Brittany Alexander, RN</span><span class="action-name action-name-none">Lauren Dovin, RN</span></div>
+    </div>
+    
+    <div class="action-section action-warning">
+      <div class="action-header">
+        <span class="action-icon">○</span>
+        <span class="action-title">No CE Broker Credentials (23)</span>
+      </div>
+      <div class="action-desc">These team members don't have CE Broker login credentials configured. Their license status cannot be tracked directly.</div>
+      <div class="action-list"><span class="action-name action-name-warning">Hilary Morgan, RN</span><span class="action-name action-name-warning">Jacquelyn Sexton, NP</span><span class="action-name action-name-warning">Lindsay Burden, NP</span><span class="action-name action-name-warning">Liz Gloor, NP</span><span class="action-name action-name-warning">Mackinzie Johnson, RN</span><span class="action-name action-name-warning">Rachel Razi, NP</span><span class="action-name action-name-warning">Terray Humphrey, NP</span><span class="action-name action-name-warning">Tzvi Doron, DO</span><span class="action-name action-name-warning">Vivien Lee, NP</span><span class="action-name action-name-warning">Victor Lopez, NP</span><span class="action-name action-name-warning">Camryn Burden, RN</span><span class="action-name action-name-warning">Alexis Foster-Horton, NP</span><span class="action-name action-name-warning">Megan Ryan-Riffle, NP</span><span class="action-name action-name-warning">Michele Foster, NP</span><span class="action-name action-name-warning">Danielle Board, NP</span><span class="action-name action-name-warning">DeAnna Maher, NP</span><span class="action-name action-name-warning">Skye Sauls, NP</span><span class="action-name action-name-warning">Brooklyn Kimble, RN</span><span class="action-name action-name-warning">Daniel Fis, RN</span><span class="action-name action-name-warning">Bryce Hanley, RN</span><span class="action-name action-name-warning">Shelby Bailey, RN</span><span class="action-name action-name-warning">Brittany Alexander, RN</span><span class="action-name action-name-warning">Lauren Dovin, RN</span></div>
     </div>
     
   </div>
   
+</div>
+
+<!-- ── Tab: Needs Attention ───────────────────────────────────────────── -->
+<div class="tab-panel" id="tab-attention">
+  <div class="section-title">Upcoming Deadlines</div>
+  <div class="deadlines-container">
+    <div class="deadline-group deadline-urgent">
+      <div class="deadline-header">
+        <span class="deadline-badge urgent">Within 30 Days</span>
+        <span class="deadline-count">0 licenses</span>
+      </div>
+      <div class="deadline-empty">No deadlines in this period</div>
+    </div>
+    <div class="deadline-group deadline-soon">
+      <div class="deadline-header">
+        <span class="deadline-badge soon">31-60 Days</span>
+        <span class="deadline-count">0 licenses</span>
+      </div>
+      <div class="deadline-empty">No deadlines in this period</div>
+    </div>
+    <div class="deadline-group deadline-upcoming">
+      <div class="deadline-header">
+        <span class="deadline-badge upcoming">61-90 Days</span>
+        <span class="deadline-count">1 license</span>
+      </div>
+      
+      <div class="deadline-list">
+        
+        <div class="deadline-item di-progress">
+          <div class="di-name"></div>
+          <div class="di-state">Florida</div>
+          <div class="di-days">63d</div>
+          <div class="di-date">04/30/2026</div>
+          <div class="di-status">◷</div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   
-  <div class="section-title">No CE Credentials Found</div>
-  <div class="coverage-gaps-box" style="background: #fef2f2; border-color: #fecaca;">
-    <div class="gap-section">
-      <div class="gap-title" style="color: #dc2626;">Team Members Without Any CE Credentials (12)</div>
-      <div class="gap-desc" style="color: #991b1b;">These team members do not have any CE Broker or CE platform credentials on file. CEU tracking is not possible until credentials are provided.</div>
-      <div class="gap-list"><span class="gap-name" style="border-color: #fca5a5; color: #991b1b;">Alexis Foster-Horton, NP</span><span class="gap-name" style="border-color: #fca5a5; color: #991b1b;">Megan Ryan-Riffle, NP</span><span class="gap-name" style="border-color: #fca5a5; color: #991b1b;">Michele Foster, NP</span><span class="gap-name" style="border-color: #fca5a5; color: #991b1b;">Danielle Board, NP</span><span class="gap-name" style="border-color: #fca5a5; color: #991b1b;">DeAnna Maher, NP</span><span class="gap-name" style="border-color: #fca5a5; color: #991b1b;">Skye Sauls, NP</span><span class="gap-name" style="border-color: #fca5a5; color: #991b1b;">Brooklyn Kimble, RN</span><span class="gap-name" style="border-color: #fca5a5; color: #991b1b;">Daniel Fis, RN</span><span class="gap-name" style="border-color: #fca5a5; color: #991b1b;">Bryce Hanley, RN</span><span class="gap-name" style="border-color: #fca5a5; color: #991b1b;">Shelby Bailey, RN</span><span class="gap-name" style="border-color: #fca5a5; color: #991b1b;">Brittany Alexander, RN</span><span class="gap-name" style="border-color: #fca5a5; color: #991b1b;">Lauren Dovin, RN</span></div>
+
+  
+  <div class="section-title">Missing Credentials</div>
+  <div class="missing-creds-box">
+    <div class="missing-desc">These team members have no CE credentials on file. Add their CE Broker or platform login to enable tracking.</div>
+    <div class="missing-grid">
+      <div class="missing-card">Alexis Foster-Horton, NP</div><div class="missing-card">Megan Ryan-Riffle, NP</div><div class="missing-card">Michele Foster, NP</div><div class="missing-card">Danielle Board, NP</div><div class="missing-card">DeAnna Maher, NP</div><div class="missing-card">Skye Sauls, NP</div><div class="missing-card">Brooklyn Kimble, RN</div><div class="missing-card">Daniel Fis, RN</div><div class="missing-card">Bryce Hanley, RN</div><div class="missing-card">Shelby Bailey, RN</div><div class="missing-card">Brittany Alexander, RN</div><div class="missing-card">Lauren Dovin, RN</div>
     </div>
   </div>
   
@@ -800,24 +1120,46 @@
 
 <!-- ── Tab: Provider Profiles ─────────────────────────────────────────── -->
 <div class="tab-panel" id="tab-profiles">
+  <div class="profiles-header">
+    <div class="sub-tabs">
+      <button class="sub-tab active" onclick="showSubTab('clinicians')">Clinicians (1)</button>
+      <button class="sub-tab" onclick="showSubTab('rns')">Support Staff (0)</button>
+      <button class="sub-tab" onclick="showSubTab('all-providers')">All (1)</button>
+    </div>
+  </div>
   <div class="state-chips">
     <button class="state-chip active" id="schip-all" onclick="setStateFilter('all')">All States</button>
     <button class="state-chip" id="schip-Florida" onclick="setStateFilter('Florida')">Florida</button><button class="state-chip" id="schip-New Hampshire" onclick="setStateFilter('New Hampshire')">New Hampshire</button><button class="state-chip" id="schip-New Mexico" onclick="setStateFilter('New Mexico')">New Mexico</button><button class="state-chip" id="schip-New York" onclick="setStateFilter('New York')">New York</button><button class="state-chip" id="schip-Ohio" onclick="setStateFilter('Ohio')">Ohio</button><button class="state-chip" id="schip-Texas" onclick="setStateFilter('Texas')">Texas</button>
   </div>
   <div class="controls">
     <input class="search-box" type="text" id="cardSearch" placeholder="Search provider..." oninput="filterCards()" />
-    <button class="filter-btn active" id="cbtn-all"         onclick="setCardFilter('all')">All</button>
-    <button class="filter-btn"        id="cbtn-Complete"    onclick="setCardFilter('Complete')">Complete</button>
-    <button class="filter-btn"        id="cbtn-In Progress" onclick="setCardFilter('In Progress')">In Progress</button>
-    <button class="filter-btn"        id="cbtn-At Risk"     onclick="setCardFilter('At Risk')">At Risk</button>
+    <div class="control-group">
+      <label class="control-label">Filter:</label>
+      <button class="filter-btn active" id="cbtn-all"         onclick="setCardFilter('all')">All</button>
+      <button class="filter-btn"        id="cbtn-Complete"    onclick="setCardFilter('Complete')">Complete</button>
+      <button class="filter-btn"        id="cbtn-In Progress" onclick="setCardFilter('In Progress')">In Progress</button>
+      <button class="filter-btn"        id="cbtn-At Risk"     onclick="setCardFilter('At Risk')">At Risk</button>
+    </div>
+    <div class="control-group">
+      <label class="control-label">Sort:</label>
+      <select class="sort-select" id="cardSort" onchange="sortCards()">
+        <option value="name">Name (A-Z)</option>
+        <option value="name-desc">Name (Z-A)</option>
+        <option value="status">Status (Risk First)</option>
+        <option value="status-asc">Status (Complete First)</option>
+        <option value="deadline">Deadline (Soonest)</option>
+        <option value="deadline-desc">Deadline (Latest)</option>
+      </select>
+    </div>
   </div>
 
-  <div class="section-title" style="margin-top:24px">Clinicians (1)</div>
-  <div class="cards-grid" id="cardsGrid">
-    <div class="provider-card card-prog card-clickable"
+  <div class="sub-panel active" id="sub-clinicians">
+    <div class="cards-grid" id="cardsGrid">
+      <div class="provider-card card-prog card-clickable"
         data-provider="Unknown"
         data-status="In Progress"
         data-states="Florida,Florida,New Mexico,New York,Texas,New Hampshire,Ohio,Florida,New Mexico"
+        data-deadline="63"
         onclick="openProvider(this.dataset.provider)">
       <div class="card-top">
         <div class="avatar" style="background:#d97706">U</div>
@@ -1103,9 +1445,309 @@
       </div></div>
       
     </div>
+    </div>
   </div>
 
-  
+  <div class="sub-panel" id="sub-rns">
+    <div class="cards-grid" id="rnCardsGrid">
+      
+    </div>
+  </div>
+
+  <div class="sub-panel" id="sub-all-providers">
+    <div class="cards-grid" id="allCardsGrid">
+      <div class="provider-card card-prog card-clickable"
+        data-provider="Unknown"
+        data-status="In Progress"
+        data-states="Florida,Florida,New Mexico,New York,Texas,New Hampshire,Ohio,Florida,New Mexico"
+        data-deadline="63"
+        onclick="openProvider(this.dataset.provider)">
+      <div class="card-top">
+        <div class="avatar" style="background:#d97706">U</div>
+        <div class="card-info">
+          <div class="card-name">Unknown</div>
+          <div class="card-states"><span class="card-state-chip sc-yellow">Florida </span><span class="card-state-chip sc-green">Florida </span><span class="card-state-chip sc-green">New Mexico </span><span class="card-state-chip sc-green">New York </span><span class="card-state-chip sc-yellow">Texas </span><span class="card-state-chip sc-yellow">New Hampshire </span><span class="card-state-chip sc-gray">? </span><span class="card-state-chip sc-gray">? </span><span class="card-state-chip sc-gray">? </span><span class="card-state-chip sc-gray">? </span><span class="card-state-chip sc-gray">? </span><span class="card-state-chip sc-yellow">Ohio </span><span class="card-state-chip sc-yellow">Florida </span><span class="card-state-chip sc-gray">? </span><span class="card-state-chip sc-yellow">New Mexico </span><span class="card-state-chip sc-gray">? </span><span class="card-state-chip sc-gray">? </span><span class="card-state-chip sc-gray">? </span><span class="card-state-chip sc-gray">? </span><span class="card-state-chip sc-gray">? </span><span class="card-state-chip sc-gray">? </span></div>
+        </div>
+        <div class="card-lic-count">21 licenses <span class="card-arrow">›</span></div>
+      </div>
+      <div class="lic-blocks"><div class="lic-block lic-progress">
+        <div class="lic-header">
+          <span class="lic-dot dot-yellow"></span>
+          <strong>Florida</strong>
+          <span class="lic-type"></span>
+          <span class="lic-status-text">In Progress</span>
+        </div>
+        <div class="lic-deadline">Renewal: 04/30/2027 428d left</div>
+        <div class="lic-bar-row">
+          <div class="bar-track"><div class="bar-fill " style="width:100%"></div></div>
+          <span class="bar-label">45 / 24 hrs</span>
+        </div>
+        <a class="lic-course-link" href="https://cebroker.com/#!/courses/search?state=FLORIDA&licenseType=" target="_blank" rel="noopener">Search Courses ↗</a>
+      </div><div class="lic-block lic-complete">
+        <div class="lic-header">
+          <span class="lic-dot dot-green"></span>
+          <strong>Florida</strong>
+          <span class="lic-type"></span>
+          <span class="lic-status-text">Complete</span>
+        </div>
+        <div class="lic-deadline">Renewal: 07/31/2026 155d left</div>
+        <div class="lic-bar-row">
+          <div class="bar-track"><div class="bar-fill " style="width:100%"></div></div>
+          <span class="bar-label">109 / 26 hrs</span>
+        </div>
+        <a class="lic-course-link" href="https://cebroker.com/#!/courses/search?state=FLORIDA&licenseType=" target="_blank" rel="noopener">Search Courses ↗</a>
+      </div><div class="lic-block lic-complete">
+        <div class="lic-header">
+          <span class="lic-dot dot-green"></span>
+          <strong>New Mexico</strong>
+          <span class="lic-type"></span>
+          <span class="lic-status-text">Complete</span>
+        </div>
+        <div class="lic-deadline">Renewal: 06/30/2027 489d left</div>
+        <div class="lic-bar-row">
+          <div class="bar-track"><div class="bar-fill " style="width:100%"></div></div>
+          <span class="bar-label">219.5 / 50 hrs</span>
+        </div>
+        <a class="lic-course-link" href="https://cebroker.com/#!/courses/search?state=NEW MEXICO&licenseType=" target="_blank" rel="noopener">Search Courses ↗</a>
+      </div><div class="lic-block lic-complete">
+        <div class="lic-header">
+          <span class="lic-dot dot-green"></span>
+          <strong>New York</strong>
+          <span class="lic-type"></span>
+          <span class="lic-status-text">Complete</span>
+        </div>
+        <div class="lic-deadline">Renewal: 02/29/2028 733d left</div>
+        <div class="lic-bar-row">
+          <div class="bar-track"><div class="bar-fill low" style="width:0%"></div></div>
+          <span class="bar-label">0 / 0 hrs</span>
+        </div>
+        <a class="lic-course-link" href="https://cebroker.com/#!/courses/search?state=NEW YORK&licenseType=" target="_blank" rel="noopener">Search Courses ↗</a>
+      </div><div class="lic-block lic-progress">
+        <div class="lic-header">
+          <span class="lic-dot dot-yellow"></span>
+          <strong>Texas</strong>
+          <span class="lic-type"></span>
+          <span class="lic-status-text">In Progress</span>
+        </div>
+        <div class="lic-deadline">Renewal: 05/31/2027 459d left</div>
+        <div class="lic-bar-row">
+          <div class="bar-track"><div class="bar-fill low" style="width:15%"></div></div>
+          <span class="bar-label">7 / 48 hrs</span>
+        </div>
+        <a class="lic-course-link" href="https://cebroker.com/#!/courses/search?state=TEXAS&licenseType=" target="_blank" rel="noopener">Search Courses ↗</a>
+      </div><div class="lic-block lic-progress">
+        <div class="lic-header">
+          <span class="lic-dot dot-yellow"></span>
+          <strong>New Hampshire</strong>
+          <span class="lic-type"></span>
+          <span class="lic-status-text">In Progress</span>
+        </div>
+        <div class="lic-deadline">Renewal: 12/13/2027 655d left</div>
+        <div class="lic-bar-row">
+          <div class="bar-track"><div class="bar-fill low" style="width:0%"></div></div>
+          <span class="bar-label">0 / 100 hrs</span>
+        </div>
+        <a class="lic-course-link" href="https://cebroker.com/#!/courses/search?state=NEW HAMPSHIRE&licenseType=" target="_blank" rel="noopener">Search Courses ↗</a>
+      </div><div class="lic-block lic-unknown">
+        <div class="lic-header">
+          <span class="lic-dot dot-gray"></span>
+          <strong>??</strong>
+          <span class="lic-type"></span>
+          <span class="lic-status-text">Unknown</span>
+        </div>
+        <div class="lic-deadline">Renewal: — </div>
+        <div class="lic-bar-row">
+          <div class="bar-track"><div class="bar-fill low" style="width:0%"></div></div>
+          <span class="bar-label">? / ? hrs</span>
+        </div>
+        <a class="lic-course-link" href="https://cebroker.com/#!/courses/search?state=??&licenseType=" target="_blank" rel="noopener">Search Courses ↗</a>
+      </div><div class="lic-block lic-unknown">
+        <div class="lic-header">
+          <span class="lic-dot dot-gray"></span>
+          <strong>??</strong>
+          <span class="lic-type"></span>
+          <span class="lic-status-text">Unknown</span>
+        </div>
+        <div class="lic-deadline">Renewal: — </div>
+        <div class="lic-bar-row">
+          <div class="bar-track"><div class="bar-fill low" style="width:0%"></div></div>
+          <span class="bar-label">? / ? hrs</span>
+        </div>
+        <a class="lic-course-link" href="https://cebroker.com/#!/courses/search?state=??&licenseType=" target="_blank" rel="noopener">Search Courses ↗</a>
+      </div><div class="lic-block lic-unknown">
+        <div class="lic-header">
+          <span class="lic-dot dot-gray"></span>
+          <strong>??</strong>
+          <span class="lic-type"></span>
+          <span class="lic-status-text">Unknown</span>
+        </div>
+        <div class="lic-deadline">Renewal: — </div>
+        <div class="lic-bar-row">
+          <div class="bar-track"><div class="bar-fill low" style="width:0%"></div></div>
+          <span class="bar-label">? / ? hrs</span>
+        </div>
+        <a class="lic-course-link" href="https://cebroker.com/#!/courses/search?state=??&licenseType=" target="_blank" rel="noopener">Search Courses ↗</a>
+      </div><div class="lic-block lic-unknown">
+        <div class="lic-header">
+          <span class="lic-dot dot-gray"></span>
+          <strong>??</strong>
+          <span class="lic-type"></span>
+          <span class="lic-status-text">Unknown</span>
+        </div>
+        <div class="lic-deadline">Renewal: — </div>
+        <div class="lic-bar-row">
+          <div class="bar-track"><div class="bar-fill low" style="width:0%"></div></div>
+          <span class="bar-label">? / ? hrs</span>
+        </div>
+        <a class="lic-course-link" href="https://cebroker.com/#!/courses/search?state=??&licenseType=" target="_blank" rel="noopener">Search Courses ↗</a>
+      </div><div class="lic-block lic-unknown">
+        <div class="lic-header">
+          <span class="lic-dot dot-gray"></span>
+          <strong>??</strong>
+          <span class="lic-type"></span>
+          <span class="lic-status-text">Unknown</span>
+        </div>
+        <div class="lic-deadline">Renewal: — </div>
+        <div class="lic-bar-row">
+          <div class="bar-track"><div class="bar-fill low" style="width:0%"></div></div>
+          <span class="bar-label">? / ? hrs</span>
+        </div>
+        <a class="lic-course-link" href="https://cebroker.com/#!/courses/search?state=??&licenseType=" target="_blank" rel="noopener">Search Courses ↗</a>
+      </div><div class="lic-block lic-progress">
+        <div class="lic-header">
+          <span class="lic-dot dot-yellow"></span>
+          <strong>Ohio</strong>
+          <span class="lic-type"></span>
+          <span class="lic-status-text">In Progress</span>
+        </div>
+        <div class="lic-deadline">Renewal: 10/31/2027 612d left</div>
+        <div class="lic-bar-row">
+          <div class="bar-track"><div class="bar-fill low" style="width:0%"></div></div>
+          <span class="bar-label">0 / 24 hrs</span>
+        </div>
+        <a class="lic-course-link" href="https://cebroker.com/#!/courses/search?state=OHIO&licenseType=" target="_blank" rel="noopener">Search Courses ↗</a>
+      </div><div class="lic-block lic-progress">
+        <div class="lic-header">
+          <span class="lic-dot dot-yellow"></span>
+          <strong>Florida</strong>
+          <span class="lic-type"></span>
+          <span class="lic-status-text">In Progress</span>
+        </div>
+        <div class="lic-deadline">Renewal: 04/30/2026 63d left</div>
+        <div class="lic-bar-row">
+          <div class="bar-track"><div class="bar-fill low" style="width:0%"></div></div>
+          <span class="bar-label">0 / 21 hrs</span>
+        </div>
+        <a class="lic-course-link" href="https://cebroker.com/#!/courses/search?state=FLORIDA&licenseType=" target="_blank" rel="noopener">Search Courses ↗</a>
+      </div><div class="lic-block lic-unknown">
+        <div class="lic-header">
+          <span class="lic-dot dot-gray"></span>
+          <strong>??</strong>
+          <span class="lic-type"></span>
+          <span class="lic-status-text">Unknown</span>
+        </div>
+        <div class="lic-deadline">Renewal: — </div>
+        <div class="lic-bar-row">
+          <div class="bar-track"><div class="bar-fill low" style="width:0%"></div></div>
+          <span class="bar-label">? / ? hrs</span>
+        </div>
+        <a class="lic-course-link" href="https://cebroker.com/#!/courses/search?state=??&licenseType=" target="_blank" rel="noopener">Search Courses ↗</a>
+      </div><div class="lic-block lic-progress">
+        <div class="lic-header">
+          <span class="lic-dot dot-yellow"></span>
+          <strong>New Mexico</strong>
+          <span class="lic-type"></span>
+          <span class="lic-status-text">In Progress</span>
+        </div>
+        <div class="lic-deadline">Renewal: 09/30/2027 581d left</div>
+        <div class="lic-bar-row">
+          <div class="bar-track"><div class="bar-fill low" style="width:34%"></div></div>
+          <span class="bar-label">17 / 50 hrs</span>
+        </div>
+        <a class="lic-course-link" href="https://cebroker.com/#!/courses/search?state=NEW MEXICO&licenseType=" target="_blank" rel="noopener">Search Courses ↗</a>
+      </div><div class="lic-block lic-unknown">
+        <div class="lic-header">
+          <span class="lic-dot dot-gray"></span>
+          <strong>??</strong>
+          <span class="lic-type"></span>
+          <span class="lic-status-text">Unknown</span>
+        </div>
+        <div class="lic-deadline">Renewal: — </div>
+        <div class="lic-bar-row">
+          <div class="bar-track"><div class="bar-fill low" style="width:0%"></div></div>
+          <span class="bar-label">? / ? hrs</span>
+        </div>
+        <a class="lic-course-link" href="https://cebroker.com/#!/courses/search?state=??&licenseType=" target="_blank" rel="noopener">Search Courses ↗</a>
+      </div><div class="lic-block lic-unknown">
+        <div class="lic-header">
+          <span class="lic-dot dot-gray"></span>
+          <strong>??</strong>
+          <span class="lic-type"></span>
+          <span class="lic-status-text">Unknown</span>
+        </div>
+        <div class="lic-deadline">Renewal: — </div>
+        <div class="lic-bar-row">
+          <div class="bar-track"><div class="bar-fill low" style="width:0%"></div></div>
+          <span class="bar-label">? / ? hrs</span>
+        </div>
+        <a class="lic-course-link" href="https://cebroker.com/#!/courses/search?state=??&licenseType=" target="_blank" rel="noopener">Search Courses ↗</a>
+      </div><div class="lic-block lic-unknown">
+        <div class="lic-header">
+          <span class="lic-dot dot-gray"></span>
+          <strong>??</strong>
+          <span class="lic-type"></span>
+          <span class="lic-status-text">Unknown</span>
+        </div>
+        <div class="lic-deadline">Renewal: — </div>
+        <div class="lic-bar-row">
+          <div class="bar-track"><div class="bar-fill low" style="width:0%"></div></div>
+          <span class="bar-label">? / ? hrs</span>
+        </div>
+        <a class="lic-course-link" href="https://cebroker.com/#!/courses/search?state=??&licenseType=" target="_blank" rel="noopener">Search Courses ↗</a>
+      </div><div class="lic-block lic-unknown">
+        <div class="lic-header">
+          <span class="lic-dot dot-gray"></span>
+          <strong>??</strong>
+          <span class="lic-type"></span>
+          <span class="lic-status-text">Unknown</span>
+        </div>
+        <div class="lic-deadline">Renewal: — </div>
+        <div class="lic-bar-row">
+          <div class="bar-track"><div class="bar-fill low" style="width:0%"></div></div>
+          <span class="bar-label">? / ? hrs</span>
+        </div>
+        <a class="lic-course-link" href="https://cebroker.com/#!/courses/search?state=??&licenseType=" target="_blank" rel="noopener">Search Courses ↗</a>
+      </div><div class="lic-block lic-unknown">
+        <div class="lic-header">
+          <span class="lic-dot dot-gray"></span>
+          <strong>??</strong>
+          <span class="lic-type"></span>
+          <span class="lic-status-text">Unknown</span>
+        </div>
+        <div class="lic-deadline">Renewal: — </div>
+        <div class="lic-bar-row">
+          <div class="bar-track"><div class="bar-fill low" style="width:0%"></div></div>
+          <span class="bar-label">? / ? hrs</span>
+        </div>
+        <a class="lic-course-link" href="https://cebroker.com/#!/courses/search?state=??&licenseType=" target="_blank" rel="noopener">Search Courses ↗</a>
+      </div><div class="lic-block lic-unknown">
+        <div class="lic-header">
+          <span class="lic-dot dot-gray"></span>
+          <strong>??</strong>
+          <span class="lic-type"></span>
+          <span class="lic-status-text">Unknown</span>
+        </div>
+        <div class="lic-deadline">Renewal: — </div>
+        <div class="lic-bar-row">
+          <div class="bar-track"><div class="bar-fill low" style="width:0%"></div></div>
+          <span class="bar-label">? / ? hrs</span>
+        </div>
+        <a class="lic-course-link" href="https://cebroker.com/#!/courses/search?state=??&licenseType=" target="_blank" rel="noopener">Search Courses ↗</a>
+      </div></div>
+      
+    </div>
+    </div>
+  </div>
 </div>
 
 <!-- ── Tab: Full Table ────────────────────────────────────────────────── -->
@@ -1712,7 +2354,7 @@
   </div>
 </div>
 
-<footer>CEU Tracker &nbsp;·&nbsp; Last scraped: Thursday, February 26, 2026 at 2:15 PM</footer>
+<footer>CEU Tracker &nbsp;·&nbsp; Last scraped: Thursday, February 26, 2026 at 2:28 PM</footer>
 
 <script>
   // ── Tabs ──
@@ -1721,9 +2363,49 @@
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.getElementById('tab-' + name).classList.add('active');
     const btns = document.querySelectorAll('.tab-btn');
-    const labels = ['overview','profiles','table','runlog','chart','calendar'];
+    const labels = ['overview','attention','profiles','table','runlog','chart','calendar'];
     btns[labels.indexOf(name)]?.classList.add('active');
     if (name === 'chart') initCharts();
+  }
+
+  // ── Sub-tabs (within Provider Profiles) ──
+  function showSubTab(name) {
+    document.querySelectorAll('.sub-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.sub-tab').forEach(b => b.classList.remove('active'));
+    document.getElementById('sub-' + name)?.classList.add('active');
+    const btns = document.querySelectorAll('.sub-tab');
+    const labels = ['clinicians','rns','all-providers'];
+    btns[labels.indexOf(name)]?.classList.add('active');
+  }
+
+  // ── Sort cards ──
+  function sortCards() {
+    const sortBy = document.getElementById('cardSort').value;
+    const grids = ['cardsGrid', 'rnCardsGrid', 'allCardsGrid'];
+    grids.forEach(gridId => {
+      const grid = document.getElementById(gridId);
+      if (!grid) return;
+      const cards = Array.from(grid.querySelectorAll('.provider-card'));
+      cards.sort((a, b) => {
+        const nameA = (a.dataset.provider || '').toLowerCase();
+        const nameB = (b.dataset.provider || '').toLowerCase();
+        const statusA = a.dataset.status || '';
+        const statusB = b.dataset.status || '';
+        const deadlineA = parseInt(a.dataset.deadline) || 9999;
+        const deadlineB = parseInt(b.dataset.deadline) || 9999;
+        const statusOrder = { 'At Risk': 0, 'In Progress': 1, 'Complete': 2, 'Unknown': 3 };
+        switch (sortBy) {
+          case 'name': return nameA.localeCompare(nameB);
+          case 'name-desc': return nameB.localeCompare(nameA);
+          case 'status': return (statusOrder[statusA] ?? 3) - (statusOrder[statusB] ?? 3);
+          case 'status-asc': return (statusOrder[statusB] ?? 3) - (statusOrder[statusA] ?? 3);
+          case 'deadline': return deadlineA - deadlineB;
+          case 'deadline-desc': return deadlineB - deadlineA;
+          default: return 0;
+        }
+      });
+      cards.forEach(card => grid.appendChild(card));
+    });
   }
 
   // ── Provider drawer HTML (pre-rendered at build time, embedded as JSON) ──
@@ -1743,14 +2425,19 @@
   let cardFilter = 'all';
   function filterCards() {
     const q = document.getElementById('cardSearch').value.toLowerCase();
-    document.querySelectorAll('#cardsGrid .provider-card').forEach(card => {
-      const name   = (card.dataset.provider || '').toLowerCase();
-      const status = card.dataset.status || '';
-      const states = (card.dataset.states || '').split(',');
-      const matchQ = !q || name.includes(q);
-      const matchF = cardFilter === 'all' || status === cardFilter;
-      const matchS = stateFilter === 'all' || states.includes(stateFilter);
-      card.style.display = (matchQ && matchF && matchS) ? '' : 'none';
+    const grids = ['cardsGrid', 'rnCardsGrid', 'allCardsGrid'];
+    grids.forEach(gridId => {
+      const grid = document.getElementById(gridId);
+      if (!grid) return;
+      grid.querySelectorAll('.provider-card').forEach(card => {
+        const name   = (card.dataset.provider || '').toLowerCase();
+        const status = card.dataset.status || '';
+        const states = (card.dataset.states || '').split(',');
+        const matchQ = !q || name.includes(q);
+        const matchF = cardFilter === 'all' || status === cardFilter;
+        const matchS = stateFilter === 'all' || states.includes(stateFilter);
+        card.style.display = (matchQ && matchF && matchS) ? '' : 'none';
+      });
     });
   }
   function setCardFilter(f) {
@@ -1830,7 +2517,7 @@
 
   // ── Chart.js ──
   const CHART_DATA   = {"labels":["undefined (Florida)","undefined (Florida)","undefined (New Mexico)","undefined (New York)","undefined (Texas)","undefined (New Hampshire)","undefined (?)","undefined (?)","undefined (?)","undefined (?)","undefined (?)","undefined (Ohio)","undefined (Florida)","undefined (?)","undefined (New Mexico)","undefined (?)","undefined (?)","undefined (?)","undefined (?)","undefined (?)","undefined (?)"],"completed":[45,109,219.5,0,7,0,0,0,0,0,0,0,0,0,17,0,0,0,0,0,0],"required":[24,26,50,0,48,100,0,0,0,0,0,24,21,0,50,0,0,0,0,0,0],"colors":["rgba(217,119,6,0.8)","rgba(22,163,74,0.8)","rgba(22,163,74,0.8)","rgba(22,163,74,0.8)","rgba(217,119,6,0.8)","rgba(217,119,6,0.8)","rgba(100,116,139,0.5)","rgba(100,116,139,0.5)","rgba(100,116,139,0.5)","rgba(100,116,139,0.5)","rgba(100,116,139,0.5)","rgba(217,119,6,0.8)","rgba(217,119,6,0.8)","rgba(100,116,139,0.5)","rgba(217,119,6,0.8)","rgba(100,116,139,0.5)","rgba(100,116,139,0.5)","rgba(100,116,139,0.5)","rgba(100,116,139,0.5)","rgba(100,116,139,0.5)","rgba(100,116,139,0.5)"]};
-  const HISTORY_DATA = [{"timestamp":"2026-02-24T20:59:42.057Z","succeeded":9,"failed":1,"providers":[{"name":"Bryana Anderson, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":219.5,"hoursRemaining":0,"renewalDeadline":"06/30/2027"},{"name":"Ashley Grout, NP","state":"Florida","hoursRequired":24,"hoursCompleted":45,"hoursRemaining":6,"renewalDeadline":"04/30/2027"},{"name":"Bill Carbonneau, NP","state":"Florida","hoursRequired":26,"hoursCompleted":109,"hoursRemaining":0,"renewalDeadline":"07/31/2026"},{"name":"Bryce Amos, NP","state":"New York","hoursRequired":0,"hoursCompleted":0,"hoursRemaining":0,"renewalDeadline":"02/29/2028"},{"name":"Catherine Herrington, MD","state":"Texas","hoursRequired":48,"hoursCompleted":7,"hoursRemaining":41,"renewalDeadline":"05/31/2027"},{"name":"Doron Stember, MD","state":"New Hampshire","hoursRequired":100,"hoursCompleted":0,"hoursRemaining":100,"renewalDeadline":"12/13/2027"},{"name":"Martin Van Dongen, NP","state":"Ohio","hoursRequired":24,"hoursCompleted":0,"hoursRemaining":24,"renewalDeadline":"10/31/2027"},{"name":"Priya Chaudhari, NP","state":"Florida","hoursRequired":21,"hoursCompleted":0,"hoursRemaining":21,"renewalDeadline":"04/30/2026"},{"name":"Summer Denny, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":17,"hoursRemaining":33,"renewalDeadline":"09/30/2027"},{"name":"Tim Mack, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null}]},{"timestamp":"2026-02-24T21:15:59.456Z","succeeded":8,"failed":2,"providers":[{"name":"Bryana Anderson, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":219.5,"hoursRemaining":0,"renewalDeadline":"06/30/2027"},{"name":"Ashley Grout, NP","state":"Florida","hoursRequired":24,"hoursCompleted":45,"hoursRemaining":6,"renewalDeadline":"04/30/2027"},{"name":"Bill Carbonneau, NP","state":"Florida","hoursRequired":26,"hoursCompleted":109,"hoursRemaining":0,"renewalDeadline":"07/31/2026"},{"name":"Bryce Amos, NP","state":"New York","hoursRequired":0,"hoursCompleted":0,"hoursRemaining":0,"renewalDeadline":"02/29/2028"},{"name":"Catherine Herrington, MD","state":"Texas","hoursRequired":48,"hoursCompleted":7,"hoursRemaining":41,"renewalDeadline":"05/31/2027"},{"name":"Doron Stember, MD","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Martin Van Dongen, NP","state":"Ohio","hoursRequired":24,"hoursCompleted":0,"hoursRemaining":24,"renewalDeadline":"10/31/2027"},{"name":"Priya Chaudhari, NP","state":"Florida","hoursRequired":21,"hoursCompleted":0,"hoursRemaining":21,"renewalDeadline":"04/30/2026"},{"name":"Summer Denny, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":17,"hoursRemaining":33,"renewalDeadline":"09/30/2027"},{"name":"Tim Mack, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null}]},{"timestamp":"2026-02-24T21:51:23.278Z","succeeded":9,"failed":1,"providers":[{"name":"Bryana Anderson, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":219.5,"hoursRemaining":0,"renewalDeadline":"06/30/2027"},{"name":"Ashley Grout, NP","state":"Florida","hoursRequired":24,"hoursCompleted":45,"hoursRemaining":6,"renewalDeadline":"04/30/2027"},{"name":"Bill Carbonneau, NP","state":"Florida","hoursRequired":26,"hoursCompleted":109,"hoursRemaining":0,"renewalDeadline":"07/31/2026"},{"name":"Bryce Amos, NP","state":"New York","hoursRequired":0,"hoursCompleted":0,"hoursRemaining":0,"renewalDeadline":"02/29/2028"},{"name":"Catherine Herrington, MD","state":"Texas","hoursRequired":48,"hoursCompleted":7,"hoursRemaining":41,"renewalDeadline":"05/31/2027"},{"name":"Doron Stember, MD","state":"New Hampshire","hoursRequired":100,"hoursCompleted":0,"hoursRemaining":100,"renewalDeadline":"12/13/2027"},{"name":"Martin Van Dongen, NP","state":"Ohio","hoursRequired":24,"hoursCompleted":0,"hoursRemaining":24,"renewalDeadline":"10/31/2027"},{"name":"Priya Chaudhari, NP","state":"Florida","hoursRequired":21,"hoursCompleted":0,"hoursRemaining":21,"renewalDeadline":"04/30/2026"},{"name":"Summer Denny, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":17,"hoursRemaining":33,"renewalDeadline":"09/30/2027"},{"name":"Tim Mack, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null}]},{"timestamp":"2026-02-25T03:13:57.008Z","succeeded":9,"failed":1,"providers":[{"name":"Bryana Anderson, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":219.5,"hoursRemaining":0,"renewalDeadline":"06/30/2027"},{"name":"Ashley Grout, NP","state":"Florida","hoursRequired":24,"hoursCompleted":45,"hoursRemaining":6,"renewalDeadline":"04/30/2027"},{"name":"Bill Carbonneau, NP","state":"Florida","hoursRequired":26,"hoursCompleted":109,"hoursRemaining":0,"renewalDeadline":"07/31/2026"},{"name":"Bryce Amos, NP","state":"New York","hoursRequired":null,"hoursCompleted":0,"hoursRemaining":null,"renewalDeadline":"02/29/2028"},{"name":"Catherine Herrington, MD","state":"Texas","hoursRequired":48,"hoursCompleted":7,"hoursRemaining":41,"renewalDeadline":"05/31/2027"},{"name":"Doron Stember, MD","state":"New Hampshire","hoursRequired":100,"hoursCompleted":0,"hoursRemaining":100,"renewalDeadline":null},{"name":"Martin Van Dongen, NP","state":"Ohio","hoursRequired":24,"hoursCompleted":0,"hoursRemaining":24,"renewalDeadline":"10/31/2027"},{"name":"Priya Chaudhari, NP","state":"Florida","hoursRequired":21,"hoursCompleted":0,"hoursRemaining":21,"renewalDeadline":"04/30/2026"},{"name":"Summer Denny, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":17,"hoursRemaining":33,"renewalDeadline":null},{"name":"Tim Mack, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null}]},{"timestamp":"2026-02-25T03:24:31.944Z","succeeded":9,"failed":1,"providers":[{"name":"Bryana Anderson, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":219.5,"hoursRemaining":0,"renewalDeadline":"06/30/2027"},{"name":"Ashley Grout, NP","state":"Florida","hoursRequired":24,"hoursCompleted":45,"hoursRemaining":6,"renewalDeadline":"04/30/2027"},{"name":"Bill Carbonneau, NP","state":"Florida","hoursRequired":26,"hoursCompleted":109,"hoursRemaining":0,"renewalDeadline":"07/31/2026"},{"name":"Bryce Amos, NP","state":"New York","hoursRequired":0,"hoursCompleted":0,"hoursRemaining":0,"renewalDeadline":"02/29/2028"},{"name":"Catherine Herrington, MD","state":"Texas","hoursRequired":48,"hoursCompleted":7,"hoursRemaining":41,"renewalDeadline":"05/31/2027"},{"name":"Doron Stember, MD","state":"New Hampshire","hoursRequired":100,"hoursCompleted":0,"hoursRemaining":100,"renewalDeadline":"12/13/2027"},{"name":"Martin Van Dongen, NP","state":"Ohio","hoursRequired":24,"hoursCompleted":0,"hoursRemaining":24,"renewalDeadline":"10/31/2027"},{"name":"Priya Chaudhari, NP","state":"Florida","hoursRequired":21,"hoursCompleted":0,"hoursRemaining":21,"renewalDeadline":"04/30/2026"},{"name":"Summer Denny, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":17,"hoursRemaining":33,"renewalDeadline":"09/30/2027"},{"name":"Tim Mack, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null}]},{"timestamp":"2026-02-25T03:31:52.191Z","succeeded":9,"failed":1,"providers":[{"name":"Bryana Anderson, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":219.5,"hoursRemaining":0,"renewalDeadline":"06/30/2027"},{"name":"Ashley Grout, NP","state":"Florida","hoursRequired":24,"hoursCompleted":45,"hoursRemaining":6,"renewalDeadline":"04/30/2027"},{"name":"Bill Carbonneau, NP","state":"Florida","hoursRequired":26,"hoursCompleted":109,"hoursRemaining":0,"renewalDeadline":"07/31/2026"},{"name":"Bryce Amos, NP","state":"New York","hoursRequired":0,"hoursCompleted":0,"hoursRemaining":0,"renewalDeadline":"02/29/2028"},{"name":"Catherine Herrington, MD","state":"Texas","hoursRequired":48,"hoursCompleted":7,"hoursRemaining":41,"renewalDeadline":"05/31/2027"},{"name":"Doron Stember, MD","state":"New Hampshire","hoursRequired":100,"hoursCompleted":0,"hoursRemaining":100,"renewalDeadline":"12/13/2027"},{"name":"Martin Van Dongen, NP","state":"Ohio","hoursRequired":24,"hoursCompleted":0,"hoursRemaining":24,"renewalDeadline":"10/31/2027"},{"name":"Priya Chaudhari, NP","state":"Florida","hoursRequired":21,"hoursCompleted":0,"hoursRemaining":21,"renewalDeadline":"04/30/2026"},{"name":"Summer Denny, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":17,"hoursRemaining":33,"renewalDeadline":"09/30/2027"},{"name":"Tim Mack, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null}]},{"timestamp":"2026-02-25T16:21:52.219Z","succeeded":9,"failed":1,"providers":[{"name":"Bryana Anderson, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":219.5,"hoursRemaining":0,"renewalDeadline":"06/30/2027"},{"name":"Ashley Grout, NP","state":"Florida","hoursRequired":24,"hoursCompleted":45,"hoursRemaining":6,"renewalDeadline":"04/30/2027"},{"name":"Bill Carbonneau, NP","state":"Florida","hoursRequired":26,"hoursCompleted":109,"hoursRemaining":0,"renewalDeadline":"07/31/2026"},{"name":"Bryce Amos, NP","state":"New York","hoursRequired":0,"hoursCompleted":0,"hoursRemaining":0,"renewalDeadline":"02/29/2028"},{"name":"Catherine Herrington, MD","state":"Texas","hoursRequired":48,"hoursCompleted":7,"hoursRemaining":41,"renewalDeadline":"05/31/2027"},{"name":"Doron Stember, MD","state":"New Hampshire","hoursRequired":100,"hoursCompleted":0,"hoursRemaining":100,"renewalDeadline":"12/13/2027"},{"name":"Martin Van Dongen, NP","state":"Ohio","hoursRequired":24,"hoursCompleted":0,"hoursRemaining":24,"renewalDeadline":"10/31/2027"},{"name":"Priya Chaudhari, NP","state":"Florida","hoursRequired":21,"hoursCompleted":0,"hoursRemaining":21,"renewalDeadline":"04/30/2026"},{"name":"Summer Denny, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":17,"hoursRemaining":33,"renewalDeadline":"09/30/2027"},{"name":"Tim Mack, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null}]},{"timestamp":"2026-02-25T17:41:07.433Z","succeeded":9,"failed":1,"providers":[{"name":"Bryana Anderson, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":219.5,"hoursRemaining":0,"renewalDeadline":"06/30/2027"},{"name":"Ashley Grout, NP","state":"Florida","hoursRequired":24,"hoursCompleted":45,"hoursRemaining":6,"renewalDeadline":"04/30/2027"},{"name":"Bill Carbonneau, NP","state":"Florida","hoursRequired":26,"hoursCompleted":109,"hoursRemaining":0,"renewalDeadline":"07/31/2026"},{"name":"Bryce Amos, NP","state":"New York","hoursRequired":0,"hoursCompleted":0,"hoursRemaining":0,"renewalDeadline":"02/29/2028"},{"name":"Catherine Herrington, MD","state":"Texas","hoursRequired":48,"hoursCompleted":7,"hoursRemaining":41,"renewalDeadline":"05/31/2027"},{"name":"Doron Stember, MD","state":"New Hampshire","hoursRequired":100,"hoursCompleted":0,"hoursRemaining":100,"renewalDeadline":"12/13/2027"},{"name":"Martin Van Dongen, NP","state":"Ohio","hoursRequired":24,"hoursCompleted":0,"hoursRemaining":24,"renewalDeadline":"10/31/2027"},{"name":"Priya Chaudhari, NP","state":"Florida","hoursRequired":21,"hoursCompleted":0,"hoursRemaining":21,"renewalDeadline":"04/30/2026"},{"name":"Summer Denny, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":17,"hoursRemaining":33,"renewalDeadline":"09/30/2027"},{"name":"Tim Mack, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null}]},{"timestamp":"2026-02-25T18:53:14.829Z","succeeded":9,"failed":1,"providers":[{"name":"Bryana Anderson, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":219.5,"hoursRemaining":0,"renewalDeadline":"06/30/2027"},{"name":"Ashley Grout, NP","state":"Florida","hoursRequired":24,"hoursCompleted":45,"hoursRemaining":6,"renewalDeadline":"04/30/2027"},{"name":"Bill Carbonneau, NP","state":"Florida","hoursRequired":26,"hoursCompleted":109,"hoursRemaining":0,"renewalDeadline":"07/31/2026"},{"name":"Bryce Amos, NP","state":"New York","hoursRequired":0,"hoursCompleted":0,"hoursRemaining":0,"renewalDeadline":"02/29/2028"},{"name":"Catherine Herrington, MD","state":"Texas","hoursRequired":48,"hoursCompleted":7,"hoursRemaining":41,"renewalDeadline":"05/31/2027"},{"name":"Doron Stember, MD","state":"New Hampshire","hoursRequired":100,"hoursCompleted":0,"hoursRemaining":100,"renewalDeadline":"12/13/2027"},{"name":"Martin Van Dongen, NP","state":"Ohio","hoursRequired":24,"hoursCompleted":0,"hoursRemaining":24,"renewalDeadline":"10/31/2027"},{"name":"Priya Chaudhari, NP","state":"Florida","hoursRequired":21,"hoursCompleted":0,"hoursRemaining":21,"renewalDeadline":"04/30/2026"},{"name":"Summer Denny, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":17,"hoursRemaining":33,"renewalDeadline":"09/30/2027"},{"name":"Tim Mack, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null}]},{"timestamp":"2026-02-25T19:27:22.966Z","succeeded":9,"failed":1,"providers":[{"name":"Bryana Anderson, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":219.5,"hoursRemaining":0,"renewalDeadline":"06/30/2027"},{"name":"Ashley Grout, NP","state":"Florida","hoursRequired":24,"hoursCompleted":45,"hoursRemaining":6,"renewalDeadline":"04/30/2027"},{"name":"Bill Carbonneau, NP","state":"Florida","hoursRequired":26,"hoursCompleted":109,"hoursRemaining":0,"renewalDeadline":"07/31/2026"},{"name":"Bryce Amos, NP","state":"New York","hoursRequired":0,"hoursCompleted":0,"hoursRemaining":0,"renewalDeadline":"02/29/2028"},{"name":"Catherine Herrington, MD","state":"Texas","hoursRequired":48,"hoursCompleted":7,"hoursRemaining":41,"renewalDeadline":"05/31/2027"},{"name":"Doron Stember, MD","state":"New Hampshire","hoursRequired":100,"hoursCompleted":0,"hoursRemaining":100,"renewalDeadline":"12/13/2027"},{"name":"Martin Van Dongen, NP","state":"Ohio","hoursRequired":24,"hoursCompleted":0,"hoursRemaining":24,"renewalDeadline":"10/31/2027"},{"name":"Priya Chaudhari, NP","state":"Florida","hoursRequired":21,"hoursCompleted":0,"hoursRemaining":21,"renewalDeadline":"04/30/2026"},{"name":"Summer Denny, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":17,"hoursRemaining":33,"renewalDeadline":"09/30/2027"},{"name":"Tim Mack, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null}]},{"timestamp":"2026-02-25T20:05:19.531Z","succeeded":9,"failed":1,"providers":[{"name":"Bryana Anderson, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":219.5,"hoursRemaining":0,"renewalDeadline":"06/30/2027"},{"name":"Ashley Grout, NP","state":"Florida","hoursRequired":24,"hoursCompleted":45,"hoursRemaining":6,"renewalDeadline":"04/30/2027"},{"name":"Bill Carbonneau, NP","state":"Florida","hoursRequired":26,"hoursCompleted":109,"hoursRemaining":0,"renewalDeadline":"07/31/2026"},{"name":"Bryce Amos, NP","state":"New York","hoursRequired":0,"hoursCompleted":0,"hoursRemaining":0,"renewalDeadline":"02/29/2028"},{"name":"Catherine Herrington, MD","state":"Texas","hoursRequired":48,"hoursCompleted":7,"hoursRemaining":41,"renewalDeadline":"05/31/2027"},{"name":"Doron Stember, MD","state":"New Hampshire","hoursRequired":100,"hoursCompleted":0,"hoursRemaining":100,"renewalDeadline":"12/13/2027"},{"name":"Martin Van Dongen, NP","state":"Ohio","hoursRequired":24,"hoursCompleted":0,"hoursRemaining":24,"renewalDeadline":"10/31/2027"},{"name":"Priya Chaudhari, NP","state":"Florida","hoursRequired":21,"hoursCompleted":0,"hoursRemaining":21,"renewalDeadline":"04/30/2026"},{"name":"Summer Denny, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":17,"hoursRemaining":33,"renewalDeadline":"09/30/2027"},{"name":"Tim Mack, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null}]},{"timestamp":"2026-02-25T20:33:02.381Z","succeeded":9,"failed":1,"providers":[{"name":"Bryana Anderson, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":219.5,"hoursRemaining":0,"renewalDeadline":"06/30/2027"},{"name":"Ashley Grout, NP","state":"Florida","hoursRequired":24,"hoursCompleted":45,"hoursRemaining":6,"renewalDeadline":"04/30/2027"},{"name":"Bill Carbonneau, NP","state":"Florida","hoursRequired":26,"hoursCompleted":109,"hoursRemaining":0,"renewalDeadline":"07/31/2026"},{"name":"Bryce Amos, NP","state":"New York","hoursRequired":0,"hoursCompleted":0,"hoursRemaining":0,"renewalDeadline":"02/29/2028"},{"name":"Catherine Herrington, MD","state":"Texas","hoursRequired":48,"hoursCompleted":7,"hoursRemaining":41,"renewalDeadline":"05/31/2027"},{"name":"Doron Stember, MD","state":"New Hampshire","hoursRequired":100,"hoursCompleted":0,"hoursRemaining":100,"renewalDeadline":"12/13/2027"},{"name":"Martin Van Dongen, NP","state":"Ohio","hoursRequired":24,"hoursCompleted":0,"hoursRemaining":24,"renewalDeadline":"10/31/2027"},{"name":"Priya Chaudhari, NP","state":"Florida","hoursRequired":21,"hoursCompleted":0,"hoursRemaining":21,"renewalDeadline":"04/30/2026"},{"name":"Summer Denny, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":17,"hoursRemaining":33,"renewalDeadline":"09/30/2027"},{"name":"Tim Mack, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null}]},{"timestamp":"2026-02-25T21:06:55.243Z","succeeded":9,"failed":1,"providers":[{"name":"Bryana Anderson, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":219.5,"hoursRemaining":0,"renewalDeadline":"06/30/2027"},{"name":"Ashley Grout, NP","state":"Florida","hoursRequired":24,"hoursCompleted":45,"hoursRemaining":6,"renewalDeadline":"04/30/2027"},{"name":"Bill Carbonneau, NP","state":"Florida","hoursRequired":26,"hoursCompleted":109,"hoursRemaining":0,"renewalDeadline":"07/31/2026"},{"name":"Bryce Amos, NP","state":"New York","hoursRequired":0,"hoursCompleted":0,"hoursRemaining":0,"renewalDeadline":"02/29/2028"},{"name":"Catherine Herrington, MD","state":"Texas","hoursRequired":48,"hoursCompleted":7,"hoursRemaining":41,"renewalDeadline":"05/31/2027"},{"name":"Doron Stember, MD","state":"New Hampshire","hoursRequired":100,"hoursCompleted":0,"hoursRemaining":100,"renewalDeadline":"12/13/2027"},{"name":"Martin Van Dongen, NP","state":"Ohio","hoursRequired":24,"hoursCompleted":0,"hoursRemaining":24,"renewalDeadline":"10/31/2027"},{"name":"Priya Chaudhari, NP","state":"Florida","hoursRequired":21,"hoursCompleted":0,"hoursRemaining":21,"renewalDeadline":"04/30/2026"},{"name":"Summer Denny, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":17,"hoursRemaining":33,"renewalDeadline":"09/30/2027"},{"name":"Tim Mack, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null}]},{"timestamp":"2026-02-25T21:44:54.754Z","succeeded":9,"failed":1,"providers":[{"name":"Bryana Anderson, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":219.5,"hoursRemaining":0,"renewalDeadline":"06/30/2027"},{"name":"Ashley Grout, NP","state":"Florida","hoursRequired":24,"hoursCompleted":45,"hoursRemaining":6,"renewalDeadline":"04/30/2027"},{"name":"Bill Carbonneau, NP","state":"Florida","hoursRequired":26,"hoursCompleted":109,"hoursRemaining":0,"renewalDeadline":"07/31/2026"},{"name":"Bryce Amos, NP","state":"New York","hoursRequired":0,"hoursCompleted":0,"hoursRemaining":0,"renewalDeadline":"02/29/2028"},{"name":"Catherine Herrington, MD","state":"Texas","hoursRequired":48,"hoursCompleted":7,"hoursRemaining":41,"renewalDeadline":"05/31/2027"},{"name":"Doron Stember, MD","state":"New Hampshire","hoursRequired":100,"hoursCompleted":0,"hoursRemaining":100,"renewalDeadline":"12/13/2027"},{"name":"Martin Van Dongen, NP","state":"Ohio","hoursRequired":24,"hoursCompleted":0,"hoursRemaining":24,"renewalDeadline":"10/31/2027"},{"name":"Priya Chaudhari, NP","state":"Florida","hoursRequired":21,"hoursCompleted":0,"hoursRemaining":21,"renewalDeadline":"04/30/2026"},{"name":"Summer Denny, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":17,"hoursRemaining":33,"renewalDeadline":"09/30/2027"},{"name":"Tim Mack, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null}]},{"timestamp":"2026-02-26T14:51:35.446Z","succeeded":9,"failed":10,"providers":[{"name":"Ashley Grout, NP","state":"Florida","hoursRequired":24,"hoursCompleted":45,"hoursRemaining":6,"renewalDeadline":null},{"name":"Bill Carbonneau, NP","state":"Florida","hoursRequired":0,"hoursCompleted":0,"hoursRemaining":0,"renewalDeadline":null},{"name":"Bryana Anderson, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":219.5,"hoursRemaining":0,"renewalDeadline":"06/30/2027"},{"name":"Bryce Amos, NP","state":"New York","hoursRequired":0,"hoursCompleted":0,"hoursRemaining":0,"renewalDeadline":"02/29/2028"},{"name":"Catherine Herrington, MD","state":"Texas","hoursRequired":48,"hoursCompleted":7,"hoursRemaining":41,"renewalDeadline":"05/31/2027"},{"name":"Doron Stember, MD","state":"New Hampshire","hoursRequired":100,"hoursCompleted":0,"hoursRemaining":100,"renewalDeadline":"12/13/2027"},{"name":"Hilary Morgan, RN","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Jacquelyn Sexton, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Lindsay Burden, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Liz Gloor, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Mackinzie Johnson, RN","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Martin Van Dongen, NP","state":"Ohio","hoursRequired":24,"hoursCompleted":0,"hoursRemaining":24,"renewalDeadline":"10/31/2027"},{"name":"Priya Chaudhari, NP","state":"Florida","hoursRequired":21,"hoursCompleted":0,"hoursRemaining":21,"renewalDeadline":"04/30/2026"},{"name":"Rachel Razi, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Summer Denny, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":17,"hoursRemaining":33,"renewalDeadline":"09/30/2027"},{"name":"Terray Humphrey, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Tim Mack, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Tzvi Doron, DO","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Vivien Lee, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null}]},{"timestamp":"2026-02-26T18:03:47.823Z","succeeded":9,"failed":1,"notConfigured":11,"providers":[{"name":"Ashley Grout, NP","state":"Florida","hoursRequired":24,"hoursCompleted":45,"hoursRemaining":6,"renewalDeadline":"04/30/2027"},{"name":"Bill Carbonneau, NP","state":"Florida","hoursRequired":26,"hoursCompleted":109,"hoursRemaining":0,"renewalDeadline":"07/31/2026"},{"name":"Bryana Anderson, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":219.5,"hoursRemaining":0,"renewalDeadline":"06/30/2027"},{"name":"Bryce Amos, NP","state":"New York","hoursRequired":0,"hoursCompleted":0,"hoursRemaining":0,"renewalDeadline":"02/29/2028"},{"name":"Catherine Herrington, MD","state":"Texas","hoursRequired":48,"hoursCompleted":7,"hoursRemaining":41,"renewalDeadline":"05/31/2027"},{"name":"Doron Stember, MD","state":"New Hampshire","hoursRequired":100,"hoursCompleted":0,"hoursRemaining":100,"renewalDeadline":"12/13/2027"},{"name":"Hilary Morgan, RN","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Jacquelyn Sexton, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Lindsay Burden, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Liz Gloor, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Mackinzie Johnson, RN","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Martin Van Dongen, NP","state":"Ohio","hoursRequired":24,"hoursCompleted":0,"hoursRemaining":24,"renewalDeadline":"10/31/2027"},{"name":"Priya Chaudhari, NP","state":"Florida","hoursRequired":21,"hoursCompleted":0,"hoursRemaining":21,"renewalDeadline":"04/30/2026"},{"name":"Rachel Razi, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Summer Denny, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":17,"hoursRemaining":33,"renewalDeadline":"09/30/2027"},{"name":"Terray Humphrey, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Tim Mack, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Tzvi Doron, DO","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Vivien Lee, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Victor Lopez, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Camryn Burden, RN","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null}]},{"timestamp":"2026-02-26T18:57:19.252Z","succeeded":9,"failed":1,"notConfigured":11,"providers":[{"name":"Ashley Grout, NP","state":"Florida","hoursRequired":24,"hoursCompleted":45,"hoursRemaining":6,"renewalDeadline":"04/30/2027"},{"name":"Bill Carbonneau, NP","state":"Florida","hoursRequired":26,"hoursCompleted":109,"hoursRemaining":0,"renewalDeadline":"07/31/2026"},{"name":"Bryana Anderson, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":219.5,"hoursRemaining":0,"renewalDeadline":"06/30/2027"},{"name":"Bryce Amos, NP","state":"New York","hoursRequired":0,"hoursCompleted":0,"hoursRemaining":0,"renewalDeadline":"02/29/2028"},{"name":"Catherine Herrington, MD","state":"Texas","hoursRequired":48,"hoursCompleted":7,"hoursRemaining":41,"renewalDeadline":"05/31/2027"},{"name":"Doron Stember, MD","state":"New Hampshire","hoursRequired":100,"hoursCompleted":0,"hoursRemaining":100,"renewalDeadline":"12/13/2027"},{"name":"Hilary Morgan, RN","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Jacquelyn Sexton, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Lindsay Burden, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Liz Gloor, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Mackinzie Johnson, RN","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Martin Van Dongen, NP","state":"Ohio","hoursRequired":24,"hoursCompleted":0,"hoursRemaining":24,"renewalDeadline":"10/31/2027"},{"name":"Priya Chaudhari, NP","state":"Florida","hoursRequired":21,"hoursCompleted":0,"hoursRemaining":21,"renewalDeadline":"04/30/2026"},{"name":"Rachel Razi, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Summer Denny, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":17,"hoursRemaining":33,"renewalDeadline":"09/30/2027"},{"name":"Terray Humphrey, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Tim Mack, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Tzvi Doron, DO","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Vivien Lee, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Victor Lopez, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Camryn Burden, RN","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null}]},{"timestamp":"2026-02-26T19:04:45.033Z","succeeded":0,"failed":0,"notConfigured":0,"providers":[{"state":"Florida","hoursRequired":24,"hoursCompleted":45,"hoursRemaining":6,"renewalDeadline":"04/30/2027"},{"state":"Florida","hoursRequired":26,"hoursCompleted":109,"hoursRemaining":0,"renewalDeadline":"07/31/2026"},{"state":"New Mexico","hoursRequired":50,"hoursCompleted":219.5,"hoursRemaining":0,"renewalDeadline":"06/30/2027"},{"state":"New York","hoursRequired":0,"hoursCompleted":0,"hoursRemaining":0,"renewalDeadline":"02/29/2028"},{"state":"Texas","hoursRequired":48,"hoursCompleted":7,"hoursRemaining":41,"renewalDeadline":"05/31/2027"},{"state":"New Hampshire","hoursRequired":100,"hoursCompleted":0,"hoursRemaining":100,"renewalDeadline":"12/13/2027"},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":"Ohio","hoursRequired":24,"hoursCompleted":0,"hoursRemaining":24,"renewalDeadline":"10/31/2027"},{"state":"Florida","hoursRequired":21,"hoursCompleted":0,"hoursRemaining":21,"renewalDeadline":"04/30/2026"},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":"New Mexico","hoursRequired":50,"hoursCompleted":17,"hoursRemaining":33,"renewalDeadline":"09/30/2027"},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null}]},{"timestamp":"2026-02-26T19:05:17.154Z","succeeded":10,"failed":0,"notConfigured":11,"providers":[{"state":"Florida","hoursRequired":24,"hoursCompleted":45,"hoursRemaining":6,"renewalDeadline":"04/30/2027"},{"state":"Florida","hoursRequired":26,"hoursCompleted":109,"hoursRemaining":0,"renewalDeadline":"07/31/2026"},{"state":"New Mexico","hoursRequired":50,"hoursCompleted":219.5,"hoursRemaining":0,"renewalDeadline":"06/30/2027"},{"state":"New York","hoursRequired":0,"hoursCompleted":0,"hoursRemaining":0,"renewalDeadline":"02/29/2028"},{"state":"Texas","hoursRequired":48,"hoursCompleted":7,"hoursRemaining":41,"renewalDeadline":"05/31/2027"},{"state":"New Hampshire","hoursRequired":100,"hoursCompleted":0,"hoursRemaining":100,"renewalDeadline":"12/13/2027"},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":"Ohio","hoursRequired":24,"hoursCompleted":0,"hoursRemaining":24,"renewalDeadline":"10/31/2027"},{"state":"Florida","hoursRequired":21,"hoursCompleted":0,"hoursRemaining":21,"renewalDeadline":"04/30/2026"},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":"New Mexico","hoursRequired":50,"hoursCompleted":17,"hoursRemaining":33,"renewalDeadline":"09/30/2027"},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null}]},{"timestamp":"2026-02-26T19:15:45.250Z","succeeded":10,"failed":0,"notConfigured":23,"providers":[{"state":"Florida","hoursRequired":24,"hoursCompleted":45,"hoursRemaining":6,"renewalDeadline":"04/30/2027"},{"state":"Florida","hoursRequired":26,"hoursCompleted":109,"hoursRemaining":0,"renewalDeadline":"07/31/2026"},{"state":"New Mexico","hoursRequired":50,"hoursCompleted":219.5,"hoursRemaining":0,"renewalDeadline":"06/30/2027"},{"state":"New York","hoursRequired":0,"hoursCompleted":0,"hoursRemaining":0,"renewalDeadline":"02/29/2028"},{"state":"Texas","hoursRequired":48,"hoursCompleted":7,"hoursRemaining":41,"renewalDeadline":"05/31/2027"},{"state":"New Hampshire","hoursRequired":100,"hoursCompleted":0,"hoursRemaining":100,"renewalDeadline":"12/13/2027"},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":"Ohio","hoursRequired":24,"hoursCompleted":0,"hoursRemaining":24,"renewalDeadline":"10/31/2027"},{"state":"Florida","hoursRequired":21,"hoursCompleted":0,"hoursRemaining":21,"renewalDeadline":"04/30/2026"},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":"New Mexico","hoursRequired":50,"hoursCompleted":17,"hoursRemaining":33,"renewalDeadline":"09/30/2027"},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null}]}];
+  const HISTORY_DATA = [{"timestamp":"2026-02-24T20:59:42.057Z","succeeded":9,"failed":1,"providers":[{"name":"Bryana Anderson, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":219.5,"hoursRemaining":0,"renewalDeadline":"06/30/2027"},{"name":"Ashley Grout, NP","state":"Florida","hoursRequired":24,"hoursCompleted":45,"hoursRemaining":6,"renewalDeadline":"04/30/2027"},{"name":"Bill Carbonneau, NP","state":"Florida","hoursRequired":26,"hoursCompleted":109,"hoursRemaining":0,"renewalDeadline":"07/31/2026"},{"name":"Bryce Amos, NP","state":"New York","hoursRequired":0,"hoursCompleted":0,"hoursRemaining":0,"renewalDeadline":"02/29/2028"},{"name":"Catherine Herrington, MD","state":"Texas","hoursRequired":48,"hoursCompleted":7,"hoursRemaining":41,"renewalDeadline":"05/31/2027"},{"name":"Doron Stember, MD","state":"New Hampshire","hoursRequired":100,"hoursCompleted":0,"hoursRemaining":100,"renewalDeadline":"12/13/2027"},{"name":"Martin Van Dongen, NP","state":"Ohio","hoursRequired":24,"hoursCompleted":0,"hoursRemaining":24,"renewalDeadline":"10/31/2027"},{"name":"Priya Chaudhari, NP","state":"Florida","hoursRequired":21,"hoursCompleted":0,"hoursRemaining":21,"renewalDeadline":"04/30/2026"},{"name":"Summer Denny, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":17,"hoursRemaining":33,"renewalDeadline":"09/30/2027"},{"name":"Tim Mack, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null}]},{"timestamp":"2026-02-24T21:15:59.456Z","succeeded":8,"failed":2,"providers":[{"name":"Bryana Anderson, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":219.5,"hoursRemaining":0,"renewalDeadline":"06/30/2027"},{"name":"Ashley Grout, NP","state":"Florida","hoursRequired":24,"hoursCompleted":45,"hoursRemaining":6,"renewalDeadline":"04/30/2027"},{"name":"Bill Carbonneau, NP","state":"Florida","hoursRequired":26,"hoursCompleted":109,"hoursRemaining":0,"renewalDeadline":"07/31/2026"},{"name":"Bryce Amos, NP","state":"New York","hoursRequired":0,"hoursCompleted":0,"hoursRemaining":0,"renewalDeadline":"02/29/2028"},{"name":"Catherine Herrington, MD","state":"Texas","hoursRequired":48,"hoursCompleted":7,"hoursRemaining":41,"renewalDeadline":"05/31/2027"},{"name":"Doron Stember, MD","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Martin Van Dongen, NP","state":"Ohio","hoursRequired":24,"hoursCompleted":0,"hoursRemaining":24,"renewalDeadline":"10/31/2027"},{"name":"Priya Chaudhari, NP","state":"Florida","hoursRequired":21,"hoursCompleted":0,"hoursRemaining":21,"renewalDeadline":"04/30/2026"},{"name":"Summer Denny, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":17,"hoursRemaining":33,"renewalDeadline":"09/30/2027"},{"name":"Tim Mack, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null}]},{"timestamp":"2026-02-24T21:51:23.278Z","succeeded":9,"failed":1,"providers":[{"name":"Bryana Anderson, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":219.5,"hoursRemaining":0,"renewalDeadline":"06/30/2027"},{"name":"Ashley Grout, NP","state":"Florida","hoursRequired":24,"hoursCompleted":45,"hoursRemaining":6,"renewalDeadline":"04/30/2027"},{"name":"Bill Carbonneau, NP","state":"Florida","hoursRequired":26,"hoursCompleted":109,"hoursRemaining":0,"renewalDeadline":"07/31/2026"},{"name":"Bryce Amos, NP","state":"New York","hoursRequired":0,"hoursCompleted":0,"hoursRemaining":0,"renewalDeadline":"02/29/2028"},{"name":"Catherine Herrington, MD","state":"Texas","hoursRequired":48,"hoursCompleted":7,"hoursRemaining":41,"renewalDeadline":"05/31/2027"},{"name":"Doron Stember, MD","state":"New Hampshire","hoursRequired":100,"hoursCompleted":0,"hoursRemaining":100,"renewalDeadline":"12/13/2027"},{"name":"Martin Van Dongen, NP","state":"Ohio","hoursRequired":24,"hoursCompleted":0,"hoursRemaining":24,"renewalDeadline":"10/31/2027"},{"name":"Priya Chaudhari, NP","state":"Florida","hoursRequired":21,"hoursCompleted":0,"hoursRemaining":21,"renewalDeadline":"04/30/2026"},{"name":"Summer Denny, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":17,"hoursRemaining":33,"renewalDeadline":"09/30/2027"},{"name":"Tim Mack, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null}]},{"timestamp":"2026-02-25T03:13:57.008Z","succeeded":9,"failed":1,"providers":[{"name":"Bryana Anderson, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":219.5,"hoursRemaining":0,"renewalDeadline":"06/30/2027"},{"name":"Ashley Grout, NP","state":"Florida","hoursRequired":24,"hoursCompleted":45,"hoursRemaining":6,"renewalDeadline":"04/30/2027"},{"name":"Bill Carbonneau, NP","state":"Florida","hoursRequired":26,"hoursCompleted":109,"hoursRemaining":0,"renewalDeadline":"07/31/2026"},{"name":"Bryce Amos, NP","state":"New York","hoursRequired":null,"hoursCompleted":0,"hoursRemaining":null,"renewalDeadline":"02/29/2028"},{"name":"Catherine Herrington, MD","state":"Texas","hoursRequired":48,"hoursCompleted":7,"hoursRemaining":41,"renewalDeadline":"05/31/2027"},{"name":"Doron Stember, MD","state":"New Hampshire","hoursRequired":100,"hoursCompleted":0,"hoursRemaining":100,"renewalDeadline":null},{"name":"Martin Van Dongen, NP","state":"Ohio","hoursRequired":24,"hoursCompleted":0,"hoursRemaining":24,"renewalDeadline":"10/31/2027"},{"name":"Priya Chaudhari, NP","state":"Florida","hoursRequired":21,"hoursCompleted":0,"hoursRemaining":21,"renewalDeadline":"04/30/2026"},{"name":"Summer Denny, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":17,"hoursRemaining":33,"renewalDeadline":null},{"name":"Tim Mack, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null}]},{"timestamp":"2026-02-25T03:24:31.944Z","succeeded":9,"failed":1,"providers":[{"name":"Bryana Anderson, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":219.5,"hoursRemaining":0,"renewalDeadline":"06/30/2027"},{"name":"Ashley Grout, NP","state":"Florida","hoursRequired":24,"hoursCompleted":45,"hoursRemaining":6,"renewalDeadline":"04/30/2027"},{"name":"Bill Carbonneau, NP","state":"Florida","hoursRequired":26,"hoursCompleted":109,"hoursRemaining":0,"renewalDeadline":"07/31/2026"},{"name":"Bryce Amos, NP","state":"New York","hoursRequired":0,"hoursCompleted":0,"hoursRemaining":0,"renewalDeadline":"02/29/2028"},{"name":"Catherine Herrington, MD","state":"Texas","hoursRequired":48,"hoursCompleted":7,"hoursRemaining":41,"renewalDeadline":"05/31/2027"},{"name":"Doron Stember, MD","state":"New Hampshire","hoursRequired":100,"hoursCompleted":0,"hoursRemaining":100,"renewalDeadline":"12/13/2027"},{"name":"Martin Van Dongen, NP","state":"Ohio","hoursRequired":24,"hoursCompleted":0,"hoursRemaining":24,"renewalDeadline":"10/31/2027"},{"name":"Priya Chaudhari, NP","state":"Florida","hoursRequired":21,"hoursCompleted":0,"hoursRemaining":21,"renewalDeadline":"04/30/2026"},{"name":"Summer Denny, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":17,"hoursRemaining":33,"renewalDeadline":"09/30/2027"},{"name":"Tim Mack, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null}]},{"timestamp":"2026-02-25T03:31:52.191Z","succeeded":9,"failed":1,"providers":[{"name":"Bryana Anderson, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":219.5,"hoursRemaining":0,"renewalDeadline":"06/30/2027"},{"name":"Ashley Grout, NP","state":"Florida","hoursRequired":24,"hoursCompleted":45,"hoursRemaining":6,"renewalDeadline":"04/30/2027"},{"name":"Bill Carbonneau, NP","state":"Florida","hoursRequired":26,"hoursCompleted":109,"hoursRemaining":0,"renewalDeadline":"07/31/2026"},{"name":"Bryce Amos, NP","state":"New York","hoursRequired":0,"hoursCompleted":0,"hoursRemaining":0,"renewalDeadline":"02/29/2028"},{"name":"Catherine Herrington, MD","state":"Texas","hoursRequired":48,"hoursCompleted":7,"hoursRemaining":41,"renewalDeadline":"05/31/2027"},{"name":"Doron Stember, MD","state":"New Hampshire","hoursRequired":100,"hoursCompleted":0,"hoursRemaining":100,"renewalDeadline":"12/13/2027"},{"name":"Martin Van Dongen, NP","state":"Ohio","hoursRequired":24,"hoursCompleted":0,"hoursRemaining":24,"renewalDeadline":"10/31/2027"},{"name":"Priya Chaudhari, NP","state":"Florida","hoursRequired":21,"hoursCompleted":0,"hoursRemaining":21,"renewalDeadline":"04/30/2026"},{"name":"Summer Denny, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":17,"hoursRemaining":33,"renewalDeadline":"09/30/2027"},{"name":"Tim Mack, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null}]},{"timestamp":"2026-02-25T16:21:52.219Z","succeeded":9,"failed":1,"providers":[{"name":"Bryana Anderson, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":219.5,"hoursRemaining":0,"renewalDeadline":"06/30/2027"},{"name":"Ashley Grout, NP","state":"Florida","hoursRequired":24,"hoursCompleted":45,"hoursRemaining":6,"renewalDeadline":"04/30/2027"},{"name":"Bill Carbonneau, NP","state":"Florida","hoursRequired":26,"hoursCompleted":109,"hoursRemaining":0,"renewalDeadline":"07/31/2026"},{"name":"Bryce Amos, NP","state":"New York","hoursRequired":0,"hoursCompleted":0,"hoursRemaining":0,"renewalDeadline":"02/29/2028"},{"name":"Catherine Herrington, MD","state":"Texas","hoursRequired":48,"hoursCompleted":7,"hoursRemaining":41,"renewalDeadline":"05/31/2027"},{"name":"Doron Stember, MD","state":"New Hampshire","hoursRequired":100,"hoursCompleted":0,"hoursRemaining":100,"renewalDeadline":"12/13/2027"},{"name":"Martin Van Dongen, NP","state":"Ohio","hoursRequired":24,"hoursCompleted":0,"hoursRemaining":24,"renewalDeadline":"10/31/2027"},{"name":"Priya Chaudhari, NP","state":"Florida","hoursRequired":21,"hoursCompleted":0,"hoursRemaining":21,"renewalDeadline":"04/30/2026"},{"name":"Summer Denny, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":17,"hoursRemaining":33,"renewalDeadline":"09/30/2027"},{"name":"Tim Mack, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null}]},{"timestamp":"2026-02-25T17:41:07.433Z","succeeded":9,"failed":1,"providers":[{"name":"Bryana Anderson, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":219.5,"hoursRemaining":0,"renewalDeadline":"06/30/2027"},{"name":"Ashley Grout, NP","state":"Florida","hoursRequired":24,"hoursCompleted":45,"hoursRemaining":6,"renewalDeadline":"04/30/2027"},{"name":"Bill Carbonneau, NP","state":"Florida","hoursRequired":26,"hoursCompleted":109,"hoursRemaining":0,"renewalDeadline":"07/31/2026"},{"name":"Bryce Amos, NP","state":"New York","hoursRequired":0,"hoursCompleted":0,"hoursRemaining":0,"renewalDeadline":"02/29/2028"},{"name":"Catherine Herrington, MD","state":"Texas","hoursRequired":48,"hoursCompleted":7,"hoursRemaining":41,"renewalDeadline":"05/31/2027"},{"name":"Doron Stember, MD","state":"New Hampshire","hoursRequired":100,"hoursCompleted":0,"hoursRemaining":100,"renewalDeadline":"12/13/2027"},{"name":"Martin Van Dongen, NP","state":"Ohio","hoursRequired":24,"hoursCompleted":0,"hoursRemaining":24,"renewalDeadline":"10/31/2027"},{"name":"Priya Chaudhari, NP","state":"Florida","hoursRequired":21,"hoursCompleted":0,"hoursRemaining":21,"renewalDeadline":"04/30/2026"},{"name":"Summer Denny, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":17,"hoursRemaining":33,"renewalDeadline":"09/30/2027"},{"name":"Tim Mack, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null}]},{"timestamp":"2026-02-25T18:53:14.829Z","succeeded":9,"failed":1,"providers":[{"name":"Bryana Anderson, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":219.5,"hoursRemaining":0,"renewalDeadline":"06/30/2027"},{"name":"Ashley Grout, NP","state":"Florida","hoursRequired":24,"hoursCompleted":45,"hoursRemaining":6,"renewalDeadline":"04/30/2027"},{"name":"Bill Carbonneau, NP","state":"Florida","hoursRequired":26,"hoursCompleted":109,"hoursRemaining":0,"renewalDeadline":"07/31/2026"},{"name":"Bryce Amos, NP","state":"New York","hoursRequired":0,"hoursCompleted":0,"hoursRemaining":0,"renewalDeadline":"02/29/2028"},{"name":"Catherine Herrington, MD","state":"Texas","hoursRequired":48,"hoursCompleted":7,"hoursRemaining":41,"renewalDeadline":"05/31/2027"},{"name":"Doron Stember, MD","state":"New Hampshire","hoursRequired":100,"hoursCompleted":0,"hoursRemaining":100,"renewalDeadline":"12/13/2027"},{"name":"Martin Van Dongen, NP","state":"Ohio","hoursRequired":24,"hoursCompleted":0,"hoursRemaining":24,"renewalDeadline":"10/31/2027"},{"name":"Priya Chaudhari, NP","state":"Florida","hoursRequired":21,"hoursCompleted":0,"hoursRemaining":21,"renewalDeadline":"04/30/2026"},{"name":"Summer Denny, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":17,"hoursRemaining":33,"renewalDeadline":"09/30/2027"},{"name":"Tim Mack, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null}]},{"timestamp":"2026-02-25T19:27:22.966Z","succeeded":9,"failed":1,"providers":[{"name":"Bryana Anderson, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":219.5,"hoursRemaining":0,"renewalDeadline":"06/30/2027"},{"name":"Ashley Grout, NP","state":"Florida","hoursRequired":24,"hoursCompleted":45,"hoursRemaining":6,"renewalDeadline":"04/30/2027"},{"name":"Bill Carbonneau, NP","state":"Florida","hoursRequired":26,"hoursCompleted":109,"hoursRemaining":0,"renewalDeadline":"07/31/2026"},{"name":"Bryce Amos, NP","state":"New York","hoursRequired":0,"hoursCompleted":0,"hoursRemaining":0,"renewalDeadline":"02/29/2028"},{"name":"Catherine Herrington, MD","state":"Texas","hoursRequired":48,"hoursCompleted":7,"hoursRemaining":41,"renewalDeadline":"05/31/2027"},{"name":"Doron Stember, MD","state":"New Hampshire","hoursRequired":100,"hoursCompleted":0,"hoursRemaining":100,"renewalDeadline":"12/13/2027"},{"name":"Martin Van Dongen, NP","state":"Ohio","hoursRequired":24,"hoursCompleted":0,"hoursRemaining":24,"renewalDeadline":"10/31/2027"},{"name":"Priya Chaudhari, NP","state":"Florida","hoursRequired":21,"hoursCompleted":0,"hoursRemaining":21,"renewalDeadline":"04/30/2026"},{"name":"Summer Denny, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":17,"hoursRemaining":33,"renewalDeadline":"09/30/2027"},{"name":"Tim Mack, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null}]},{"timestamp":"2026-02-25T20:05:19.531Z","succeeded":9,"failed":1,"providers":[{"name":"Bryana Anderson, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":219.5,"hoursRemaining":0,"renewalDeadline":"06/30/2027"},{"name":"Ashley Grout, NP","state":"Florida","hoursRequired":24,"hoursCompleted":45,"hoursRemaining":6,"renewalDeadline":"04/30/2027"},{"name":"Bill Carbonneau, NP","state":"Florida","hoursRequired":26,"hoursCompleted":109,"hoursRemaining":0,"renewalDeadline":"07/31/2026"},{"name":"Bryce Amos, NP","state":"New York","hoursRequired":0,"hoursCompleted":0,"hoursRemaining":0,"renewalDeadline":"02/29/2028"},{"name":"Catherine Herrington, MD","state":"Texas","hoursRequired":48,"hoursCompleted":7,"hoursRemaining":41,"renewalDeadline":"05/31/2027"},{"name":"Doron Stember, MD","state":"New Hampshire","hoursRequired":100,"hoursCompleted":0,"hoursRemaining":100,"renewalDeadline":"12/13/2027"},{"name":"Martin Van Dongen, NP","state":"Ohio","hoursRequired":24,"hoursCompleted":0,"hoursRemaining":24,"renewalDeadline":"10/31/2027"},{"name":"Priya Chaudhari, NP","state":"Florida","hoursRequired":21,"hoursCompleted":0,"hoursRemaining":21,"renewalDeadline":"04/30/2026"},{"name":"Summer Denny, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":17,"hoursRemaining":33,"renewalDeadline":"09/30/2027"},{"name":"Tim Mack, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null}]},{"timestamp":"2026-02-25T20:33:02.381Z","succeeded":9,"failed":1,"providers":[{"name":"Bryana Anderson, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":219.5,"hoursRemaining":0,"renewalDeadline":"06/30/2027"},{"name":"Ashley Grout, NP","state":"Florida","hoursRequired":24,"hoursCompleted":45,"hoursRemaining":6,"renewalDeadline":"04/30/2027"},{"name":"Bill Carbonneau, NP","state":"Florida","hoursRequired":26,"hoursCompleted":109,"hoursRemaining":0,"renewalDeadline":"07/31/2026"},{"name":"Bryce Amos, NP","state":"New York","hoursRequired":0,"hoursCompleted":0,"hoursRemaining":0,"renewalDeadline":"02/29/2028"},{"name":"Catherine Herrington, MD","state":"Texas","hoursRequired":48,"hoursCompleted":7,"hoursRemaining":41,"renewalDeadline":"05/31/2027"},{"name":"Doron Stember, MD","state":"New Hampshire","hoursRequired":100,"hoursCompleted":0,"hoursRemaining":100,"renewalDeadline":"12/13/2027"},{"name":"Martin Van Dongen, NP","state":"Ohio","hoursRequired":24,"hoursCompleted":0,"hoursRemaining":24,"renewalDeadline":"10/31/2027"},{"name":"Priya Chaudhari, NP","state":"Florida","hoursRequired":21,"hoursCompleted":0,"hoursRemaining":21,"renewalDeadline":"04/30/2026"},{"name":"Summer Denny, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":17,"hoursRemaining":33,"renewalDeadline":"09/30/2027"},{"name":"Tim Mack, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null}]},{"timestamp":"2026-02-25T21:06:55.243Z","succeeded":9,"failed":1,"providers":[{"name":"Bryana Anderson, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":219.5,"hoursRemaining":0,"renewalDeadline":"06/30/2027"},{"name":"Ashley Grout, NP","state":"Florida","hoursRequired":24,"hoursCompleted":45,"hoursRemaining":6,"renewalDeadline":"04/30/2027"},{"name":"Bill Carbonneau, NP","state":"Florida","hoursRequired":26,"hoursCompleted":109,"hoursRemaining":0,"renewalDeadline":"07/31/2026"},{"name":"Bryce Amos, NP","state":"New York","hoursRequired":0,"hoursCompleted":0,"hoursRemaining":0,"renewalDeadline":"02/29/2028"},{"name":"Catherine Herrington, MD","state":"Texas","hoursRequired":48,"hoursCompleted":7,"hoursRemaining":41,"renewalDeadline":"05/31/2027"},{"name":"Doron Stember, MD","state":"New Hampshire","hoursRequired":100,"hoursCompleted":0,"hoursRemaining":100,"renewalDeadline":"12/13/2027"},{"name":"Martin Van Dongen, NP","state":"Ohio","hoursRequired":24,"hoursCompleted":0,"hoursRemaining":24,"renewalDeadline":"10/31/2027"},{"name":"Priya Chaudhari, NP","state":"Florida","hoursRequired":21,"hoursCompleted":0,"hoursRemaining":21,"renewalDeadline":"04/30/2026"},{"name":"Summer Denny, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":17,"hoursRemaining":33,"renewalDeadline":"09/30/2027"},{"name":"Tim Mack, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null}]},{"timestamp":"2026-02-25T21:44:54.754Z","succeeded":9,"failed":1,"providers":[{"name":"Bryana Anderson, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":219.5,"hoursRemaining":0,"renewalDeadline":"06/30/2027"},{"name":"Ashley Grout, NP","state":"Florida","hoursRequired":24,"hoursCompleted":45,"hoursRemaining":6,"renewalDeadline":"04/30/2027"},{"name":"Bill Carbonneau, NP","state":"Florida","hoursRequired":26,"hoursCompleted":109,"hoursRemaining":0,"renewalDeadline":"07/31/2026"},{"name":"Bryce Amos, NP","state":"New York","hoursRequired":0,"hoursCompleted":0,"hoursRemaining":0,"renewalDeadline":"02/29/2028"},{"name":"Catherine Herrington, MD","state":"Texas","hoursRequired":48,"hoursCompleted":7,"hoursRemaining":41,"renewalDeadline":"05/31/2027"},{"name":"Doron Stember, MD","state":"New Hampshire","hoursRequired":100,"hoursCompleted":0,"hoursRemaining":100,"renewalDeadline":"12/13/2027"},{"name":"Martin Van Dongen, NP","state":"Ohio","hoursRequired":24,"hoursCompleted":0,"hoursRemaining":24,"renewalDeadline":"10/31/2027"},{"name":"Priya Chaudhari, NP","state":"Florida","hoursRequired":21,"hoursCompleted":0,"hoursRemaining":21,"renewalDeadline":"04/30/2026"},{"name":"Summer Denny, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":17,"hoursRemaining":33,"renewalDeadline":"09/30/2027"},{"name":"Tim Mack, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null}]},{"timestamp":"2026-02-26T14:51:35.446Z","succeeded":9,"failed":10,"providers":[{"name":"Ashley Grout, NP","state":"Florida","hoursRequired":24,"hoursCompleted":45,"hoursRemaining":6,"renewalDeadline":null},{"name":"Bill Carbonneau, NP","state":"Florida","hoursRequired":0,"hoursCompleted":0,"hoursRemaining":0,"renewalDeadline":null},{"name":"Bryana Anderson, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":219.5,"hoursRemaining":0,"renewalDeadline":"06/30/2027"},{"name":"Bryce Amos, NP","state":"New York","hoursRequired":0,"hoursCompleted":0,"hoursRemaining":0,"renewalDeadline":"02/29/2028"},{"name":"Catherine Herrington, MD","state":"Texas","hoursRequired":48,"hoursCompleted":7,"hoursRemaining":41,"renewalDeadline":"05/31/2027"},{"name":"Doron Stember, MD","state":"New Hampshire","hoursRequired":100,"hoursCompleted":0,"hoursRemaining":100,"renewalDeadline":"12/13/2027"},{"name":"Hilary Morgan, RN","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Jacquelyn Sexton, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Lindsay Burden, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Liz Gloor, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Mackinzie Johnson, RN","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Martin Van Dongen, NP","state":"Ohio","hoursRequired":24,"hoursCompleted":0,"hoursRemaining":24,"renewalDeadline":"10/31/2027"},{"name":"Priya Chaudhari, NP","state":"Florida","hoursRequired":21,"hoursCompleted":0,"hoursRemaining":21,"renewalDeadline":"04/30/2026"},{"name":"Rachel Razi, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Summer Denny, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":17,"hoursRemaining":33,"renewalDeadline":"09/30/2027"},{"name":"Terray Humphrey, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Tim Mack, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Tzvi Doron, DO","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Vivien Lee, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null}]},{"timestamp":"2026-02-26T18:03:47.823Z","succeeded":9,"failed":1,"notConfigured":11,"providers":[{"name":"Ashley Grout, NP","state":"Florida","hoursRequired":24,"hoursCompleted":45,"hoursRemaining":6,"renewalDeadline":"04/30/2027"},{"name":"Bill Carbonneau, NP","state":"Florida","hoursRequired":26,"hoursCompleted":109,"hoursRemaining":0,"renewalDeadline":"07/31/2026"},{"name":"Bryana Anderson, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":219.5,"hoursRemaining":0,"renewalDeadline":"06/30/2027"},{"name":"Bryce Amos, NP","state":"New York","hoursRequired":0,"hoursCompleted":0,"hoursRemaining":0,"renewalDeadline":"02/29/2028"},{"name":"Catherine Herrington, MD","state":"Texas","hoursRequired":48,"hoursCompleted":7,"hoursRemaining":41,"renewalDeadline":"05/31/2027"},{"name":"Doron Stember, MD","state":"New Hampshire","hoursRequired":100,"hoursCompleted":0,"hoursRemaining":100,"renewalDeadline":"12/13/2027"},{"name":"Hilary Morgan, RN","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Jacquelyn Sexton, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Lindsay Burden, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Liz Gloor, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Mackinzie Johnson, RN","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Martin Van Dongen, NP","state":"Ohio","hoursRequired":24,"hoursCompleted":0,"hoursRemaining":24,"renewalDeadline":"10/31/2027"},{"name":"Priya Chaudhari, NP","state":"Florida","hoursRequired":21,"hoursCompleted":0,"hoursRemaining":21,"renewalDeadline":"04/30/2026"},{"name":"Rachel Razi, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Summer Denny, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":17,"hoursRemaining":33,"renewalDeadline":"09/30/2027"},{"name":"Terray Humphrey, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Tim Mack, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Tzvi Doron, DO","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Vivien Lee, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Victor Lopez, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Camryn Burden, RN","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null}]},{"timestamp":"2026-02-26T18:57:19.252Z","succeeded":9,"failed":1,"notConfigured":11,"providers":[{"name":"Ashley Grout, NP","state":"Florida","hoursRequired":24,"hoursCompleted":45,"hoursRemaining":6,"renewalDeadline":"04/30/2027"},{"name":"Bill Carbonneau, NP","state":"Florida","hoursRequired":26,"hoursCompleted":109,"hoursRemaining":0,"renewalDeadline":"07/31/2026"},{"name":"Bryana Anderson, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":219.5,"hoursRemaining":0,"renewalDeadline":"06/30/2027"},{"name":"Bryce Amos, NP","state":"New York","hoursRequired":0,"hoursCompleted":0,"hoursRemaining":0,"renewalDeadline":"02/29/2028"},{"name":"Catherine Herrington, MD","state":"Texas","hoursRequired":48,"hoursCompleted":7,"hoursRemaining":41,"renewalDeadline":"05/31/2027"},{"name":"Doron Stember, MD","state":"New Hampshire","hoursRequired":100,"hoursCompleted":0,"hoursRemaining":100,"renewalDeadline":"12/13/2027"},{"name":"Hilary Morgan, RN","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Jacquelyn Sexton, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Lindsay Burden, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Liz Gloor, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Mackinzie Johnson, RN","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Martin Van Dongen, NP","state":"Ohio","hoursRequired":24,"hoursCompleted":0,"hoursRemaining":24,"renewalDeadline":"10/31/2027"},{"name":"Priya Chaudhari, NP","state":"Florida","hoursRequired":21,"hoursCompleted":0,"hoursRemaining":21,"renewalDeadline":"04/30/2026"},{"name":"Rachel Razi, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Summer Denny, NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":17,"hoursRemaining":33,"renewalDeadline":"09/30/2027"},{"name":"Terray Humphrey, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Tim Mack, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Tzvi Doron, DO","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Vivien Lee, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Victor Lopez, NP","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"name":"Camryn Burden, RN","state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null}]},{"timestamp":"2026-02-26T19:04:45.033Z","succeeded":0,"failed":0,"notConfigured":0,"providers":[{"state":"Florida","hoursRequired":24,"hoursCompleted":45,"hoursRemaining":6,"renewalDeadline":"04/30/2027"},{"state":"Florida","hoursRequired":26,"hoursCompleted":109,"hoursRemaining":0,"renewalDeadline":"07/31/2026"},{"state":"New Mexico","hoursRequired":50,"hoursCompleted":219.5,"hoursRemaining":0,"renewalDeadline":"06/30/2027"},{"state":"New York","hoursRequired":0,"hoursCompleted":0,"hoursRemaining":0,"renewalDeadline":"02/29/2028"},{"state":"Texas","hoursRequired":48,"hoursCompleted":7,"hoursRemaining":41,"renewalDeadline":"05/31/2027"},{"state":"New Hampshire","hoursRequired":100,"hoursCompleted":0,"hoursRemaining":100,"renewalDeadline":"12/13/2027"},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":"Ohio","hoursRequired":24,"hoursCompleted":0,"hoursRemaining":24,"renewalDeadline":"10/31/2027"},{"state":"Florida","hoursRequired":21,"hoursCompleted":0,"hoursRemaining":21,"renewalDeadline":"04/30/2026"},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":"New Mexico","hoursRequired":50,"hoursCompleted":17,"hoursRemaining":33,"renewalDeadline":"09/30/2027"},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null}]},{"timestamp":"2026-02-26T19:05:17.154Z","succeeded":10,"failed":0,"notConfigured":11,"providers":[{"state":"Florida","hoursRequired":24,"hoursCompleted":45,"hoursRemaining":6,"renewalDeadline":"04/30/2027"},{"state":"Florida","hoursRequired":26,"hoursCompleted":109,"hoursRemaining":0,"renewalDeadline":"07/31/2026"},{"state":"New Mexico","hoursRequired":50,"hoursCompleted":219.5,"hoursRemaining":0,"renewalDeadline":"06/30/2027"},{"state":"New York","hoursRequired":0,"hoursCompleted":0,"hoursRemaining":0,"renewalDeadline":"02/29/2028"},{"state":"Texas","hoursRequired":48,"hoursCompleted":7,"hoursRemaining":41,"renewalDeadline":"05/31/2027"},{"state":"New Hampshire","hoursRequired":100,"hoursCompleted":0,"hoursRemaining":100,"renewalDeadline":"12/13/2027"},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":"Ohio","hoursRequired":24,"hoursCompleted":0,"hoursRemaining":24,"renewalDeadline":"10/31/2027"},{"state":"Florida","hoursRequired":21,"hoursCompleted":0,"hoursRemaining":21,"renewalDeadline":"04/30/2026"},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":"New Mexico","hoursRequired":50,"hoursCompleted":17,"hoursRemaining":33,"renewalDeadline":"09/30/2027"},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null}]},{"timestamp":"2026-02-26T19:15:45.250Z","succeeded":10,"failed":0,"notConfigured":23,"providers":[{"state":"Florida","hoursRequired":24,"hoursCompleted":45,"hoursRemaining":6,"renewalDeadline":"04/30/2027"},{"state":"Florida","hoursRequired":26,"hoursCompleted":109,"hoursRemaining":0,"renewalDeadline":"07/31/2026"},{"state":"New Mexico","hoursRequired":50,"hoursCompleted":219.5,"hoursRemaining":0,"renewalDeadline":"06/30/2027"},{"state":"New York","hoursRequired":0,"hoursCompleted":0,"hoursRemaining":0,"renewalDeadline":"02/29/2028"},{"state":"Texas","hoursRequired":48,"hoursCompleted":7,"hoursRemaining":41,"renewalDeadline":"05/31/2027"},{"state":"New Hampshire","hoursRequired":100,"hoursCompleted":0,"hoursRemaining":100,"renewalDeadline":"12/13/2027"},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":"Ohio","hoursRequired":24,"hoursCompleted":0,"hoursRemaining":24,"renewalDeadline":"10/31/2027"},{"state":"Florida","hoursRequired":21,"hoursCompleted":0,"hoursRemaining":21,"renewalDeadline":"04/30/2026"},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":"New Mexico","hoursRequired":50,"hoursCompleted":17,"hoursRemaining":33,"renewalDeadline":"09/30/2027"},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null}]},{"timestamp":"2026-02-26T19:28:29.109Z","succeeded":10,"failed":0,"notConfigured":23,"providers":[{"state":"Florida","hoursRequired":24,"hoursCompleted":45,"hoursRemaining":6,"renewalDeadline":"04/30/2027"},{"state":"Florida","hoursRequired":26,"hoursCompleted":109,"hoursRemaining":0,"renewalDeadline":"07/31/2026"},{"state":"New Mexico","hoursRequired":50,"hoursCompleted":219.5,"hoursRemaining":0,"renewalDeadline":"06/30/2027"},{"state":"New York","hoursRequired":0,"hoursCompleted":0,"hoursRemaining":0,"renewalDeadline":"02/29/2028"},{"state":"Texas","hoursRequired":48,"hoursCompleted":7,"hoursRemaining":41,"renewalDeadline":"05/31/2027"},{"state":"New Hampshire","hoursRequired":100,"hoursCompleted":0,"hoursRemaining":100,"renewalDeadline":"12/13/2027"},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":"Ohio","hoursRequired":24,"hoursCompleted":0,"hoursRemaining":24,"renewalDeadline":"10/31/2027"},{"state":"Florida","hoursRequired":21,"hoursCompleted":0,"hoursRemaining":21,"renewalDeadline":"04/30/2026"},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":"New Mexico","hoursRequired":50,"hoursCompleted":17,"hoursRemaining":33,"renewalDeadline":"09/30/2027"},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null},{"state":null,"hoursRequired":null,"hoursCompleted":null,"hoursRemaining":null,"renewalDeadline":null}]}];
 
   let chartsInit = false;
   function initCharts() {
