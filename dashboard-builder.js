@@ -80,7 +80,7 @@ function saveHistory(allProviderRecords, runResults) {
  * @param {LicenseRecord[][]} allProviderRecords
  * @param {{ name:string, status:string, error?:string }[]} [runResults]
  */
-function buildDashboard(allProviderRecords, runResults = [], platformData = [], licenseData = {}) {
+function buildDashboard(allProviderRecords, runResults = [], platformData = [], licenseData = {}, stateBoardData = []) {
   const history = saveHistory(allProviderRecords, runResults);
   const flat    = flattenRecords(allProviderRecords, runResults);
   const runDate = new Date().toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' });
@@ -1793,6 +1793,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     <button class="sub-tab active" onclick="showLicenseSubTab('all-licenses')">All Licenses</button>
     <button class="sub-tab" onclick="showLicenseSubTab('applications')">Pending Applications${(licenseData.applications?.filter(a => a.status !== 'Issued').length || 0) > 0 ? ` <span class="tab-badge-sm">${licenseData.applications?.filter(a => a.status !== 'Issued').length || 0}</span>` : ''}</button>
     <button class="sub-tab" onclick="showLicenseSubTab('renewals')">Upcoming Renewals${(licenseData.renewals?.length || 0) > 0 ? ` <span class="tab-badge-sm">${licenseData.renewals?.length || 0}</span>` : ''}</button>
+    <button class="sub-tab" onclick="showLicenseSubTab('state-scrape')">State Board Scrape${stateBoardData.length > 0 ? ` <span class="tab-badge-sm">${stateBoardData.filter(s => s.status === 'success').length}/${stateBoardData.length}</span>` : ''}</button>
   </div>
 
   <!-- Filters -->
@@ -1912,6 +1913,48 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       </tbody>
     </table>
   </div>
+
+  <!-- State Board Scrape Results Sub-panel -->
+  <div class="sub-panel" id="sub-state-scrape">
+    <div class="section-subtitle">State Board License Verification (Live Scrape)</div>
+    <p style="padding: 0 40px; color: #64748b; font-size: 0.85rem; margin-bottom: 16px;">
+      Real-time license status scraped from state licensing board portals (WA, OH, WI, NJ, IN, MI).
+    </p>
+    ${stateBoardData.length === 0 ? `
+      <div style="padding: 40px; text-align: center; color: #64748b;">
+        <p>No state board scrape data available yet.</p>
+        <p style="font-size: 0.85rem;">Run the scraper to fetch live license status from state portals.</p>
+      </div>
+    ` : `
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Provider</th>
+          <th>State</th>
+          <th>Scrape Status</th>
+          <th>Licenses Found</th>
+          <th>Details</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${stateBoardData.map(sb => {
+          const statusClass = sb.status === 'success' ? 'complete' : 'at-risk';
+          const licCount = sb.licenses?.length || 0;
+          const licDetails = sb.licenses?.map(l =>
+            (l.type || '') + ' ' + (l.licenseNumber || '') + ': ' + (l.status || 'Unknown') + ' (exp: ' + (l.expires || 'N/A') + ')'
+          ).join('; ') || sb.error || 'No data';
+          return '<tr>' +
+            '<td>' + escHtml(sb.provider) + '</td>' +
+            '<td>' + escHtml(sb.state) + '</td>' +
+            '<td><span class="status-pill ' + statusClass + '">' + (sb.status === 'success' ? 'Success' : 'Failed') + '</span></td>' +
+            '<td>' + licCount + '</td>' +
+            '<td class="notes-cell">' + escHtml(licDetails) + '</td>' +
+          '</tr>';
+        }).join('')}
+      </tbody>
+    </table>
+    `}
+  </div>
 </div>
 
 <!-- ── Provider detail drawer ──────────────────────────────────────────── -->
@@ -1954,7 +1997,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     licensesTab.querySelectorAll('.sub-tab').forEach(b => b.classList.remove('active'));
     document.getElementById('sub-' + name)?.classList.add('active');
     const btns = licensesTab.querySelectorAll('.sub-tab');
-    const labels = ['all-licenses','applications','renewals'];
+    const labels = ['all-licenses','applications','renewals','state-scrape'];
     btns[labels.indexOf(name)]?.classList.add('active');
   }
 
