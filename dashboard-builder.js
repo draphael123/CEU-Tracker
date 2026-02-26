@@ -476,6 +476,8 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
         data-status="${worstStatus}"
         data-states="${escHtml(statesList)}"
         data-deadline="${earliestDeadline}"
+        data-type="${escHtml(info.type || '')}"
+        data-no-creds="${noCredentialsProviders.includes(name) || noCEBrokerList.includes(name)}"
         onclick="openProvider(this.dataset.provider)">
       <div class="card-top">
         <div class="avatar" style="background:${
@@ -495,6 +497,19 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     </div>`;
   };
 
+  // ── Coverage gaps (no CE Broker and/or no platform credentials) ──────────
+  // Moved up so these lists are available when building provider cards
+  const noCEBrokerList = (runResults || [])
+    .filter(r => r.status === 'not_configured')
+    .map(r => r.name);
+  const withPlatforms = new Set(platformData.map(p => p.providerName));
+  const noPlatformList = Object.keys(providerMap).filter(name => !withPlatforms.has(name) && noCEBrokerList.includes(name));
+  const noCredentialsList = noCEBrokerList.filter(name => noPlatformList.includes(name));
+
+  // ── No CE Credentials Found (providers flagged with noCredentials: true) ──
+  const providers = require('./providers.json');
+  const noCredentialsProviders = providers.filter(p => p.noCredentials === true).map(p => p.name);
+
   // ── Split providers into clinicians and RNs ──────────────────────────────
   const providerEntries = Object.entries(providerMap);
   const clinicianEntries = providerEntries.filter(([name, info]) => !isRN(name, info.type));
@@ -503,19 +518,6 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
   const clinicianCards = clinicianEntries.map(buildProviderCard).join('');
   const rnCards = rnEntries.map(buildProviderCard).join('');
   const profileCards = providerEntries.map(buildProviderCard).join(''); // Keep for backward compat
-
-  // ── Coverage gaps (no CE Broker and/or no platform credentials) ──────────
-  const noCEBrokerList = (runResults || [])
-    .filter(r => r.status === 'not_configured')
-    .map(r => r.name);
-  const withPlatforms = new Set(platformData.map(p => p.providerName));
-  // Only show in "No Platform" if they ALSO lack CE Broker credentials
-  const noPlatformList = Object.keys(providerMap).filter(name => !withPlatforms.has(name) && noCEBrokerList.includes(name));
-  const noCredentialsList = noCEBrokerList.filter(name => noPlatformList.includes(name));
-
-  // ── No CE Credentials Found (providers flagged with noCredentials: true) ──
-  const providers = require('./providers.json');
-  const noCredentialsProviders = providers.filter(p => p.noCredentials === true).map(p => p.name);
 
   // ── Summary table rows ───────────────────────────────────────────────────
   const rows = flat.map(rec => {
@@ -986,6 +988,8 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     .sub-panel.active { display: block; }
     .control-group { display: flex; align-items: center; gap: 8px; }
     .control-label { font-size: 0.8rem; font-weight: 600; color: #64748b; }
+    .creds-toggle { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.82rem; color: #475569; white-space: nowrap; }
+    .creds-toggle input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: #1d4ed8; }
     .sort-select { padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 0.82rem; background: #fff; color: #1e293b; cursor: pointer; min-width: 140px; }
     .sort-select:focus { outline: none; border-color: #1d4ed8; }
     .gap-section { margin-bottom: 16px; }
@@ -1628,11 +1632,25 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
   <div class="controls">
     <input class="search-box" type="text" id="cardSearch" placeholder="Search provider..." oninput="filterCards()" />
     <div class="control-group">
-      <label class="control-label">Filter:</label>
+      <label class="control-label">Status:</label>
       <button class="filter-btn active" id="cbtn-all"         onclick="setCardFilter('all')">All</button>
       <button class="filter-btn"        id="cbtn-Complete"    onclick="setCardFilter('Complete')">Complete</button>
       <button class="filter-btn"        id="cbtn-In Progress" onclick="setCardFilter('In Progress')">In Progress</button>
       <button class="filter-btn"        id="cbtn-At Risk"     onclick="setCardFilter('At Risk')">At Risk</button>
+    </div>
+    <div class="control-group">
+      <label class="control-label">Type:</label>
+      <button class="filter-btn active" id="tbtn-all" onclick="toggleTypeFilter('all')">All</button>
+      <button class="filter-btn"        id="tbtn-NP"  onclick="toggleTypeFilter('NP')">NP</button>
+      <button class="filter-btn"        id="tbtn-MD"  onclick="toggleTypeFilter('MD')">MD</button>
+      <button class="filter-btn"        id="tbtn-DO"  onclick="toggleTypeFilter('DO')">DO</button>
+      <button class="filter-btn"        id="tbtn-RN"  onclick="toggleTypeFilter('RN')">RN</button>
+    </div>
+    <div class="control-group">
+      <label class="creds-toggle">
+        <input type="checkbox" id="noCredsFilter" onchange="filterCards()">
+        <span>No Credentials Only</span>
+      </label>
     </div>
     <div class="control-group">
       <label class="control-label">Sort:</label>
@@ -1811,8 +1829,11 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
 
   // ── Card filter ──
   let cardFilter = 'all';
+  let typeFilters = new Set(['all']);
+
   function filterCards() {
     const q = document.getElementById('cardSearch').value.toLowerCase();
+    const noCredsOnly = document.getElementById('noCredsFilter')?.checked || false;
     const grids = ['cardsGrid', 'rnCardsGrid', 'allCardsGrid'];
     grids.forEach(gridId => {
       const grid = document.getElementById(gridId);
@@ -1821,12 +1842,36 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
         const name   = (card.dataset.provider || '').toLowerCase();
         const status = card.dataset.status || '';
         const states = (card.dataset.states || '').split(',');
+        const type   = card.dataset.type || '';
+        const noCreds = card.dataset.noCreds === 'true';
         const matchQ = !q || name.includes(q);
         const matchF = cardFilter === 'all' || status === cardFilter;
         const matchS = stateFilter === 'all' || states.includes(stateFilter);
-        card.style.display = (matchQ && matchF && matchS) ? '' : 'none';
+        const matchT = typeFilters.has('all') || typeFilters.has(type);
+        const matchC = !noCredsOnly || noCreds;
+        card.style.display = (matchQ && matchF && matchS && matchT && matchC) ? '' : 'none';
       });
     });
+  }
+
+  function toggleTypeFilter(t) {
+    if (t === 'all') {
+      typeFilters = new Set(['all']);
+    } else {
+      typeFilters.delete('all');
+      if (typeFilters.has(t)) {
+        typeFilters.delete(t);
+        if (typeFilters.size === 0) typeFilters.add('all');
+      } else {
+        typeFilters.add(t);
+      }
+    }
+    document.querySelectorAll('[id^="tbtn-"]').forEach(b => b.classList.remove('active'));
+    typeFilters.forEach(f => {
+      const btn = document.getElementById('tbtn-' + f);
+      if (btn) btn.classList.add('active');
+    });
+    filterCards();
   }
   function setCardFilter(f) {
     cardFilter = f;
