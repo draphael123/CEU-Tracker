@@ -1921,10 +1921,10 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
 
 <!-- ── Tabs ───────────────────────────────────────────────────────────── -->
 <div class="tab-bar">
-  <button class="tab-btn"        onclick="showTab('dashboard')">Dashboard${(atRisk + noCredentialsProviders.length) > 0 ? ` <span class="tab-badge">${atRisk + noCredentialsProviders.length}</span>` : ''}</button>
-  <button class="tab-btn active" onclick="showTab('providers')">Providers</button>
+  <button class="tab-btn active" onclick="showTab('providers')">Team View</button>
   <button class="tab-btn"        onclick="showTab('platforms')">Platforms</button>
   <button class="tab-btn"        onclick="showTab('reports')">Reports</button>
+  <button class="tab-btn"        onclick="showTab('dashboard')">Dashboard${(atRisk + noCredentialsProviders.length) > 0 ? ` <span class="tab-badge">${atRisk + noCredentialsProviders.length}</span>` : ''}</button>
 </div>
 
 <!-- ── Tab: Overview ──────────────────────────────────────────────────── -->
