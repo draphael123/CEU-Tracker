@@ -5796,5 +5796,277 @@
         "renewalDeadline": null
       }
     ]
+  },
+  {
+    "timestamp": "2026-02-27T19:02:39.524Z",
+    "succeeded": 10,
+    "failed": 0,
+    "notConfigured": 23,
+    "providers": [
+      {
+        "name": "Ashley Grout, NP",
+        "state": "Florida",
+        "hoursRequired": 24,
+        "hoursCompleted": 45,
+        "hoursRemaining": 6,
+        "renewalDeadline": "04/30/2027"
+      },
+      {
+        "name": "Bill Carbonneau, NP",
+        "state": "Florida",
+        "hoursRequired": 26,
+        "hoursCompleted": 109,
+        "hoursRemaining": 0,
+        "renewalDeadline": "07/31/2026"
+      },
+      {
+        "name": "Bryana Anderson, NP",
+        "state": "New Mexico",
+        "hoursRequired": 50,
+        "hoursCompleted": 219.5,
+        "hoursRemaining": 0,
+        "renewalDeadline": "06/30/2027"
+      },
+      {
+        "name": "Bryce Amos, NP",
+        "state": "New York",
+        "hoursRequired": 0,
+        "hoursCompleted": 0,
+        "hoursRemaining": 0,
+        "renewalDeadline": "02/29/2028"
+      },
+      {
+        "name": "Catherine Herrington, MD",
+        "state": "Texas",
+        "hoursRequired": 48,
+        "hoursCompleted": 7,
+        "hoursRemaining": 41,
+        "renewalDeadline": "05/31/2027"
+      },
+      {
+        "name": "Doron Stember, MD",
+        "state": "New Hampshire",
+        "hoursRequired": 100,
+        "hoursCompleted": 0,
+        "hoursRemaining": 100,
+        "renewalDeadline": "12/13/2027"
+      },
+      {
+        "name": "Hilary Morgan, RN",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null
+      },
+      {
+        "name": "Jacquelyn Sexton, NP",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null
+      },
+      {
+        "name": "Lindsay Burden, NP",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null
+      },
+      {
+        "name": "Liz Gloor, NP",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null
+      },
+      {
+        "name": "Mackinzie Johnson, RN",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null
+      },
+      {
+        "name": "Martin Van Dongen, NP",
+        "state": "Ohio",
+        "hoursRequired": 24,
+        "hoursCompleted": 0,
+        "hoursRemaining": 24,
+        "renewalDeadline": "10/31/2027"
+      },
+      {
+        "name": "Priya Chaudhari, NP",
+        "state": "Florida",
+        "hoursRequired": 21,
+        "hoursCompleted": 9,
+        "hoursRemaining": 12,
+        "renewalDeadline": "04/30/2026"
+      },
+      {
+        "name": "Rachel Razi, NP",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null
+      },
+      {
+        "name": "Summer Denny, NP",
+        "state": "New Mexico",
+        "hoursRequired": 50,
+        "hoursCompleted": 17,
+        "hoursRemaining": 33,
+        "renewalDeadline": "09/30/2027"
+      },
+      {
+        "name": "Terray Humphrey, NP",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null
+      },
+      {
+        "name": "Tim Mack, NP",
+        "state": "New Mexico",
+        "hoursRequired": 50,
+        "hoursCompleted": 25,
+        "hoursRemaining": 40,
+        "renewalDeadline": "05/31/2026"
+      },
+      {
+        "name": "Tzvi Doron, DO",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null
+      },
+      {
+        "name": "Vivien Lee, NP",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null
+      },
+      {
+        "name": "Victor Lopez, NP",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null
+      },
+      {
+        "name": "Camryn Burden, RN",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null
+      },
+      {
+        "name": "Alexis Foster-Horton, NP",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null
+      },
+      {
+        "name": "Megan Ryan-Riffle, NP",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null
+      },
+      {
+        "name": "Michele Foster, NP",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null
+      },
+      {
+        "name": "Danielle Board, NP",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null
+      },
+      {
+        "name": "DeAnna Maher, NP",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null
+      },
+      {
+        "name": "Skye Sauls, NP",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null
+      },
+      {
+        "name": "Brooklyn Kimble, RN",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null
+      },
+      {
+        "name": "Daniel Fis, RN",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null
+      },
+      {
+        "name": "Bryce Hanley, RN",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null
+      },
+      {
+        "name": "Shelby Bailey, RN",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null
+      },
+      {
+        "name": "Brittany Alexander, RN",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null
+      },
+      {
+        "name": "Lauren Dovin, RN",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null
+      }
+    ]
   }
 ]
