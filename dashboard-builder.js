@@ -2492,11 +2492,20 @@ function buildLookbackComplianceSection(states, providerType, courses) {
   if (!courses || courses.length === 0) return '';
   if (!STATE_REQUIREMENTS || Object.keys(STATE_REQUIREMENTS).length === 0) return '';
 
+  // Map full state names to abbreviations
+  const STATE_ABBREV = {
+    'Florida': 'FL', 'Ohio': 'OH', 'Michigan': 'MI', 'Texas': 'TX',
+    'New York': 'NY', 'California': 'CA', 'New Mexico': 'NM', 'New Hampshire': 'NH',
+    'Georgia': 'GA', 'Pennsylvania': 'PA', 'Illinois': 'IL', 'North Carolina': 'NC',
+  };
+
   const sections = [];
 
   // Check each state the provider is licensed in
   for (const state of states) {
-    const stateReqs = STATE_REQUIREMENTS[state];
+    // Try direct match first, then abbreviation lookup
+    const stateKey = STATE_REQUIREMENTS[state] ? state : STATE_ABBREV[state];
+    const stateReqs = STATE_REQUIREMENTS[stateKey];
     if (!stateReqs) continue;
 
     // Find applicable requirement set for provider type
