@@ -15,10 +15,79 @@ try {
 }
 const LAST_RUN_FILE  = path.join(__dirname, 'last_run.json');
 const HISTORY_FILE   = path.join(__dirname, 'history.json');
+const COURSE_HISTORY_FILE = path.join(__dirname, 'course-history.json');
 const PUBLIC_DIR     = path.join(__dirname, 'public');
 
 function ensurePublicDir() {
   if (!fs.existsSync(PUBLIC_DIR)) fs.mkdirSync(PUBLIC_DIR, { recursive: true });
+}
+
+/**
+ * Load existing course history from file.
+ * Returns an object keyed by provider name, each containing an array of courses.
+ */
+function loadCourseHistory() {
+  try {
+    return JSON.parse(fs.readFileSync(COURSE_HISTORY_FILE, 'utf8'));
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Merge new courses into existing history, deduplicating by date+name+hours.
+ * Returns the merged history object.
+ */
+function mergeCourseHistory(existingHistory, newCourses) {
+  const merged = { ...existingHistory };
+
+  for (const [providerName, courses] of Object.entries(newCourses)) {
+    if (!merged[providerName]) {
+      merged[providerName] = { courses: [], deadlines: [] };
+    }
+
+    // Merge courses (dedupe by date+name+hours)
+    const existingCourseKeys = new Set(
+      (merged[providerName].courses || []).map(c => `${c.date}|${c.name}|${c.hours}`)
+    );
+
+    for (const course of (courses.courses || [])) {
+      const key = `${course.date}|${course.name}|${course.hours}`;
+      if (!existingCourseKeys.has(key)) {
+        merged[providerName].courses.push(course);
+        existingCourseKeys.add(key);
+      }
+    }
+
+    // Update deadlines (replace with latest)
+    if (courses.deadlines && courses.deadlines.length > 0) {
+      merged[providerName].deadlines = courses.deadlines;
+    }
+
+    // Store provider type
+    if (courses.type) {
+      merged[providerName].type = courses.type;
+    }
+  }
+
+  // Sort courses by date (newest first) for each provider
+  for (const providerName of Object.keys(merged)) {
+    if (merged[providerName].courses) {
+      merged[providerName].courses.sort((a, b) => new Date(b.date) - new Date(a.date));
+    }
+  }
+
+  return merged;
+}
+
+/**
+ * Save course history to file.
+ */
+function saveCourseHistory(history) {
+  fs.writeFileSync(COURSE_HISTORY_FILE, JSON.stringify(history, null, 2), 'utf8');
+  // Mirror to public directory
+  ensurePublicDir();
+  fs.writeFileSync(path.join(PUBLIC_DIR, 'course-history.json'), JSON.stringify(history, null, 2), 'utf8');
 }
 
 /**
@@ -745,11 +814,11 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
   const initialCards = allCardHtmlArray.slice(0, LAZY_BATCH_SIZE).join('');
   const profileCards = allCardHtmlArray.join(''); // Keep for backward compat (used in deadline/state views)
 
-  // ── Timeline Data Generation ──────────────────────────────────────────────
-  const timelineData = [];
+  // ── Timeline Data Generation with Persistent Course History ────────────────
+  // 1. Extract courses from current scrape
+  const currentScrapeCourses = {};
   for (const [name, info] of providerEntries) {
-    const providerTimeline = {
-      name,
+    const providerData = {
       type: info.type,
       courses: [],
       deadlines: []
@@ -759,7 +828,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
       if (lic.renewalDeadline) {
         const dlDate = parseDate(lic.renewalDeadline);
         if (dlDate) {
-          providerTimeline.deadlines.push({
+          providerData.deadlines.push({
             date: dlDate.toISOString().split('T')[0],
             state: lic.state,
             licenseType: lic.licenseType || info.type
@@ -769,24 +838,39 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
       // Add courses
       for (const course of (lic.completedCourses || [])) {
         if (course.date) {
-          // Parse course date (format varies: "MM/DD/YYYY" or "YYYY-MM-DD")
           let courseDate = parseDate(course.date);
           if (courseDate) {
-            providerTimeline.courses.push({
+            providerData.courses.push({
               date: courseDate.toISOString().split('T')[0],
               name: course.name || 'Course',
               hours: course.hours || 0,
-              state: lic.state
+              state: lic.state,
+              scrapedAt: new Date().toISOString().split('T')[0]
             });
           }
         }
       }
     }
-    // Only add providers with activity
-    if (providerTimeline.courses.length > 0 || providerTimeline.deadlines.length > 0) {
-      timelineData.push(providerTimeline);
+    if (providerData.courses.length > 0 || providerData.deadlines.length > 0) {
+      currentScrapeCourses[name] = providerData;
     }
   }
+
+  // 2. Load existing course history and merge with current scrape
+  const existingHistory = loadCourseHistory();
+  const mergedHistory = mergeCourseHistory(existingHistory, currentScrapeCourses);
+
+  // 3. Save merged history
+  saveCourseHistory(mergedHistory);
+
+  // 4. Build timeline data from merged history
+  const timelineData = Object.entries(mergedHistory).map(([name, data]) => ({
+    name,
+    type: data.type,
+    courses: data.courses || [],
+    deadlines: data.deadlines || []
+  }));
+
   // Sort providers by number of courses descending
   timelineData.sort((a, b) => b.courses.length - a.courses.length);
 
