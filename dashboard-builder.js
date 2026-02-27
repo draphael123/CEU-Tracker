@@ -1570,6 +1570,58 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     .platform-error-msg { font-size: 0.75rem; color: #ef4444; font-style: italic; padding: 8px 0; }
     .platform-updated { font-size: 0.68rem; color: #94a3b8; padding: 6px 12px; border-top: 1px solid #f1f5f9; }
     .platform-no-courses { font-size: 0.75rem; color: #94a3b8; font-style: italic; }
+
+    /* ─ Platform Coverage Tab ─ */
+    .platform-view { display: none; padding: 20px 0; }
+    .platform-view.active { display: block; }
+
+    /* Matrix legend */
+    .matrix-legend { display: flex; gap: 20px; padding: 16px 40px; font-size: 0.85rem; color: #64748b; }
+    .legend-item { display: flex; align-items: center; gap: 6px; }
+    .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+    .legend-dot.cov-yes { background: #dcfce7; border: 1px solid #16a34a; }
+    .legend-dot.cov-fail { background: #fee2e2; border: 1px solid #dc2626; }
+    .legend-dot.cov-no { background: #f1f5f9; border: 1px solid #cbd5e1; }
+
+    /* Coverage matrix table */
+    .matrix-wrap { padding: 0 40px; overflow-x: auto; }
+    .coverage-matrix { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .coverage-matrix th, .coverage-matrix td { padding: 12px 16px; text-align: center; border: 1px solid #e2e8f0; }
+    .coverage-matrix th { background: #f8fafc; color: #475569; font-weight: 600; white-space: nowrap; }
+    .coverage-matrix .cov-provider-hdr { text-align: left; }
+    .coverage-matrix .cov-provider { text-align: left; font-weight: 500; cursor: pointer; color: #1d4ed8; }
+    .coverage-matrix .cov-provider:hover { text-decoration: underline; }
+    .coverage-matrix .cov-yes { background: #dcfce7; color: #15803d; font-weight: 600; }
+    .coverage-matrix .cov-fail { background: #fee2e2; color: #b91c1c; }
+    .coverage-matrix .cov-no { background: #f8fafc; color: #94a3b8; }
+    .coverage-matrix tbody tr:hover { background: #f1f5f9; }
+    .coverage-matrix tbody tr:hover .cov-yes { background: #bbf7d0; }
+    .coverage-matrix tbody tr:hover .cov-fail { background: #fecaca; }
+    .coverage-matrix tbody tr:hover .cov-no { background: #e2e8f0; }
+
+    /* Platform summary cards */
+    .platform-summary-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; padding: 0 40px; }
+    .platform-summary-card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,.08); border-top: 4px solid #cbd5e1; }
+    .platform-summary-card.plat-card-netce { border-top-color: #0d9488; }
+    .platform-summary-card.plat-card-ceufast { border-top-color: #7c3aed; }
+    .platform-summary-card.plat-card-aanp { border-top-color: #1d4ed8; }
+    .platform-summary-card.plat-card-excl { border-top-color: #f59e0b; }
+    .plat-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .plat-name { font-size: 1.1rem; font-weight: 700; color: #1e293b; }
+    .plat-link { color: #64748b; text-decoration: none; font-size: 1rem; }
+    .plat-link:hover { color: #1d4ed8; }
+    .plat-stats { display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+    .plat-stat { display: flex; flex-direction: column; align-items: center; min-width: 60px; }
+    .plat-stat-num { font-size: 1.5rem; font-weight: 700; color: #1e293b; }
+    .plat-stat-num.plat-stat-success { color: #16a34a; }
+    .plat-stat-num.plat-stat-fail { color: #dc2626; }
+    .plat-stat-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; }
+    .plat-providers-section { border-top: 1px solid #e2e8f0; padding-top: 12px; }
+    .plat-providers-title { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; margin-bottom: 8px; }
+    .plat-providers-list { display: flex; flex-wrap: wrap; gap: 6px; }
+    .plat-provider-chip { padding: 4px 10px; background: #f1f5f9; border-radius: 99px; font-size: 0.78rem; color: #475569; cursor: pointer; transition: all .15s; }
+    .plat-provider-chip:hover { background: #e0f2fe; color: #0369a1; }
+    .no-providers { font-size: 0.85rem; color: #94a3b8; font-style: italic; }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 </head>
@@ -1610,6 +1662,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
 <div class="tab-bar">
   <button class="tab-btn active" onclick="showTab('dashboard')">Dashboard${(atRisk + noCredentialsProviders.length) > 0 ? ` <span class="tab-badge">${atRisk + noCredentialsProviders.length}</span>` : ''}</button>
   <button class="tab-btn"        onclick="showTab('providers')">Providers</button>
+  <button class="tab-btn"        onclick="showTab('platforms')">Platforms</button>
   <button class="tab-btn"        onclick="showTab('reports')">Reports</button>
 </div>
 
@@ -1784,6 +1837,87 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
   </div>
 </div>
 
+<!-- ── Tab: Platforms ───────────────────────────────────────────────────── -->
+<div class="tab-panel" id="tab-platforms">
+  <!-- View Toggle Buttons -->
+  <div class="view-toggle-bar">
+    <button class="view-toggle active" onclick="showPlatformView('matrix')">Coverage Matrix</button>
+    <button class="view-toggle" onclick="showPlatformView('cards')">Platform Cards</button>
+  </div>
+
+  <!-- Coverage Matrix View -->
+  <div class="platform-view active" id="platform-matrix">
+    <div class="matrix-legend">
+      <span class="legend-item"><span class="legend-dot cov-yes"></span> Connected</span>
+      <span class="legend-item"><span class="legend-dot cov-fail"></span> Failed</span>
+      <span class="legend-item"><span class="legend-dot cov-no"></span> Not configured</span>
+    </div>
+    <div class="matrix-wrap">
+      <table class="coverage-matrix">
+        <thead>
+          <tr>
+            <th class="cov-provider-hdr">Provider</th>
+            <th>NetCE</th>
+            <th>CEUfast</th>
+            <th>AANP Cert</th>
+            <th>ExclamationCE</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${providerEntries.map(([name, info]) => {
+            const providerPlatforms = platformByProvider[name] || [];
+            const platforms = ['NetCE', 'CEUfast', 'AANP Cert', 'ExclamationCE'];
+            const cells = platforms.map(plat => {
+              const result = providerPlatforms.find(p => p.platform === plat);
+              if (!result) return '<td class="cov-no">—</td>';
+              if (result.status === 'success') {
+                const hours = result.hoursEarned !== null ? result.hoursEarned + 'h' : '✓';
+                return '<td class="cov-yes">' + hours + '</td>';
+              }
+              return '<td class="cov-fail">✗</td>';
+            }).join('');
+            const safeName = escHtml(name).replace(/'/g, '&#39;');
+            return '<tr><td class="cov-provider" onclick="openProvider(\'' + safeName + '\')">' + escHtml(name) + '</td>' + cells + '</tr>';
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Platform Cards View -->
+  <div class="platform-view" id="platform-cards">
+    <div class="platform-summary-grid">
+      ${['NetCE', 'CEUfast', 'AANP Cert', 'ExclamationCE'].map(plat => {
+        const stats = platformStats[plat] || { providers: [], totalHours: 0 };
+        const results = platformData.filter(p => p.platform === plat);
+        const successCount = results.filter(r => r.status === 'success').length;
+        const failCount = results.filter(r => r.status === 'failed').length;
+        const providerList = [...new Set(stats.providers)].sort();
+        const platSlug = plat === 'NetCE' ? 'netce' : plat === 'CEUfast' ? 'ceufast' : plat === 'AANP Cert' ? 'aanp' : 'excl';
+        const platUrl = plat === 'NetCE' ? 'https://www.netce.com' : plat === 'CEUfast' ? 'https://www.ceufast.com' : plat === 'AANP Cert' ? 'https://www.aanpcert.org' : 'https://www.exclamationce.com';
+        return '<div class="platform-summary-card plat-card-' + platSlug + '">' +
+          '<div class="plat-header">' +
+            '<span class="plat-name">' + escHtml(plat) + '</span>' +
+            '<a href="' + platUrl + '" target="_blank" class="plat-link">↗</a>' +
+          '</div>' +
+          '<div class="plat-stats">' +
+            '<div class="plat-stat"><span class="plat-stat-num">' + providerList.length + '</span><span class="plat-stat-label">Providers</span></div>' +
+            '<div class="plat-stat"><span class="plat-stat-num plat-stat-success">' + successCount + '</span><span class="plat-stat-label">Connected</span></div>' +
+            (failCount > 0 ? '<div class="plat-stat"><span class="plat-stat-num plat-stat-fail">' + failCount + '</span><span class="plat-stat-label">Failed</span></div>' : '') +
+            '<div class="plat-stat"><span class="plat-stat-num">' + Math.round(stats.totalHours) + '</span><span class="plat-stat-label">Total Hours</span></div>' +
+          '</div>' +
+          '<div class="plat-providers-section">' +
+            '<div class="plat-providers-title">Connected Providers</div>' +
+            '<div class="plat-providers-list">' +
+              (providerList.length > 0 ? providerList.map(p => { const safeP = escHtml(p).replace(/'/g, '&#39;'); return '<span class="plat-provider-chip" onclick="openProvider(\'' + safeP + '\')">' + escHtml(p.split(',')[0]) + '</span>'; }).join('') : '<span class="no-providers">No providers configured</span>') +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      }).join('')}
+    </div>
+  </div>
+</div>
+
 <!-- ── Tab: Reports ─────────────────────────────────────────────────────── -->
 <div class="tab-panel" id="tab-reports">
   <!-- View Toggle Buttons -->
@@ -1847,7 +1981,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.getElementById('tab-' + name)?.classList.add('active');
     const btns = document.querySelectorAll('.tab-btn');
-    const labels = ['dashboard','providers','reports'];
+    const labels = ['dashboard','providers','platforms','reports'];
     btns[labels.indexOf(name)]?.classList.add('active');
     if (name === 'reports') initCharts();
   }
@@ -1862,6 +1996,17 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     const labels = ['charts','calendar','runlog'];
     btns[labels.indexOf(name)]?.classList.add('active');
     if (name === 'charts') initCharts();
+  }
+
+  // ── Platform View Toggles ──
+  function showPlatformView(name) {
+    const platformsTab = document.getElementById('tab-platforms');
+    platformsTab.querySelectorAll('.platform-view').forEach(v => v.classList.remove('active'));
+    platformsTab.querySelectorAll('.view-toggle').forEach(b => b.classList.remove('active'));
+    document.getElementById('platform-' + name)?.classList.add('active');
+    const btns = platformsTab.querySelectorAll('.view-toggle');
+    const labels = ['matrix','cards'];
+    btns[labels.indexOf(name)]?.classList.add('active');
   }
 
   // ── Sort cards ──
