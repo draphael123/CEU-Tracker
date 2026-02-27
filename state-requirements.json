@@ -79,6 +79,78 @@
       ]
     }
   },
+  "NM": {
+    "name": "New Mexico",
+    "APRN": {
+      "description": "New Mexico APRN Requirements",
+      "totalHours": 30,
+      "subjects": [
+        {
+          "name": "Pharmacology/Pharmacotherapeutics",
+          "pattern": "pharmaco",
+          "hoursRequired": 10,
+          "lookbackYears": null
+        },
+        {
+          "name": "Opioid Prescribing",
+          "pattern": "opioid|controlled.*(substance|prescrib)|pain.*prescrib",
+          "hoursRequired": 3,
+          "lookbackYears": null
+        }
+      ]
+    }
+  },
+  "TX": {
+    "name": "Texas",
+    "APRN": {
+      "description": "Texas APRN Requirements",
+      "totalHours": 20,
+      "subjects": [
+        {
+          "name": "Pharmacotherapeutics",
+          "pattern": "pharmaco|pharmacotherap",
+          "hoursRequired": 5,
+          "lookbackYears": null
+        }
+      ]
+    }
+  },
+  "NY": {
+    "name": "New York",
+    "NP": {
+      "description": "New York NP Requirements",
+      "totalHours": 30,
+      "subjects": [
+        {
+          "name": "Infection Control",
+          "pattern": "infection.*control|infect.*prevent",
+          "hoursRequired": 4,
+          "lookbackYears": 4
+        },
+        {
+          "name": "Child Abuse Identification",
+          "pattern": "child.*abuse|abuse.*identif|maltreat",
+          "hoursRequired": 2,
+          "lookbackYears": null
+        }
+      ]
+    }
+  },
+  "NH": {
+    "name": "New Hampshire",
+    "APRN": {
+      "description": "New Hampshire APRN Requirements",
+      "totalHours": 30,
+      "subjects": [
+        {
+          "name": "Pharmacology",
+          "pattern": "pharmaco",
+          "hoursRequired": 8,
+          "lookbackYears": null
+        }
+      ]
+    }
+  },
   "_AANPCB": {
     "name": "AANPCB National Certification",
     "NP": {

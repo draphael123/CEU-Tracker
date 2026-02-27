@@ -14,5 +14,8 @@
     "exceljs": "^4.4.0",
     "express": "^5.2.1",
     "playwright": "^1.41.0"
+  },
+  "devDependencies": {
+    "xlsx": "^0.18.5"
   }
 }

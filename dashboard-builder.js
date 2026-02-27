@@ -221,6 +221,17 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     }
   }
 
+  // ── Providers grouped by license type ─────────────────────────────────────
+  const providersByType = { NP: [], MD: [], DO: [], RN: [], Other: [] };
+  for (const [name, info] of Object.entries(providerMap)) {
+    const type = info.type || 'Other';
+    if (providersByType[type]) {
+      providersByType[type].push([name, info]);
+    } else {
+      providersByType.Other.push([name, info]);
+    }
+  }
+
   // ── Action Items (Priority Queue) ───────────────────────────────────────
   const actionItems = {
     critical: [], // At Risk providers
@@ -679,6 +690,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
         onclick="openProvider(this.dataset.provider)">
       ${unknownBanner}
       <div class="card-top">
+        <button class="fav-btn" onclick="event.stopPropagation(); toggleFavorite('${escHtml(name).replace(/'/g, '&#39;')}')" title="Pin to favorites">☆</button>
         <div class="avatar" style="background:${
         worstStatus === 'Complete'    ? '#0d9488'
       : worstStatus === 'In Progress' ? '#d97706'
@@ -1167,6 +1179,13 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     .card-clickable:hover { box-shadow: 0 8px 24px rgba(0,0,0,.14); transform: translateY(-3px); }
     .card-arrow { color: #94a3b8; font-size: 1rem; transition: color .15s; }
     .card-clickable:hover .card-arrow { color: #1d4ed8; }
+    /* ─ Favorite Button ─ */
+    .fav-btn { position: absolute; top: 8px; right: 8px; background: none; border: none; font-size: 1.2rem; color: #cbd5e1; cursor: pointer; padding: 4px; z-index: 10; transition: color 0.2s, transform 0.2s; }
+    .fav-btn:hover { color: #f59e0b; transform: scale(1.2); }
+    .fav-btn.favorited { color: #f59e0b; }
+    .fav-btn.favorited::after { content: '★'; position: absolute; top: 4px; left: 4px; }
+    .fav-btn.favorited { color: transparent; }
+    .provider-card { position: relative; }
     /* ─ Stats Cards ─ */
     .stats-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; padding: 0 40px 24px; }
     .stat-card { background: #fff; border-radius: 14px; padding: 20px 24px; box-shadow: 0 2px 8px rgba(0,0,0,.06); position: relative; overflow: hidden; }
@@ -1880,6 +1899,31 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     .state-provider-count { font-size: 0.85rem; color: #64748b; white-space: nowrap; }
     .state-cards { padding: 16px; }
 
+    /* ─ Collapsible Groups ─ */
+    .collapsible .state-group-header,
+    .collapsible .type-group-header { cursor: pointer; user-select: none; }
+    .collapsible .state-group-header:hover,
+    .collapsible .type-group-header:hover { background: #f1f5f9; }
+    .collapse-icon { font-size: 0.75rem; color: #94a3b8; transition: transform 0.2s; }
+    .collapsible.collapsed .collapse-icon { transform: rotate(-90deg); }
+    .collapsible-content { transition: max-height 0.3s ease, padding 0.3s ease, opacity 0.2s ease; overflow: hidden; }
+    .collapsible.collapsed .collapsible-content { max-height: 0 !important; padding-top: 0 !important; padding-bottom: 0 !important; opacity: 0; }
+
+    /* ─ Type Groups ─ */
+    .type-groups { display: flex; flex-direction: column; gap: 24px; }
+    .type-group { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.07); overflow: hidden; }
+    .type-group-header { display: flex; align-items: center; gap: 12px; padding: 16px 20px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
+    .type-name { font-weight: 800; font-size: 1.1rem; color: #0f172a; flex: 1; }
+    .type-provider-count { font-size: 0.85rem; color: #64748b; white-space: nowrap; }
+    .type-cards { padding: 16px; }
+
+    /* ─ Favorites View ─ */
+    .favorites-header { padding: 16px 20px; background: #fef3c7; border-radius: 12px; margin-bottom: 20px; display: flex; align-items: center; gap: 16px; }
+    .favorites-title { font-weight: 700; font-size: 1.1rem; color: #92400e; }
+    .favorites-hint { font-size: 0.85rem; color: #b45309; }
+    .favorites-cards { padding: 0; }
+    .empty-favorites { text-align: center; padding: 60px 20px; color: #64748b; font-size: 1rem; background: #f8fafc; border-radius: 12px; }
+
     /* ─ Action Queue ─ */
     .action-queue { display: flex; flex-direction: column; gap: 20px; }
     .action-section { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.07); overflow: hidden; }
@@ -2181,10 +2225,13 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     <button class="view-toggle active" onclick="showProviderView('all')">All Providers <span class="view-count">${providerEntries.length}</span></button>
     <button class="view-toggle" onclick="showProviderView('deadline')">By Deadline <span class="view-count ${deadlineProviders30.length > 0 ? 'warning' : ''}">${deadlineProviders30.length + deadlineProviders60.length + deadlineProviders90.length}</span></button>
     <button class="view-toggle" onclick="showProviderView('state')">By State</button>
+    <button class="view-toggle" onclick="showProviderView('type')">By Type</button>
+    <button class="view-toggle" onclick="showProviderView('favorites')">Pinned <span class="view-count">0</span></button>
     <button class="view-toggle" onclick="showProviderView('actions')">Action Items <span class="view-count ${actionItems.critical.length > 0 ? 'warning' : ''}">${actionItems.critical.length + actionItems.urgent.length}</span></button>
     <button class="view-toggle" onclick="showProviderView('aanp')">AANP Cert <span class="view-count">${aanpCertData.length}</span></button>
     <button class="view-toggle" onclick="showProviderView('stats')">State Stats</button>
     <button class="export-btn" onclick="exportMissingCredentials()">Export Missing Creds</button>
+    <button class="export-btn" onclick="exportFilteredResults()">Export Filtered</button>
   </div>
 
   <!-- All Providers View -->
@@ -2287,8 +2334,9 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     <div class="state-groups">
       ${Object.entries(providersByState).sort((a, b) => a[0].localeCompare(b[0])).map(([state, stateProviders]) => {
         const stats = stateStats[state] || { total: 0, complete: 0, atRisk: 0, inProgress: 0 };
-        return `<div class="state-group">
-          <div class="state-group-header">
+        return `<div class="state-group collapsible">
+          <div class="state-group-header" onclick="toggleStateGroup(this)">
+            <span class="collapse-icon">▼</span>
             <span class="state-name">${escHtml(state)}</span>
             <div class="state-mini-stats">
               ${stats.atRisk > 0 ? `<span class="mini-stat risk">${stats.atRisk} at risk</span>` : ''}
@@ -2297,11 +2345,41 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
             </div>
             <span class="state-provider-count">${stateProviders.length} provider${stateProviders.length !== 1 ? 's' : ''}</span>
           </div>
-          <div class="cards-grid state-cards">
+          <div class="cards-grid state-cards collapsible-content">
             ${stateProviders.map(([name, info]) => buildProviderCard([name, info])).join('')}
           </div>
         </div>`;
       }).join('')}
+    </div>
+  </div>
+
+  <!-- By Type View -->
+  <div class="provider-view" id="provider-type">
+    <div class="type-groups">
+      ${Object.entries(providersByType).filter(([type, providers]) => providers.length > 0).map(([type, typeProviders]) => {
+        const typeLabel = { NP: 'Nurse Practitioners', MD: 'Physicians (MD)', DO: 'Physicians (DO)', RN: 'Registered Nurses', Other: 'Other' }[type] || type;
+        return `<div class="type-group collapsible">
+          <div class="type-group-header" onclick="toggleStateGroup(this)">
+            <span class="collapse-icon">▼</span>
+            <span class="type-name">${typeLabel}</span>
+            <span class="type-provider-count">${typeProviders.length} provider${typeProviders.length !== 1 ? 's' : ''}</span>
+          </div>
+          <div class="cards-grid type-cards collapsible-content">
+            ${typeProviders.map(([name, info]) => buildProviderCard([name, info])).join('')}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>
+
+  <!-- Favorites View -->
+  <div class="provider-view" id="provider-favorites">
+    <div class="favorites-header">
+      <span class="favorites-title">Pinned Providers</span>
+      <span class="favorites-hint">Click the star on any provider card to pin them here for quick access</span>
+    </div>
+    <div class="cards-grid favorites-cards">
+      <div class="empty-favorites">No pinned providers. Click the star on any provider card to pin them here.</div>
     </div>
   </div>
 
@@ -2813,8 +2891,38 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     providersTab.querySelectorAll('.view-toggle').forEach(b => b.classList.remove('active'));
     document.getElementById('provider-' + name)?.classList.add('active');
     const btns = providersTab.querySelectorAll('.view-toggle');
-    const labels = ['all','deadline','state','actions','aanp','stats'];
+    const labels = ['all','deadline','state','type','favorites','actions','aanp','stats'];
     btns[labels.indexOf(name)]?.classList.add('active');
+  }
+
+  // ── Toggle Collapsible Groups ──
+  function toggleStateGroup(header) {
+    const group = header.closest('.collapsible');
+    if (group) group.classList.toggle('collapsed');
+  }
+
+  // ── Export Filtered Results ──
+  function exportFilteredResults() {
+    const activeView = document.querySelector('.provider-view.active');
+    if (!activeView) return;
+    const visibleCards = Array.from(activeView.querySelectorAll('.provider-card')).filter(c => c.style.display !== 'none');
+    if (visibleCards.length === 0) { alert('No providers to export'); return; }
+    const data = visibleCards.map(card => ({
+      name: card.dataset.provider || '',
+      status: card.dataset.status || '',
+      deadline: card.dataset.deadline || '',
+      type: card.dataset.type || ''
+    }));
+    const csv = 'Name,Type,Status,Days Until Deadline\\n' + data.map(p =>
+      '"' + p.name.replace(/"/g, '""') + '","' + p.type + '","' + p.status + '","' + p.deadline + '"'
+    ).join('\\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'filtered-providers-' + new Date().toISOString().split('T')[0] + '.csv';
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   // ── Export Missing Credentials ──
@@ -2831,6 +2939,58 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     a.click();
     URL.revokeObjectURL(url);
   }
+
+  // ── Favorites Management ──
+  const FAVORITES_KEY = 'ceu-tracker-favorites';
+  function getFavorites() {
+    try { return JSON.parse(localStorage.getItem(FAVORITES_KEY)) || []; }
+    catch { return []; }
+  }
+  function saveFavorites(favs) {
+    localStorage.setItem(FAVORITES_KEY, JSON.stringify(favs));
+  }
+  function toggleFavorite(name) {
+    const favs = getFavorites();
+    const idx = favs.indexOf(name);
+    if (idx === -1) { favs.push(name); }
+    else { favs.splice(idx, 1); }
+    saveFavorites(favs);
+    updateFavoriteButtons();
+    updateFavoritesView();
+  }
+  function updateFavoriteButtons() {
+    const favs = getFavorites();
+    document.querySelectorAll('.fav-btn').forEach(btn => {
+      const card = btn.closest('.provider-card');
+      if (card) {
+        const name = card.dataset.provider;
+        btn.classList.toggle('favorited', favs.includes(name));
+      }
+    });
+  }
+  function updateFavoritesView() {
+    const favsView = document.getElementById('provider-favorites');
+    if (!favsView) return;
+    const favs = getFavorites();
+    const favCards = Array.from(document.querySelectorAll('#provider-all .provider-card'))
+      .filter(c => favs.includes(c.dataset.provider));
+    const grid = favsView.querySelector('.favorites-cards');
+    if (grid) {
+      if (favCards.length === 0) {
+        grid.innerHTML = '<div class="empty-favorites">No pinned providers. Click the star on any provider card to pin them here.</div>';
+      } else {
+        grid.innerHTML = favCards.map(c => c.outerHTML).join('');
+        updateFavoriteButtons();
+      }
+    }
+    const countEl = document.querySelector('.view-toggle[onclick*="favorites"] .view-count');
+    if (countEl) countEl.textContent = favs.length;
+  }
+  // Initialize favorites on page load
+  document.addEventListener('DOMContentLoaded', () => {
+    updateFavoriteButtons();
+    updateFavoritesView();
+  });
 
   // ── Sort cards ──
   function sortCards() {
