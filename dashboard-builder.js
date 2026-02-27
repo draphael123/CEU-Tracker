@@ -369,12 +369,14 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     }).join('');
   }
 
-  // ── RN identification (first name matching) ─────────────────────────────
-  const RN_FIRST_NAMES = ['Camryn', 'Daniel', 'Brooklyn', 'Brittany', 'Shelby', 'Mackinzie', 'Bryce', 'Hilary'];
+  // ── RN identification ─────────────────────────────────────────────────────
   const isRN = (name, type) => {
+    // Clinicians (NP, MD, DO) are providers, not support staff
+    if (['NP', 'MD', 'DO'].includes(type)) return false;
+    // Explicit RN type is support staff
     if (type === 'RN') return true;
-    const firstName = name.split(/[\s,]+/)[0];
-    return RN_FIRST_NAMES.some(rn => firstName.toLowerCase().startsWith(rn.toLowerCase()));
+    // Fallback: check name suffix
+    return name.includes(', RN');
   };
 
   // ── Helper to determine why a provider has Unknown status ────────────────
