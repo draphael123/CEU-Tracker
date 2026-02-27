@@ -738,7 +738,57 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
 
   const clinicianCards = clinicianEntries.map(buildProviderCard).join('');
   const rnCards = rnEntries.map(buildProviderCard).join('');
-  const profileCards = providerEntries.map(buildProviderCard).join(''); // Keep for backward compat
+
+  // ── Lazy Loading: Store individual cards for progressive rendering ──────
+  const LAZY_BATCH_SIZE = 20;
+  const allCardHtmlArray = providerEntries.map(buildProviderCard);
+  const initialCards = allCardHtmlArray.slice(0, LAZY_BATCH_SIZE).join('');
+  const profileCards = allCardHtmlArray.join(''); // Keep for backward compat (used in deadline/state views)
+
+  // ── Timeline Data Generation ──────────────────────────────────────────────
+  const timelineData = [];
+  for (const [name, info] of providerEntries) {
+    const providerTimeline = {
+      name,
+      type: info.type,
+      courses: [],
+      deadlines: []
+    };
+    for (const lic of info.licenses) {
+      // Add deadline
+      if (lic.renewalDeadline) {
+        const dlDate = parseDate(lic.renewalDeadline);
+        if (dlDate) {
+          providerTimeline.deadlines.push({
+            date: dlDate.toISOString().split('T')[0],
+            state: lic.state,
+            licenseType: lic.licenseType || info.type
+          });
+        }
+      }
+      // Add courses
+      for (const course of (lic.completedCourses || [])) {
+        if (course.date) {
+          // Parse course date (format varies: "MM/DD/YYYY" or "YYYY-MM-DD")
+          let courseDate = parseDate(course.date);
+          if (courseDate) {
+            providerTimeline.courses.push({
+              date: courseDate.toISOString().split('T')[0],
+              name: course.name || 'Course',
+              hours: course.hours || 0,
+              state: lic.state
+            });
+          }
+        }
+      }
+    }
+    // Only add providers with activity
+    if (providerTimeline.courses.length > 0 || providerTimeline.deadlines.length > 0) {
+      timelineData.push(providerTimeline);
+    }
+  }
+  // Sort providers by number of courses descending
+  timelineData.sort((a, b) => b.courses.length - a.courses.length);
 
   // ── Summary table rows ───────────────────────────────────────────────────
   const rows = flat.map(rec => {
@@ -815,12 +865,57 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CEU Tracker</title>
   <style>
+    /* ─ CSS Variables (Theme System) ─ */
+    :root {
+      --bg-body: #f0f4f2;
+      --bg-primary: #ffffff;
+      --bg-secondary: #f8fafc;
+      --bg-tertiary: #f1f5f9;
+      --bg-header: #0f172a;
+      --text-primary: #0f172a;
+      --text-secondary: #64748b;
+      --text-on-dark: #ffffff;
+      --text-accent: #5eead4;
+      --border-color: #e2e8f0;
+      --border-dark: #475569;
+      --accent-blue: #1d4ed8;
+      --accent-blue-hover: #1e40af;
+      --status-green: #16a34a;
+      --status-green-bg: #dcfce7;
+      --status-orange: #d97706;
+      --status-orange-bg: #fef3c7;
+      --status-red: #dc2626;
+      --status-red-bg: #fee2e2;
+      --shadow-sm: 0 2px 8px rgba(0,0,0,.06);
+      --shadow-md: 0 4px 12px rgba(0,0,0,.1);
+      --shadow-header: 0 4px 20px rgba(0,0,0,.5);
+    }
+
+    [data-theme="dark"] {
+      --bg-body: #0f172a;
+      --bg-primary: #1e293b;
+      --bg-secondary: #334155;
+      --bg-tertiary: #475569;
+      --bg-header: #020617;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-on-dark: #ffffff;
+      --border-color: #475569;
+      --border-dark: #64748b;
+      --status-green-bg: #14532d;
+      --status-orange-bg: #78350f;
+      --status-red-bg: #7f1d1d;
+      --shadow-sm: 0 2px 8px rgba(0,0,0,.3);
+      --shadow-md: 0 4px 12px rgba(0,0,0,.4);
+      --shadow-header: 0 4px 20px rgba(0,0,0,.7);
+    }
+
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f4f2; color: #1e3a8a; min-height: 100vh; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg-body); color: var(--text-primary); min-height: 100vh; transition: background-color 0.3s, color 0.3s; }
 
     /* ─ Header ─ */
     header {
-      background-color: #0f172a;
+      background-color: var(--bg-header);
       background-image: repeating-linear-gradient(
         -45deg,
         transparent,
@@ -828,26 +923,32 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
         rgba(255,255,255,0.03) 18px,
         rgba(255,255,255,0.03) 36px
       );
-      color: #fff;
+      color: var(--text-on-dark);
       padding: 20px 40px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       flex-wrap: wrap;
       gap: 12px;
-      box-shadow: 0 4px 20px rgba(0,0,0,.5);
+      box-shadow: var(--shadow-header);
+      position: sticky;
+      top: 0;
+      z-index: 100;
     }
+    header.scrolled { box-shadow: 0 4px 24px rgba(0,0,0,.6); }
     .header-brand { display: flex; align-items: center; gap: 16px; }
     .header-logo  { height: 38px; width: auto; display: block; }
     .header-divider {
       width: 1px; height: 32px; background: rgba(255,255,255,0.3); flex-shrink: 0;
     }
     header h1 { font-size: 1.4rem; font-weight: 700; }
-    header h1 span { color: #5eead4; }
-    .header-meta { text-align: right; }
-    .last-scraped-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px; color: #64748b; }
+    header h1 span { color: var(--text-accent); }
+    .header-meta { text-align: right; display: flex; align-items: center; gap: 16px; }
+    .last-scraped-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); }
     .last-scraped-value { font-size: 0.95rem; color: #e2e8f0; font-weight: 500; margin-top: 2px; }
-    .last-scraped-ago { font-size: 0.72rem; color: #5eead4; margin-top: 1px; }
+    .last-scraped-ago { font-size: 0.72rem; color: var(--text-accent); margin-top: 1px; }
+    .theme-toggle { background: rgba(255,255,255,0.1); border: none; padding: 8px 12px; border-radius: 8px; color: var(--text-on-dark); cursor: pointer; font-size: 1.1rem; transition: background 0.2s; }
+    .theme-toggle:hover { background: rgba(255,255,255,0.2); }
     .run-badge { margin-top: 6px; display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
     .run-pill { padding: 3px 10px; border-radius: 99px; font-size: 0.75rem; font-weight: 600; }
     .run-pill.ok   { background: #166534; color: #dcfce7; }
@@ -856,12 +957,12 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
 
     /* ─ Stat cards ─ */
     .stats { display: flex; gap: 14px; padding: 28px 40px 0; flex-wrap: wrap; }
-    .stat-card { background: #fff; border-radius: 12px; padding: 18px 22px; min-width: 130px; box-shadow: 0 2px 8px rgba(0,0,0,.07); border-top: 4px solid #e2e8f0; }
+    .stat-card { background: var(--bg-primary); border-radius: 12px; padding: 18px 22px; min-width: 130px; box-shadow: var(--shadow-sm); border-top: 4px solid var(--border-color); }
     .stat-card .num { font-size: 2.4rem; font-weight: 800; line-height: 1; }
-    .stat-card .lbl { font-size: 0.72rem; text-transform: uppercase; letter-spacing: .8px; color: #64748b; margin-top: 6px; }
+    .stat-card .lbl { font-size: 0.72rem; text-transform: uppercase; letter-spacing: .8px; color: var(--text-secondary); margin-top: 6px; }
     .stat-card.total { border-top-color: #6366f1; }
     .stat-card.total .num { color: #4f46e5; }
-    .stat-card.ok    { border-top-color: #16a34a; }
+    .stat-card.ok    { border-top-color: var(--status-green); }
     .stat-card.ok    .num { color: #15803d; }
     .stat-card.prog  { border-top-color: #d97706; }
     .stat-card.prog  .num { color: #b45309; }
@@ -901,17 +1002,17 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
       padding: 0 40px;
     }
     .provider-card {
-      background: #fff;
+      background: var(--bg-primary);
       border-radius: 14px;
       padding: 20px;
-      box-shadow: 0 2px 10px rgba(0,0,0,.07);
-      border-left: 5px solid #cbd5e1;
-      transition: box-shadow .15s, transform .15s;
+      box-shadow: var(--shadow-sm);
+      border-left: 5px solid var(--border-color);
+      transition: box-shadow .15s, transform .15s, background-color .3s;
     }
-    .provider-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,.12); transform: translateY(-2px); }
-    .provider-card.card-ok   { border-left-color: #16a34a; }
-    .provider-card.card-prog { border-left-color: #d97706; }
-    .provider-card.card-risk { border-left-color: #dc2626; }
+    .provider-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+    .provider-card.card-ok   { border-left-color: var(--status-green); }
+    .provider-card.card-prog { border-left-color: var(--status-orange); }
+    .provider-card.card-risk { border-left-color: var(--status-red); }
     .provider-card.card-unk  { border-left-color: #93c5fd; }
     .provider-card.card-error { border-left-color: #f87171; }
 
@@ -926,24 +1027,32 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
       font-size: 0.78rem;
     }
     .unknown-reason.unknown-none {
-      background: #f1f5f9;
-      color: #64748b;
-      border: 1px solid #e2e8f0;
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-color);
     }
     .unknown-reason.unknown-partial {
       background: #eff6ff;
       color: #1e40af;
       border: 1px solid #bfdbfe;
     }
+    [data-theme="dark"] .unknown-reason.unknown-partial {
+      background: #1e3a5f;
+      color: #93c5fd;
+      border-color: #3b82f6;
+    }
     .unknown-reason.unknown-error {
-      background: #fef2f2;
-      color: #b91c1c;
+      background: var(--status-red-bg);
+      color: var(--status-red);
       border: 1px solid #fecaca;
     }
+    [data-theme="dark"] .unknown-reason.unknown-error {
+      border-color: #991b1b;
+    }
     .unknown-reason.unknown-default {
-      background: #f8fafc;
-      color: #475569;
-      border: 1px solid #e2e8f0;
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-color);
     }
     .unknown-icon { font-size: 1rem; }
     .unknown-text { flex: 1; }
@@ -1014,33 +1123,38 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     }
     .search-box {
       padding: 8px 14px;
-      border: 1.5px solid #cbd5e1;
+      border: 1.5px solid var(--border-color);
       border-radius: 8px;
       font-size: 0.88rem;
       width: 220px;
       outline: none;
+      background: var(--bg-primary);
+      color: var(--text-primary);
     }
-    .search-box:focus { border-color: #1d4ed8; }
+    .search-box:focus { border-color: var(--accent-blue); }
+    .search-box::placeholder { color: var(--text-secondary); }
     .filter-btn {
       padding: 7px 16px;
-      border: 1.5px solid #cbd5e1;
+      border: 1.5px solid var(--border-color);
       border-radius: 8px;
-      background: #fff;
+      background: var(--bg-primary);
+      color: var(--text-primary);
       cursor: pointer;
       font-size: 0.82rem;
       transition: all .15s;
     }
-    .filter-btn:hover, .filter-btn.active { background: #1d4ed8; color: #fff; border-color: #1d4ed8; }
+    .filter-btn:hover, .filter-btn.active { background: var(--accent-blue); color: #fff; border-color: var(--accent-blue); }
     .filter-select {
       padding: 7px 12px;
-      border: 1.5px solid #cbd5e1;
+      border: 1.5px solid var(--border-color);
       border-radius: 8px;
-      background: #fff;
+      background: var(--bg-primary);
+      color: var(--text-primary);
       font-size: 0.82rem;
       cursor: pointer;
       min-width: 140px;
     }
-    .filter-select:focus { border-color: #1d4ed8; outline: none; }
+    .filter-select:focus { border-color: var(--accent-blue); outline: none; }
     .control-row {
       display: flex;
       gap: 16px;
@@ -1138,10 +1252,81 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     .run-table-wrap table { font-size: 0.84rem; }
 
     /* ─ Footer ─ */
-    footer { text-align: center; padding: 16px; font-size: .76rem; color: #94a3b8; border-top: 1px solid #e2e8f0; margin-top: 8px; }
+    footer { text-align: center; padding: 16px; font-size: .76rem; color: var(--text-secondary); border-top: 1px solid var(--border-color); margin-top: 8px; background: var(--bg-primary); }
 
-    /* ─ Tabs ─ */
-    .tab-bar { display: flex; gap: 4px; padding: 28px 40px 0; border-bottom: 2px solid #e2e8f0; margin-bottom: 0; }
+    /* ─ Sidebar Navigation ─ */
+    .app-layout { display: flex; min-height: calc(100vh - 82px); }
+    .sidebar {
+      position: fixed;
+      top: 82px;
+      left: 0;
+      width: 220px;
+      height: calc(100vh - 82px);
+      background: var(--bg-primary);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      z-index: 90;
+      transition: transform 0.3s ease;
+    }
+    .sidebar-nav { flex: 1; padding: 16px 8px; overflow-y: auto; }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      padding: 12px 16px;
+      border: none;
+      border-radius: 8px;
+      background: none;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-align: left;
+      transition: all 0.15s;
+      margin-bottom: 4px;
+    }
+    .nav-item:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+    .nav-item.active { background: var(--accent-blue); color: #fff; }
+    .nav-icon { font-size: 1.1rem; width: 24px; text-align: center; }
+    .nav-label { flex: 1; }
+    .nav-badge { font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; background: rgba(0,0,0,.1); }
+    .nav-item.active .nav-badge { background: rgba(255,255,255,.2); }
+    .nav-badge.warn { background: var(--status-red); color: #fff; }
+    .sidebar-footer { padding: 16px; border-top: 1px solid var(--border-color); }
+    .sidebar-stats { display: flex; gap: 12px; }
+    .sidebar-stat { flex: 1; text-align: center; padding: 8px; background: var(--bg-secondary); border-radius: 8px; }
+    .sidebar-stat.warn { background: var(--status-red-bg); }
+    .sidebar-stat-num { display: block; font-size: 1.2rem; font-weight: 700; color: var(--text-primary); }
+    .sidebar-stat.warn .sidebar-stat-num { color: var(--status-red); }
+    .sidebar-stat-label { font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; }
+    .main-content { flex: 1; margin-left: 220px; min-width: 0; }
+    .sidebar-toggle {
+      display: none;
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      z-index: 100;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: var(--accent-blue);
+      color: #fff;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      box-shadow: var(--shadow-md);
+    }
+    @media (max-width: 768px) {
+      .sidebar { transform: translateX(-100%); }
+      .sidebar.open { transform: translateX(0); box-shadow: 4px 0 20px rgba(0,0,0,.2); }
+      .main-content { margin-left: 0; }
+      .sidebar-toggle { display: flex; align-items: center; justify-content: center; }
+    }
+
+    /* ─ Tabs (hidden, using sidebar now) ─ */
+    .tab-bar { display: none; }
     .tab-btn {
       padding: 9px 20px;
       border: none;
@@ -1150,16 +1335,16 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
       cursor: pointer;
       font-size: 0.88rem;
       font-weight: 600;
-      color: #64748b;
+      color: var(--text-secondary);
       margin-bottom: -2px;
       border-radius: 8px 8px 0 0;
       transition: all .15s;
     }
-    .tab-btn:hover { background: #e8f0ee; color: #1e293b; }
+    .tab-btn:hover { background: var(--bg-tertiary); color: var(--text-primary); }
     .tab-btn.active {
-      color: #0f172a;
+      color: var(--text-primary);
       border-bottom-color: #0d9488;
-      background: #fff;
+      background: var(--bg-primary);
       box-shadow: 0 -2px 6px rgba(0,0,0,.05);
     }
     .tab-panel { display: none; }
@@ -1168,11 +1353,11 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     /* ─ State chips ─ */
     .state-chips { display: flex; gap: 8px; flex-wrap: wrap; padding: 12px 40px 0; }
     .state-chip {
-      padding: 5px 14px; border-radius: 99px; border: 1.5px solid #cbd5e1;
-      background: #fff; cursor: pointer; font-size: 0.78rem; font-weight: 600; color: #475569;
+      padding: 5px 14px; border-radius: 99px; border: 1.5px solid var(--border-color);
+      background: var(--bg-primary); cursor: pointer; font-size: 0.78rem; font-weight: 600; color: var(--text-secondary);
       transition: all .15s;
     }
-    .state-chip:hover, .state-chip.active { background: #1d4ed8; color: #fff; border-color: #1d4ed8; }
+    .state-chip:hover, .state-chip.active { background: var(--accent-blue); color: #fff; border-color: var(--accent-blue); }
 
     /* ─ Clickable card ─ */
     .card-clickable { cursor: pointer; }
@@ -1274,19 +1459,33 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     .run-fail { color: #dc2626; }
 
     /* ─ Providers Filter Bar ─ */
-    .providers-filter-bar { display: flex; gap: 12px; padding: 20px 40px 12px; flex-wrap: wrap; align-items: center; }
-    .providers-filter-bar .search-box { flex: 1; min-width: 200px; }
-    .providers-filter-bar .filter-select { min-width: 120px; }
-    .providers-count { display: flex; justify-content: space-between; align-items: center; padding: 0 40px 16px; font-size: 0.85rem; color: #64748b; }
+    .providers-filter-bar { display: flex; gap: 12px; padding: 20px 40px 12px; flex-wrap: wrap; align-items: center; position: sticky; top: 82px; z-index: 50; background: var(--bg-body); border-bottom: 1px solid var(--border-color); }
+    .providers-filter-bar .search-box { flex: 1; min-width: 200px; background: var(--bg-primary); color: var(--text-primary); border-color: var(--border-color); }
+    .providers-filter-bar .filter-select { min-width: 120px; background: var(--bg-primary); color: var(--text-primary); border-color: var(--border-color); }
+    .advanced-filter-toggle { padding: 8px 14px; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-primary); cursor: pointer; font-size: 0.82rem; font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; transition: all .15s; }
+    .advanced-filter-toggle:hover { border-color: var(--accent-blue); color: var(--accent-blue); }
+    .advanced-filter-toggle.active { background: var(--accent-blue); color: #fff; border-color: var(--accent-blue); }
+    .toggle-icon { font-size: 0.7rem; transition: transform 0.2s; }
+    .advanced-filter-toggle.active .toggle-icon { transform: rotate(180deg); }
+    .advanced-filters { display: flex; gap: 24px; padding: 16px 40px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); flex-wrap: wrap; }
+    .adv-filter-group { display: flex; flex-direction: column; gap: 6px; }
+    .adv-filter-group label { font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; }
+    .range-inputs { display: flex; align-items: center; gap: 8px; }
+    .range-inputs input { width: 70px; padding: 6px 10px; border: 1.5px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; background: var(--bg-primary); color: var(--text-primary); }
+    .range-inputs span { color: var(--text-secondary); font-size: 0.85rem; }
+    .filter-checkboxes { display: flex; gap: 16px; }
+    .filter-checkboxes label { display: flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--text-primary); cursor: pointer; }
+    .filter-checkboxes input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
+    .providers-count { display: flex; justify-content: space-between; align-items: center; padding: 0 40px 16px; font-size: 0.85rem; color: var(--text-secondary); }
 
     /* ─ View Toggle Buttons ─ */
     .view-toggle-bar { display: flex; gap: 8px; padding: 20px 40px 0; flex-wrap: wrap; }
-    .view-toggle { padding: 8px 16px; border: 2px solid #e2e8f0; border-radius: 8px; background: #fff; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: #64748b; transition: all .15s; display: flex; align-items: center; gap: 8px; }
-    .view-toggle:hover { border-color: #cbd5e1; color: #475569; }
-    .view-toggle.active { background: #1d4ed8; color: #fff; border-color: #1d4ed8; }
+    .view-toggle { padding: 8px 16px; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-primary); cursor: pointer; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); transition: all .15s; display: flex; align-items: center; gap: 8px; }
+    .view-toggle:hover { border-color: var(--border-dark); color: var(--text-primary); }
+    .view-toggle.active { background: var(--accent-blue); color: #fff; border-color: var(--accent-blue); }
     .view-count { font-size: 0.75rem; padding: 2px 8px; border-radius: 10px; background: rgba(0,0,0,.1); }
     .view-toggle.active .view-count { background: rgba(255,255,255,.2); }
-    .view-count.warning { background: #d97706; color: #fff; }
+    .view-count.warning { background: var(--status-orange); color: #fff; }
 
     .license-view, .report-view { display: none; padding: 0 40px 24px; }
     .license-view.active, .report-view.active { display: block; }
@@ -1439,21 +1638,23 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
       align-items: flex-start; justify-content: center;
       padding: 32px 16px 48px; overflow-y: auto;
     }
+    [data-theme="dark"] .drawer-overlay { background: rgba(0,0,0,0.7); }
     .drawer-overlay.open { display: flex; }
     .drawer-panel {
-      background: #fff; border-radius: 18px; padding: 36px;
+      background: var(--bg-primary); border-radius: 18px; padding: 36px;
       width: 100%; max-width: 740px; position: relative;
       box-shadow: 0 24px 64px rgba(0,0,0,.22); margin: auto;
       animation: slideUp .2s ease;
+      color: var(--text-primary);
     }
     @keyframes slideUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
     .drawer-close {
       position: absolute; top: 18px; right: 18px;
-      background: #f1f5f9; border: none; border-radius: 50%;
+      background: var(--bg-tertiary); border: none; border-radius: 50%;
       width: 34px; height: 34px; cursor: pointer; font-size: 1rem;
-      color: #475569; display: flex; align-items: center; justify-content: center;
+      color: var(--text-secondary); display: flex; align-items: center; justify-content: center;
     }
-    .drawer-close:hover { background: #e2e8f0; }
+    .drawer-close:hover { background: var(--border-color); }
 
     .detail-hdr { display: flex; align-items: center; gap: 16px; margin-bottom: 28px; flex-wrap: wrap; }
     .detail-avatar {
@@ -1888,41 +2089,50 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
 
     /* ─ State Groups ─ */
     .state-groups { display: flex; flex-direction: column; gap: 24px; }
-    .state-group { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.07); overflow: hidden; }
-    .state-group-header { display: flex; align-items: center; gap: 12px; padding: 16px 20px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
-    .state-name { font-weight: 800; font-size: 1.1rem; color: #0f172a; min-width: 120px; }
+    .state-group { background: var(--bg-primary); border-radius: 12px; box-shadow: var(--shadow-sm); overflow: hidden; }
+    .state-group-header { display: flex; align-items: center; gap: 12px; padding: 16px 20px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); }
+    .state-name { font-weight: 800; font-size: 1.1rem; color: var(--text-primary); min-width: 120px; }
     .state-mini-stats { display: flex; gap: 8px; flex: 1; flex-wrap: wrap; }
     .mini-stat { padding: 2px 10px; border-radius: 99px; font-size: 0.75rem; font-weight: 600; }
-    .mini-stat.risk { background: #fee2e2; color: #b91c1c; }
-    .mini-stat.progress { background: #fef3c7; color: #b45309; }
-    .mini-stat.complete { background: #dcfce7; color: #166534; }
-    .state-provider-count { font-size: 0.85rem; color: #64748b; white-space: nowrap; }
+    .mini-stat.risk { background: var(--status-red-bg); color: var(--status-red); }
+    .mini-stat.progress { background: var(--status-orange-bg); color: var(--status-orange); }
+    .mini-stat.complete { background: var(--status-green-bg); color: var(--status-green); }
+    .state-provider-count { font-size: 0.85rem; color: var(--text-secondary); white-space: nowrap; }
     .state-cards { padding: 16px; }
 
     /* ─ Collapsible Groups ─ */
     .collapsible .state-group-header,
     .collapsible .type-group-header { cursor: pointer; user-select: none; }
     .collapsible .state-group-header:hover,
-    .collapsible .type-group-header:hover { background: #f1f5f9; }
-    .collapse-icon { font-size: 0.75rem; color: #94a3b8; transition: transform 0.2s; }
+    .collapsible .type-group-header:hover { background: var(--bg-tertiary); }
+    .collapse-icon { font-size: 0.75rem; color: var(--text-secondary); transition: transform 0.2s; }
     .collapsible.collapsed .collapse-icon { transform: rotate(-90deg); }
     .collapsible-content { transition: max-height 0.3s ease, padding 0.3s ease, opacity 0.2s ease; overflow: hidden; }
     .collapsible.collapsed .collapsible-content { max-height: 0 !important; padding-top: 0 !important; padding-bottom: 0 !important; opacity: 0; }
 
     /* ─ Type Groups ─ */
     .type-groups { display: flex; flex-direction: column; gap: 24px; }
-    .type-group { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.07); overflow: hidden; }
-    .type-group-header { display: flex; align-items: center; gap: 12px; padding: 16px 20px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
-    .type-name { font-weight: 800; font-size: 1.1rem; color: #0f172a; flex: 1; }
-    .type-provider-count { font-size: 0.85rem; color: #64748b; white-space: nowrap; }
+    .type-group { background: var(--bg-primary); border-radius: 12px; box-shadow: var(--shadow-sm); overflow: hidden; }
+    .type-group-header { display: flex; align-items: center; gap: 12px; padding: 16px 20px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); }
+    .type-name { font-weight: 800; font-size: 1.1rem; color: var(--text-primary); flex: 1; }
+    .type-provider-count { font-size: 0.85rem; color: var(--text-secondary); white-space: nowrap; }
     .type-cards { padding: 16px; }
 
     /* ─ Favorites View ─ */
-    .favorites-header { padding: 16px 20px; background: #fef3c7; border-radius: 12px; margin-bottom: 20px; display: flex; align-items: center; gap: 16px; }
-    .favorites-title { font-weight: 700; font-size: 1.1rem; color: #92400e; }
-    .favorites-hint { font-size: 0.85rem; color: #b45309; }
+    .favorites-header { padding: 16px 20px; background: var(--status-orange-bg); border-radius: 12px; margin-bottom: 20px; display: flex; align-items: center; gap: 16px; }
+    .favorites-title { font-weight: 700; font-size: 1.1rem; color: var(--status-orange); }
+    .favorites-hint { font-size: 0.85rem; color: var(--status-orange); opacity: 0.8; }
     .favorites-cards { padding: 0; }
-    .empty-favorites { text-align: center; padding: 60px 20px; color: #64748b; font-size: 1rem; background: #f8fafc; border-radius: 12px; }
+    .empty-favorites { text-align: center; padding: 60px 20px; color: var(--text-secondary); font-size: 1rem; background: var(--bg-secondary); border-radius: 12px; }
+
+    /* ─ Lazy Loading ─ */
+    .load-sentinel { height: 1px; width: 100%; }
+    .loading-indicator { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 24px; color: var(--text-secondary); font-size: 0.95rem; }
+    .loading-spinner { width: 24px; height: 24px; border: 3px solid var(--border-color); border-top-color: var(--accent-blue); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .load-more-btn { display: block; margin: 20px auto; padding: 12px 32px; background: var(--accent-blue); color: #fff; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+    .load-more-btn:hover { background: #1e40af; transform: translateY(-1px); }
+    .load-more-btn:disabled { background: var(--border-color); cursor: not-allowed; transform: none; }
 
     /* ─ Action Queue ─ */
     .action-queue { display: flex; flex-direction: column; gap: 20px; }
@@ -1997,6 +2207,38 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     .stat-detail.risk { background: #fee2e2; color: #b91c1c; }
     .stat-detail.unknown { background: #f1f5f9; color: #64748b; }
 
+    /* ─ Timeline View ─ */
+    .timeline-header { padding: 20px 0; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); }
+    .timeline-header h3 { font-size: 1.2rem; font-weight: 800; color: var(--text-primary); margin-bottom: 4px; }
+    .timeline-subtitle { font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 16px; }
+    .timeline-controls { display: flex; gap: 16px; flex-wrap: wrap; }
+    .timeline-controls label { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--text-secondary); }
+    .timeline-controls select { padding: 6px 12px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-primary); color: var(--text-primary); font-size: 0.85rem; }
+    .timeline-legend { display: flex; gap: 24px; padding: 12px 0; margin-bottom: 16px; }
+    .legend-item { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; color: var(--text-secondary); }
+    .legend-dot { width: 12px; height: 12px; border-radius: 50%; }
+    .legend-dot.course-dot { background: var(--accent-blue); }
+    .legend-line { width: 3px; height: 16px; border-radius: 2px; }
+    .legend-line.deadline-line { background: var(--status-red); }
+    .timeline-container { position: relative; background: var(--bg-secondary); border-radius: 12px; overflow: hidden; min-height: 200px; }
+    .timeline-axis { display: flex; background: var(--bg-tertiary); padding: 10px 200px 10px 200px; border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 10; }
+    .timeline-month { flex: 1; text-align: center; font-size: 0.7rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; }
+    .timeline-content { padding: 8px 0; max-height: 600px; overflow-y: auto; }
+    .timeline-row { display: flex; align-items: center; height: 44px; padding: 0 16px; border-bottom: 1px solid var(--border-color); transition: background 0.15s; }
+    .timeline-row:hover { background: var(--bg-tertiary); }
+    .timeline-label { width: 184px; flex-shrink: 0; font-size: 0.85rem; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 16px; }
+    .timeline-track { flex: 1; position: relative; height: 24px; }
+    .timeline-dot { position: absolute; width: 10px; height: 10px; border-radius: 50%; background: var(--accent-blue); transform: translate(-50%, -50%); top: 50%; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; z-index: 5; }
+    .timeline-dot:hover { transform: translate(-50%, -50%) scale(1.4); box-shadow: 0 2px 8px rgba(29, 78, 216, 0.4); z-index: 20; }
+    .timeline-dot.multi { background: #7c3aed; }
+    .timeline-deadline { position: absolute; width: 3px; height: 100%; background: var(--status-red); transform: translateX(-50%); border-radius: 2px; }
+    .timeline-deadline::after { content: attr(data-label); position: absolute; bottom: calc(100% + 4px); left: 50%; transform: translateX(-50%); font-size: 0.65rem; white-space: nowrap; color: var(--status-red); font-weight: 600; opacity: 0; transition: opacity 0.15s; }
+    .timeline-row:hover .timeline-deadline::after { opacity: 1; }
+    .timeline-tooltip { position: fixed; z-index: 1000; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 14px; box-shadow: var(--shadow-md); pointer-events: none; max-width: 280px; font-size: 0.8rem; }
+    .timeline-tooltip-title { font-weight: 700; color: var(--text-primary); margin-bottom: 4px; }
+    .timeline-tooltip-meta { color: var(--text-secondary); }
+    .timeline-empty { text-align: center; padding: 60px 20px; color: var(--text-secondary); font-size: 0.95rem; background: var(--bg-secondary); border-radius: 12px; }
+
     /* ─ Compliance Tab ─ */
     .compliance-header { display: flex; justify-content: space-between; align-items: flex-start; padding: 20px 40px; gap: 20px; flex-wrap: wrap; }
     .compliance-title h2 { font-size: 1.3rem; font-weight: 800; color: #0f172a; margin-bottom: 4px; }
@@ -2063,37 +2305,72 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     <h1>CEU <span>Tracker</span></h1>
   </div>
   <div class="header-meta">
-    <div class="last-scraped-label">Last Scraped</div>
-    <div class="last-scraped-value" id="lastScrapedValue" data-iso="${escHtml(runIso)}">${escHtml(runDate)}</div>
-    <div class="last-scraped-ago" id="lastScrapedAgo"></div>
-    <div class="run-badge">
-      <span class="run-pill ok">✓ ${runResults.filter(r => r.status === 'success').length} succeeded</span>
-      ${runResults.filter(r => r.status === 'not_configured').length > 0
-        ? `<span class="run-pill notconfig">○ ${runResults.filter(r => r.status === 'not_configured').length} not configured</span>`
-        : ''}
-      ${runResults.filter(r => r.status === 'login_error' || r.status === 'failed').length > 0
-        ? `<span class="run-pill fail">✗ ${runResults.filter(r => r.status === 'login_error' || r.status === 'failed').length} login errors</span>`
-        : ''}
+    <div>
+      <div class="last-scraped-label">Last Scraped</div>
+      <div class="last-scraped-value" id="lastScrapedValue" data-iso="${escHtml(runIso)}">${escHtml(runDate)}</div>
+      <div class="last-scraped-ago" id="lastScrapedAgo"></div>
+      <div class="run-badge">
+        <span class="run-pill ok">✓ ${runResults.filter(r => r.status === 'success').length} succeeded</span>
+        ${runResults.filter(r => r.status === 'not_configured').length > 0
+          ? `<span class="run-pill notconfig">○ ${runResults.filter(r => r.status === 'not_configured').length} not configured</span>`
+          : ''}
+        ${runResults.filter(r => r.status === 'login_error' || r.status === 'failed').length > 0
+          ? `<span class="run-pill fail">✗ ${runResults.filter(r => r.status === 'login_error' || r.status === 'failed').length} login errors</span>`
+          : ''}
+      </div>
     </div>
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode" id="themeToggle">🌙</button>
   </div>
 </header>
 
-<!-- ── Stats ──────────────────────────────────────────────────────────── -->
-<div class="stats">
-  <div class="stat-card total"><div class="num">${total}</div><div class="lbl">Clinical Team Members</div></div>
-  <div class="stat-card ok">  <div class="num">${complete}</div><div class="lbl">Complete</div></div>
-  <div class="stat-card prog"><div class="num">${inProg}</div><div class="lbl">In Progress</div></div>
-  <div class="stat-card risk"><div class="num">${atRisk}</div><div class="lbl">At Risk</div></div>
-</div>
+<!-- ── App Layout with Sidebar ─────────────────────────────────────────── -->
+<div class="app-layout">
+  <!-- Sidebar Navigation -->
+  <aside class="sidebar" id="sidebar">
+    <nav class="sidebar-nav">
+      <button class="nav-item active" onclick="showTab('providers')" data-tab="providers">
+        <span class="nav-icon">👥</span>
+        <span class="nav-label">Team View</span>
+      </button>
+      <button class="nav-item" onclick="showTab('compliance')" data-tab="compliance">
+        <span class="nav-icon">✓</span>
+        <span class="nav-label">Compliance</span>
+        ${lookbackNotMet > 0 ? `<span class="nav-badge">${lookbackNotMet}</span>` : ''}
+      </button>
+      <button class="nav-item" onclick="showTab('platforms')" data-tab="platforms">
+        <span class="nav-icon">📚</span>
+        <span class="nav-label">Platforms</span>
+      </button>
+      <button class="nav-item" onclick="showTab('reports')" data-tab="reports">
+        <span class="nav-icon">📊</span>
+        <span class="nav-label">Reports</span>
+      </button>
+      <button class="nav-item" onclick="showTab('dashboard')" data-tab="dashboard">
+        <span class="nav-icon">📋</span>
+        <span class="nav-label">Dashboard</span>
+        ${(atRisk + noCredentialsProviders.length) > 0 ? `<span class="nav-badge warn">${atRisk + noCredentialsProviders.length}</span>` : ''}
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-stats">
+        <div class="sidebar-stat"><span class="sidebar-stat-num">${complete}</span><span class="sidebar-stat-label">Complete</span></div>
+        <div class="sidebar-stat warn"><span class="sidebar-stat-num">${atRisk}</span><span class="sidebar-stat-label">At Risk</span></div>
+      </div>
+    </div>
+  </aside>
 
-<!-- ── Tabs ───────────────────────────────────────────────────────────── -->
-<div class="tab-bar">
-  <button class="tab-btn active" onclick="showTab('providers')">Team View</button>
-  <button class="tab-btn"        onclick="showTab('compliance')">Compliance${lookbackNotMet > 0 ? ` <span class="tab-badge">${lookbackNotMet}</span>` : ''}</button>
-  <button class="tab-btn"        onclick="showTab('platforms')">Platforms</button>
-  <button class="tab-btn"        onclick="showTab('reports')">Reports</button>
-  <button class="tab-btn"        onclick="showTab('dashboard')">Dashboard${(atRisk + noCredentialsProviders.length) > 0 ? ` <span class="tab-badge">${atRisk + noCredentialsProviders.length}</span>` : ''}</button>
-</div>
+  <!-- Mobile Sidebar Toggle -->
+  <button class="sidebar-toggle" onclick="toggleSidebar()" id="sidebarToggle">☰</button>
+
+  <!-- Main Content Area -->
+  <main class="main-content">
+    <!-- ── Stats ──────────────────────────────────────────────────────────── -->
+    <div class="stats">
+      <div class="stat-card total"><div class="num">${total}</div><div class="lbl">Clinical Team Members</div></div>
+      <div class="stat-card ok">  <div class="num">${complete}</div><div class="lbl">Complete</div></div>
+      <div class="stat-card prog"><div class="num">${inProg}</div><div class="lbl">In Progress</div></div>
+      <div class="stat-card risk"><div class="num">${atRisk}</div><div class="lbl">At Risk</div></div>
+    </div>
 
 <!-- ── Tab: Overview ──────────────────────────────────────────────────── -->
 <!-- ── Tab: Dashboard (Consolidated Overview) ────────────────────────────── -->
@@ -2230,6 +2507,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     <button class="view-toggle" onclick="showProviderView('actions')">Action Items <span class="view-count ${actionItems.critical.length > 0 ? 'warning' : ''}">${actionItems.critical.length + actionItems.urgent.length}</span></button>
     <button class="view-toggle" onclick="showProviderView('aanp')">AANP Cert <span class="view-count">${aanpCertData.length}</span></button>
     <button class="view-toggle" onclick="showProviderView('stats')">State Stats</button>
+    <button class="view-toggle" onclick="showProviderView('timeline')">Timeline</button>
     <button class="export-btn" onclick="exportMissingCredentials()">Export Missing Creds</button>
     <button class="export-btn" onclick="exportFilteredResults()">Export Filtered</button>
   </div>
@@ -2268,6 +2546,37 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
         <input type="checkbox" id="noCredsFilter" onchange="filterCards()">
         <span>No Creds Only</span>
       </label>
+      <button class="advanced-filter-toggle" onclick="toggleAdvancedFilters()">
+        <span>Advanced</span>
+        <span class="toggle-icon" id="advFilterIcon">▼</span>
+      </button>
+    </div>
+
+    <!-- Advanced Filters Panel -->
+    <div class="advanced-filters" id="advancedFilters" style="display:none">
+      <div class="adv-filter-group">
+        <label>Deadline (days)</label>
+        <div class="range-inputs">
+          <input type="number" id="deadlineMin" placeholder="Min" min="0" onchange="filterCards()">
+          <span>to</span>
+          <input type="number" id="deadlineMax" placeholder="Max" min="0" onchange="filterCards()">
+        </div>
+      </div>
+      <div class="adv-filter-group">
+        <label>Hours Completed</label>
+        <div class="range-inputs">
+          <input type="number" id="hoursMin" placeholder="Min" min="0" onchange="filterCards()">
+          <span>to</span>
+          <input type="number" id="hoursMax" placeholder="Max" min="0" onchange="filterCards()">
+        </div>
+      </div>
+      <div class="adv-filter-group">
+        <label>Show Only</label>
+        <div class="filter-checkboxes">
+          <label><input type="checkbox" id="filterOverdue" onchange="filterCards()"> Overdue</label>
+          <label><input type="checkbox" id="filterUrgent" onchange="filterCards()"> Due in 30 days</label>
+        </div>
+      </div>
     </div>
 
     <!-- Provider Count -->
@@ -2278,7 +2587,12 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
 
     <!-- All Providers Cards Grid -->
     <div class="cards-grid" id="allCardsGrid">
-      ${profileCards}
+      ${initialCards}
+    </div>
+    <div id="loadSentinel" class="load-sentinel"></div>
+    <div id="loadingIndicator" class="loading-indicator" style="display:none">
+      <div class="loading-spinner"></div>
+      <span>Loading more providers...</span>
     </div>
   </div>
 
@@ -2559,6 +2873,45 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
           </div>
         </div>`;
       }).join('')}
+    </div>
+  </div>
+
+  <!-- Timeline View -->
+  <div class="provider-view" id="provider-timeline">
+    <div class="timeline-header">
+      <h3>CE Activity Timeline</h3>
+      <p class="timeline-subtitle">Visualizing course completions and license deadlines over time</p>
+      <div class="timeline-controls">
+        <label>
+          <span>View Range:</span>
+          <select id="timelineRange" onchange="updateTimeline()">
+            <option value="6">Last 6 Months</option>
+            <option value="12" selected>Last 12 Months</option>
+            <option value="24">Last 2 Years</option>
+            <option value="60">Last 5 Years</option>
+          </select>
+        </label>
+        <label>
+          <span>Show:</span>
+          <select id="timelineFilter" onchange="updateTimeline()">
+            <option value="all">All Providers</option>
+            <option value="active">Active (Has Courses)</option>
+          </select>
+        </label>
+      </div>
+    </div>
+    <div class="timeline-legend">
+      <span class="legend-item"><span class="legend-dot course-dot"></span> Course Completed</span>
+      <span class="legend-item"><span class="legend-line deadline-line"></span> License Deadline</span>
+    </div>
+    <div class="timeline-container" id="timelineContainer">
+      <div class="timeline-axis" id="timelineAxis"></div>
+      <div class="timeline-content" id="timelineContent">
+        <!-- Timeline rows will be rendered by JS -->
+      </div>
+    </div>
+    <div class="timeline-empty" id="timelineEmpty" style="display:none">
+      <span>No timeline data available. Course completion dates are needed to display the timeline.</span>
     </div>
   </div>
 </div>
@@ -2847,18 +3200,57 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
   </div>
 </div>
 
+  </main><!-- end main-content -->
+</div><!-- end app-layout -->
+
 <footer>CEU Tracker &nbsp;·&nbsp; Last scraped: ${escHtml(runDate)}</footer>
 
 <script>
+  // ── Theme Toggle ──
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.dataset.theme;
+    const newTheme = current === 'dark' ? 'light' : 'dark';
+    html.dataset.theme = newTheme;
+    localStorage.setItem('ceu-theme', newTheme);
+    document.getElementById('themeToggle').textContent = newTheme === 'dark' ? '☀️' : '🌙';
+  }
+  // Restore theme on load
+  (function() {
+    const saved = localStorage.getItem('ceu-theme');
+    if (saved === 'dark') {
+      document.documentElement.dataset.theme = 'dark';
+      document.getElementById('themeToggle').textContent = '☀️';
+    }
+  })();
+
+  // ── Sticky Header Shadow ──
+  window.addEventListener('scroll', () => {
+    const header = document.querySelector('header');
+    if (header) header.classList.toggle('scrolled', window.scrollY > 10);
+  });
+
   // ── Tabs ──
   function showTab(name) {
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
     document.getElementById('tab-' + name)?.classList.add('active');
     const btns = document.querySelectorAll('.tab-btn');
     const labels = ['dashboard','providers','platforms','reports'];
     btns[labels.indexOf(name)]?.classList.add('active');
+    // Update sidebar nav
+    document.querySelector('.nav-item[data-tab="' + name + '"]')?.classList.add('active');
     if (name === 'reports') initCharts();
+    // Close sidebar on mobile after selection
+    if (window.innerWidth <= 768) {
+      document.getElementById('sidebar').classList.remove('open');
+    }
+  }
+
+  // ── Sidebar Toggle (Mobile) ──
+  function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('open');
   }
 
   // ── Report View Toggles ──
@@ -2891,14 +3283,32 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     providersTab.querySelectorAll('.view-toggle').forEach(b => b.classList.remove('active'));
     document.getElementById('provider-' + name)?.classList.add('active');
     const btns = providersTab.querySelectorAll('.view-toggle');
-    const labels = ['all','deadline','state','type','favorites','actions','aanp','stats'];
+    const labels = ['all','deadline','state','type','favorites','actions','aanp','stats','timeline'];
     btns[labels.indexOf(name)]?.classList.add('active');
+    // Initialize timeline when selected
+    if (name === 'timeline' && typeof updateTimeline === 'function') {
+      updateTimeline();
+    }
   }
 
   // ── Toggle Collapsible Groups ──
   function toggleStateGroup(header) {
     const group = header.closest('.collapsible');
     if (group) group.classList.toggle('collapsed');
+  }
+
+  // ── Toggle Advanced Filters ──
+  function toggleAdvancedFilters() {
+    const panel = document.getElementById('advancedFilters');
+    const btn = document.querySelector('.advanced-filter-toggle');
+    const icon = document.getElementById('advFilterIcon');
+    if (panel.style.display === 'none') {
+      panel.style.display = 'flex';
+      btn.classList.add('active');
+    } else {
+      panel.style.display = 'none';
+      btn.classList.remove('active');
+    }
   }
 
   // ── Export Filtered Results ──
@@ -2990,7 +3400,90 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
   document.addEventListener('DOMContentLoaded', () => {
     updateFavoriteButtons();
     updateFavoritesView();
+    initLazyLoading();
   });
+
+  // ── Lazy Loading ──
+  const ALL_CARDS_HTML = ${JSON.stringify(allCardHtmlArray)};
+  const LAZY_BATCH_SIZE = ${LAZY_BATCH_SIZE};
+  let lazyLoadedCount = ${LAZY_BATCH_SIZE};
+  let lazyObserver = null;
+  let isLazyLoading = false;
+
+  function initLazyLoading() {
+    const sentinel = document.getElementById('loadSentinel');
+    if (!sentinel || ALL_CARDS_HTML.length <= LAZY_BATCH_SIZE) {
+      // Hide loading elements if no lazy loading needed
+      const loadingIndicator = document.getElementById('loadingIndicator');
+      if (loadingIndicator) loadingIndicator.style.display = 'none';
+      return;
+    }
+
+    lazyObserver = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && !isLazyLoading) {
+        loadMoreCards();
+      }
+    }, { rootMargin: '200px' });
+
+    lazyObserver.observe(sentinel);
+  }
+
+  function loadMoreCards() {
+    if (lazyLoadedCount >= ALL_CARDS_HTML.length || isLazyLoading) return;
+
+    isLazyLoading = true;
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    if (loadingIndicator) loadingIndicator.style.display = 'flex';
+
+    // Use requestAnimationFrame to avoid blocking
+    requestAnimationFrame(() => {
+      const grid = document.getElementById('allCardsGrid');
+      if (!grid) return;
+
+      const nextBatch = ALL_CARDS_HTML.slice(lazyLoadedCount, lazyLoadedCount + LAZY_BATCH_SIZE);
+      nextBatch.forEach(cardHtml => {
+        grid.insertAdjacentHTML('beforeend', cardHtml);
+      });
+
+      lazyLoadedCount += nextBatch.length;
+
+      // Update favorite buttons for new cards
+      updateFavoriteButtons();
+
+      // Apply current filters to new cards
+      filterCards();
+
+      // Hide loading indicator
+      if (loadingIndicator) loadingIndicator.style.display = 'none';
+      isLazyLoading = false;
+
+      // Disconnect observer if all cards loaded
+      if (lazyLoadedCount >= ALL_CARDS_HTML.length && lazyObserver) {
+        lazyObserver.disconnect();
+        const sentinel = document.getElementById('loadSentinel');
+        if (sentinel) sentinel.style.display = 'none';
+      }
+    });
+  }
+
+  function loadAllCards() {
+    // Force load all remaining cards (useful for search/filter)
+    while (lazyLoadedCount < ALL_CARDS_HTML.length) {
+      const grid = document.getElementById('allCardsGrid');
+      if (!grid) return;
+      const nextBatch = ALL_CARDS_HTML.slice(lazyLoadedCount, lazyLoadedCount + LAZY_BATCH_SIZE);
+      nextBatch.forEach(cardHtml => {
+        grid.insertAdjacentHTML('beforeend', cardHtml);
+      });
+      lazyLoadedCount += nextBatch.length;
+    }
+    updateFavoriteButtons();
+    if (lazyObserver) lazyObserver.disconnect();
+    const sentinel = document.getElementById('loadSentinel');
+    if (sentinel) sentinel.style.display = 'none';
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    if (loadingIndicator) loadingIndicator.style.display = 'none';
+  }
 
   // ── Sort cards ──
   function sortCards() {
@@ -3055,6 +3548,21 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     const grid = document.getElementById('allCardsGrid');
     if (!grid) return;
 
+    // Load all cards if searching or filtering (so all results are available)
+    if (q || noCredsOnly || stateFilter !== 'all' || cardFilter !== 'all' || typeFilter !== 'all') {
+      if (typeof loadAllCards === 'function' && lazyLoadedCount < ALL_CARDS_HTML.length) {
+        loadAllCards();
+      }
+    }
+
+    // Advanced filters
+    const deadlineMin = parseInt(document.getElementById('deadlineMin')?.value) || null;
+    const deadlineMax = parseInt(document.getElementById('deadlineMax')?.value) || null;
+    const hoursMin = parseInt(document.getElementById('hoursMin')?.value) || null;
+    const hoursMax = parseInt(document.getElementById('hoursMax')?.value) || null;
+    const filterOverdue = document.getElementById('filterOverdue')?.checked || false;
+    const filterUrgent = document.getElementById('filterUrgent')?.checked || false;
+
     let visibleCount = 0;
     const totalCount = grid.querySelectorAll('.provider-card').length;
 
@@ -3064,19 +3572,29 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
       const states = (card.dataset.states || '').split(',');
       const type   = card.dataset.type || '';
       const noCreds = card.dataset.noCreds === 'true';
+      const deadline = parseInt(card.dataset.deadline) || 9999;
+
       const matchQ = !q || name.includes(q);
       const matchF = cardFilter === 'all' || status === cardFilter;
       const matchS = stateFilter === 'all' || states.includes(stateFilter);
       const matchT = typeFilter === 'all' || type === typeFilter;
       const matchC = !noCredsOnly || noCreds;
-      const visible = matchQ && matchF && matchS && matchT && matchC;
+
+      // Advanced filter matches
+      const matchDeadlineMin = deadlineMin === null || deadline >= deadlineMin;
+      const matchDeadlineMax = deadlineMax === null || deadline <= deadlineMax;
+      const matchOverdue = !filterOverdue || deadline < 0;
+      const matchUrgent = !filterUrgent || (deadline >= 0 && deadline <= 30);
+
+      const visible = matchQ && matchF && matchS && matchT && matchC && matchDeadlineMin && matchDeadlineMax && ((!filterOverdue && !filterUrgent) || matchOverdue || matchUrgent);
       card.style.display = visible ? '' : 'none';
       if (visible) visibleCount++;
     });
 
-    // Update count display
+    // Update count display (use ALL_CARDS_HTML length for total count)
     const countEl = document.getElementById('providerFilterCount');
-    if (countEl) countEl.textContent = visibleCount + ' of ' + totalCount + ' providers';
+    const totalProviders = typeof ALL_CARDS_HTML !== 'undefined' ? ALL_CARDS_HTML.length : totalCount;
+    if (countEl) countEl.textContent = visibleCount + ' of ' + totalProviders + ' providers';
   }
 
   function resetProviderFilters() {
@@ -3086,6 +3604,19 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     document.getElementById('stateFilter').value = 'all';
     document.getElementById('cardSort').value = 'name';
     document.getElementById('noCredsFilter').checked = false;
+    // Reset advanced filters
+    const deadlineMin = document.getElementById('deadlineMin');
+    const deadlineMax = document.getElementById('deadlineMax');
+    const hoursMin = document.getElementById('hoursMin');
+    const hoursMax = document.getElementById('hoursMax');
+    const filterOverdue = document.getElementById('filterOverdue');
+    const filterUrgent = document.getElementById('filterUrgent');
+    if (deadlineMin) deadlineMin.value = '';
+    if (deadlineMax) deadlineMax.value = '';
+    if (hoursMin) hoursMin.value = '';
+    if (hoursMax) hoursMax.value = '';
+    if (filterOverdue) filterOverdue.checked = false;
+    if (filterUrgent) filterUrgent.checked = false;
     stateFilter = 'all';
     cardFilter = 'all';
     typeFilter = 'all';
@@ -3271,6 +3802,152 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
       }
     });
   }
+
+  // ── Timeline View ────────────────────────────────────────────────────────
+  const TIMELINE_DATA = ${JSON.stringify(timelineData)};
+  let timelineTooltip = null;
+
+  function updateTimeline() {
+    const container = document.getElementById('timelineContainer');
+    const axis = document.getElementById('timelineAxis');
+    const content = document.getElementById('timelineContent');
+    const empty = document.getElementById('timelineEmpty');
+
+    if (!container || !axis || !content) return;
+
+    const rangeMonths = parseInt(document.getElementById('timelineRange')?.value) || 12;
+    const filter = document.getElementById('timelineFilter')?.value || 'all';
+
+    // Calculate date range
+    const now = new Date();
+    const startDate = new Date(now);
+    startDate.setMonth(startDate.getMonth() - rangeMonths);
+    const endDate = new Date(now);
+    endDate.setMonth(endDate.getMonth() + 3); // Show 3 months into the future for deadlines
+
+    const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+
+    // Generate month labels for axis
+    const months = [];
+    let current = new Date(startDate);
+    current.setDate(1);
+    while (current <= endDate) {
+      months.push({
+        label: current.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
+        date: new Date(current)
+      });
+      current.setMonth(current.getMonth() + 1);
+    }
+
+    // Render axis
+    axis.innerHTML = '<div style="width:184px;flex-shrink:0;padding-right:16px"></div>' +
+      months.map(m => '<div class="timeline-month">' + m.label + '</div>').join('');
+
+    // Filter and render timeline rows
+    let filteredData = TIMELINE_DATA;
+    if (filter === 'active') {
+      filteredData = TIMELINE_DATA.filter(p => p.courses.length > 0);
+    }
+
+    if (filteredData.length === 0) {
+      container.style.display = 'none';
+      empty.style.display = 'block';
+      return;
+    }
+    container.style.display = 'block';
+    empty.style.display = 'none';
+
+    const rows = filteredData.map(provider => {
+      // Filter courses in range
+      const coursesInRange = provider.courses.filter(c => {
+        const d = new Date(c.date);
+        return d >= startDate && d <= endDate;
+      });
+
+      // Group courses by date for dot positioning
+      const coursesByDate = {};
+      coursesInRange.forEach(c => {
+        const key = c.date;
+        if (!coursesByDate[key]) coursesByDate[key] = [];
+        coursesByDate[key].push(c);
+      });
+
+      // Render course dots
+      const dots = Object.entries(coursesByDate).map(([date, courses]) => {
+        const d = new Date(date);
+        const daysSinceStart = Math.ceil((d - startDate) / (1000 * 60 * 60 * 24));
+        const pct = Math.max(0, Math.min(100, (daysSinceStart / totalDays) * 100));
+        const isMulti = courses.length > 1;
+        const totalHours = courses.reduce((sum, c) => sum + (c.hours || 0), 0);
+        const tooltip = courses.length === 1
+          ? courses[0].name + ' (' + courses[0].hours + 'h)'
+          : courses.length + ' courses (' + totalHours + 'h total)';
+        return '<div class="timeline-dot' + (isMulti ? ' multi' : '') + '" ' +
+          'style="left:' + pct + '%" ' +
+          'data-courses="' + escapeAttr(JSON.stringify(courses)) + '" ' +
+          'data-date="' + date + '" ' +
+          'onmouseenter="showTimelineTooltip(event, this)" ' +
+          'onmouseleave="hideTimelineTooltip()"></div>';
+      }).join('');
+
+      // Render deadline markers (show in future)
+      const deadlines = provider.deadlines.map(dl => {
+        const d = new Date(dl.date);
+        if (d < startDate || d > endDate) return '';
+        const daysSinceStart = Math.ceil((d - startDate) / (1000 * 60 * 60 * 24));
+        const pct = Math.max(0, Math.min(100, (daysSinceStart / totalDays) * 100));
+        return '<div class="timeline-deadline" style="left:' + pct + '%" data-label="' + dl.state + ' ' + dl.licenseType + '"></div>';
+      }).join('');
+
+      return '<div class="timeline-row">' +
+        '<div class="timeline-label" title="' + escapeAttr(provider.name) + '">' + escapeAttr(provider.name) + '</div>' +
+        '<div class="timeline-track">' + dots + deadlines + '</div>' +
+        '</div>';
+    }).join('');
+
+    content.innerHTML = rows;
+  }
+
+  function escapeAttr(str) {
+    return String(str).replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function showTimelineTooltip(event, el) {
+    hideTimelineTooltip();
+    const courses = JSON.parse(el.dataset.courses);
+    const date = el.dataset.date;
+
+    const tooltip = document.createElement('div');
+    tooltip.className = 'timeline-tooltip';
+    tooltip.innerHTML = '<div class="timeline-tooltip-title">' +
+      new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) +
+      '</div>' +
+      courses.map(c => '<div class="timeline-tooltip-meta">' +
+        escapeAttr(c.name || 'Course') + ' &mdash; ' + c.hours + 'h' +
+        (c.state ? ' (' + c.state + ')' : '') + '</div>').join('');
+
+    document.body.appendChild(tooltip);
+    timelineTooltip = tooltip;
+
+    const rect = el.getBoundingClientRect();
+    tooltip.style.left = Math.min(rect.left, window.innerWidth - tooltip.offsetWidth - 20) + 'px';
+    tooltip.style.top = (rect.bottom + 8) + 'px';
+  }
+
+  function hideTimelineTooltip() {
+    if (timelineTooltip) {
+      timelineTooltip.remove();
+      timelineTooltip = null;
+    }
+  }
+
+  // Initialize timeline when view becomes active
+  document.addEventListener('DOMContentLoaded', () => {
+    // Pre-render timeline if there's data
+    if (TIMELINE_DATA.length > 0) {
+      setTimeout(updateTimeline, 100);
+    }
+  });
 
   // ── "Updated X ago" live ticker ──────────────────────────────────────────
   (function() {
