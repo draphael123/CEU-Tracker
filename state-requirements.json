@@ -1,0 +1,97 @@
+{
+  "FL": {
+    "name": "Florida",
+    "autonomousAPRN": {
+      "description": "Florida Autonomous APRN Requirements (HB 607)",
+      "subjects": [
+        {
+          "name": "Pharmacology",
+          "pattern": "pharmaco",
+          "hoursRequired": 45,
+          "lookbackYears": 5
+        },
+        {
+          "name": "Differential Diagnosis",
+          "pattern": "differential|diagnosis",
+          "hoursRequired": 45,
+          "lookbackYears": 5
+        }
+      ]
+    },
+    "APRN": {
+      "description": "Florida APRN Standard Requirements",
+      "totalHours": 24,
+      "subjects": [
+        {
+          "name": "Controlled Substances Prescribing",
+          "pattern": "controlled.*(substance|prescrib)|opioid|pain.*(manag|prescrib)",
+          "hoursRequired": 3,
+          "lookbackYears": null
+        },
+        {
+          "name": "Human Trafficking",
+          "pattern": "human.*traffick|trafficking",
+          "hoursRequired": 2,
+          "lookbackYears": null
+        }
+      ]
+    }
+  },
+  "OH": {
+    "name": "Ohio",
+    "APRN": {
+      "description": "Ohio APRN Requirements",
+      "totalHours": 24,
+      "subjects": [
+        {
+          "name": "Advanced Pharmacology",
+          "pattern": "pharmaco",
+          "hoursRequired": 12,
+          "lookbackYears": null
+        },
+        {
+          "name": "Controlled Substance Prescribing",
+          "pattern": "controlled.*(substance|prescrib)|opioid",
+          "hoursRequired": 1,
+          "lookbackYears": null
+        }
+      ]
+    }
+  },
+  "MI": {
+    "name": "Michigan",
+    "RN": {
+      "description": "Michigan RN Requirements",
+      "totalHours": 25,
+      "subjects": [
+        {
+          "name": "Pain and Symptom Management",
+          "pattern": "pain.*(manag|symptom)|symptom.*manag",
+          "hoursRequired": 2,
+          "lookbackYears": null
+        },
+        {
+          "name": "Implicit Bias",
+          "pattern": "implicit.*bias|bias.*train",
+          "hoursRequired": 2,
+          "lookbackYears": null
+        }
+      ]
+    }
+  },
+  "_AANPCB": {
+    "name": "AANPCB National Certification",
+    "NP": {
+      "description": "AANP Certification Board Recertification",
+      "totalHours": 100,
+      "subjects": [
+        {
+          "name": "Pharmacology",
+          "pattern": "pharmaco",
+          "hoursRequired": 25,
+          "lookbackYears": 5
+        }
+      ]
+    }
+  }
+}

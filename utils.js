@@ -133,6 +133,83 @@ function courseSearchUrl(state, licenseType) {
   return `https://cebroker.com/#!/courses/search?state=${s}&licenseType=${lt}`;
 }
 
+// ─── Lookback Period Utilities ───────────────────────────────────────────────
+
+/**
+ * Filter courses completed within a lookback period.
+ * @param {Array} courses - Array of {name, hours, date, category}
+ * @param {number} lookbackYears - Number of years to look back from today
+ * @returns {Array} Filtered courses within the date range
+ */
+function filterCoursesByLookback(courses, lookbackYears) {
+  if (!lookbackYears || !courses || !Array.isArray(courses)) return courses || [];
+
+  const cutoffDate = new Date();
+  cutoffDate.setFullYear(cutoffDate.getFullYear() - lookbackYears);
+  cutoffDate.setHours(0, 0, 0, 0);
+
+  return courses.filter(course => {
+    const courseDate = parseDate(course.date);
+    return courseDate && courseDate >= cutoffDate;
+  });
+}
+
+/**
+ * Calculate hours for a subject within a lookback period.
+ * @param {Array} courses - Array of courses with {name, hours, date, category}
+ * @param {string} subjectPattern - Regex pattern to match subject in name/category
+ * @param {number|null} lookbackYears - Lookback period in years (null = no filter)
+ * @returns {Object} { totalHours, validHours, expiredHours, totalCourses, validCourses }
+ */
+function calculateSubjectHoursWithLookback(courses, subjectPattern, lookbackYears) {
+  if (!courses || !Array.isArray(courses)) {
+    return { totalHours: 0, validHours: 0, expiredHours: 0, totalCourses: [], validCourses: [] };
+  }
+
+  const pattern = new RegExp(subjectPattern, 'i');
+
+  // Filter courses matching the subject
+  const subjectCourses = courses.filter(c =>
+    pattern.test(c.name || '') || pattern.test(c.category || '')
+  );
+
+  const totalHours = subjectCourses.reduce((sum, c) => sum + (parseFloat(c.hours) || 0), 0);
+
+  // Filter by lookback period if specified
+  const validCourses = lookbackYears ? filterCoursesByLookback(subjectCourses, lookbackYears) : subjectCourses;
+  const validHours = validCourses.reduce((sum, c) => sum + (parseFloat(c.hours) || 0), 0);
+
+  return {
+    totalHours: Math.round(totalHours * 10) / 10,
+    validHours: Math.round(validHours * 10) / 10,
+    expiredHours: Math.round((totalHours - validHours) * 10) / 10,
+    totalCourses: subjectCourses,
+    validCourses
+  };
+}
+
+/**
+ * Get the cutoff date for a lookback period.
+ * @param {number} lookbackYears - Number of years to look back
+ * @returns {Date} The cutoff date
+ */
+function getLookbackCutoffDate(lookbackYears) {
+  const cutoff = new Date();
+  cutoff.setFullYear(cutoff.getFullYear() - lookbackYears);
+  cutoff.setHours(0, 0, 0, 0);
+  return cutoff;
+}
+
+/**
+ * Format a lookback cutoff date for display.
+ * @param {number} lookbackYears - Number of years
+ * @returns {string} Formatted date string like "02/27/2021"
+ */
+function formatLookbackCutoff(lookbackYears) {
+  const cutoff = getLookbackCutoffDate(lookbackYears);
+  return cutoff.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+}
+
 // ─── Run Summary ─────────────────────────────────────────────────────────────
 
 /**
@@ -173,4 +250,8 @@ module.exports = {
   getStatus,
   courseSearchUrl,
   printSummary,
+  filterCoursesByLookback,
+  calculateSubjectHoursWithLookback,
+  getLookbackCutoffDate,
+  formatLookbackCutoff,
 };

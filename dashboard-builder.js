@@ -2,9 +2,17 @@
 
 const fs   = require('fs');
 const path = require('path');
-const { daysUntil, parseDate, getStatus, courseSearchUrl } = require('./utils');
+const { daysUntil, parseDate, getStatus, courseSearchUrl, calculateSubjectHoursWithLookback, formatLookbackCutoff } = require('./utils');
 
 const OUTPUT_HTML    = path.join(__dirname, 'dashboard.html');
+
+// Load state-specific CE requirements with lookback periods
+let STATE_REQUIREMENTS = {};
+try {
+  STATE_REQUIREMENTS = JSON.parse(fs.readFileSync(path.join(__dirname, 'state-requirements.json'), 'utf8'));
+} catch (e) {
+  // File not found or invalid - continue without state requirements
+}
 const LAST_RUN_FILE  = path.join(__dirname, 'last_run.json');
 const HISTORY_FILE   = path.join(__dirname, 'history.json');
 const PUBLIC_DIR     = path.join(__dirname, 'public');
@@ -292,6 +300,11 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
 
     const platformSection = buildPlatformSection(platformByProvider[pName] || []);
 
+    // Build lookback compliance section
+    const providerStates = [...new Set(info.licenses.map(l => l.state).filter(Boolean))];
+    const allCourses = info.licenses.flatMap(l => l.completedCourses || []);
+    const lookbackSection = buildLookbackComplianceSection(providerStates, info.type, allCourses);
+
     drawerHtmlMap[pName] = `<div class="detail-hdr">
       <div class="detail-avatar" style="background:${
         worstSt === 'Complete'    ? '#0d9488'
@@ -307,6 +320,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
       <div class="detail-overall"><span class="status-badge ${ovCls}">${ovLabel}</span></div>
     </div>
     <div>${licCards}</div>
+    ${lookbackSection}
     ${platformSection}`;
   }
 
@@ -1571,6 +1585,27 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     .platform-updated { font-size: 0.68rem; color: #94a3b8; padding: 6px 12px; border-top: 1px solid #f1f5f9; }
     .platform-no-courses { font-size: 0.75rem; color: #94a3b8; font-style: italic; }
 
+    /* ─ Lookback Compliance Section ─ */
+    .lookback-section { margin-top: 20px; padding: 16px; background: #fefce8; border-radius: 12px; border: 1px solid #fef08a; }
+    .lookback-section-title { font-size: 0.85rem; font-weight: 700; color: #854d0e; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .lookback-section-title::before { content: '⏱'; }
+    .lookback-req-group { margin-bottom: 16px; }
+    .lookback-req-group:last-child { margin-bottom: 0; }
+    .lookback-req-title { font-size: 0.78rem; font-weight: 600; color: #713f12; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid #fde68a; }
+    .lookback-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+    .lookback-table th { text-align: left; padding: 6px 8px; background: #fef9c3; color: #854d0e; font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.3px; }
+    .lookback-table td { padding: 8px; border-bottom: 1px solid #fef08a; }
+    .lookback-table tr:last-child td { border-bottom: none; }
+    .lb-subject { font-weight: 500; color: #1e293b; }
+    .lb-required { color: #64748b; }
+    .lb-total { color: #64748b; }
+    .lb-valid { color: #1e293b; font-weight: 500; }
+    .lb-window { font-size: 0.68rem; color: #94a3b8; font-weight: 400; margin-left: 4px; }
+    .lb-status { font-weight: 600; white-space: nowrap; }
+    .lb-status.lb-met { color: #16a34a; }
+    .lb-status.lb-partial { color: #d97706; }
+    .lb-status.lb-none { color: #dc2626; }
+
     /* ─ Platform Coverage Tab ─ */
     .platform-view { display: none; padding: 20px 0; }
     .platform-view.active { display: block; }
@@ -2443,6 +2478,128 @@ function buildPlatformSection(platformResults) {
   return `<div class="platform-section">
     <div class="platform-section-title">Platform CEU Accounts</div>
     <div class="platform-cards">${cards}</div>
+  </div>`;
+}
+
+/**
+ * Build the "Lookback Compliance" section HTML for a provider drawer.
+ * Shows state-specific requirements with lookback periods (e.g., FL 5-year pharmacology).
+ * @param {Array} states - Array of state abbreviations the provider is licensed in
+ * @param {string} providerType - Provider type (NP, RN, MD, etc.)
+ * @param {Array} courses - Array of completed courses with dates
+ */
+function buildLookbackComplianceSection(states, providerType, courses) {
+  if (!courses || courses.length === 0) return '';
+  if (!STATE_REQUIREMENTS || Object.keys(STATE_REQUIREMENTS).length === 0) return '';
+
+  const sections = [];
+
+  // Check each state the provider is licensed in
+  for (const state of states) {
+    const stateReqs = STATE_REQUIREMENTS[state];
+    if (!stateReqs) continue;
+
+    // Find applicable requirement set for provider type
+    let reqSet = null;
+    let reqSetName = '';
+
+    // Check for specific type requirements (NP, RN, MD, etc.)
+    if (stateReqs[providerType]) {
+      reqSet = stateReqs[providerType];
+      reqSetName = reqSet.description || (stateReqs.name + ' ' + providerType);
+    }
+    // Check for APRN requirements if provider is NP
+    if (!reqSet && (providerType === 'NP' || providerType === 'DO' || providerType === 'MD') && stateReqs.APRN) {
+      reqSet = stateReqs.APRN;
+      reqSetName = reqSet.description || (stateReqs.name + ' APRN');
+    }
+    // Check for autonomous APRN requirements (Florida specific)
+    if (stateReqs.autonomousAPRN && (providerType === 'NP')) {
+      const autoReqs = stateReqs.autonomousAPRN;
+      reqSetName = autoReqs.description || (stateReqs.name + ' Autonomous APRN');
+
+      // Build rows for autonomous requirements (these have lookback periods)
+      const rows = (autoReqs.subjects || []).map(subj => {
+        const result = calculateSubjectHoursWithLookback(courses, subj.pattern, subj.lookbackYears);
+        const needed = Math.max(0, subj.hoursRequired - result.validHours);
+        const statusClass = needed === 0 ? 'lb-met' : result.validHours > 0 ? 'lb-partial' : 'lb-none';
+        const statusText = needed === 0 ? '✓ Met' : '⚠ Need ' + needed + 'h';
+        const lookbackText = subj.lookbackYears ? subj.lookbackYears + 'yr' : 'All time';
+        const cutoffText = subj.lookbackYears ? ' (since ' + formatLookbackCutoff(subj.lookbackYears) + ')' : '';
+
+        return '<tr>' +
+          '<td class="lb-subject">' + escHtml(subj.name) + '</td>' +
+          '<td class="lb-required">' + subj.hoursRequired + 'h</td>' +
+          '<td class="lb-total">' + result.totalHours + 'h</td>' +
+          '<td class="lb-valid">' + result.validHours + 'h <span class="lb-window">' + lookbackText + cutoffText + '</span></td>' +
+          '<td class="lb-status ' + statusClass + '">' + statusText + '</td>' +
+          '</tr>';
+      }).join('');
+
+      if (rows) {
+        sections.push(`
+          <div class="lookback-req-group">
+            <div class="lookback-req-title">${escHtml(reqSetName)}</div>
+            <table class="lookback-table">
+              <thead>
+                <tr>
+                  <th>Subject</th>
+                  <th>Required</th>
+                  <th>Total</th>
+                  <th>Valid</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>`);
+      }
+    }
+
+    // Standard requirements (may or may not have lookback)
+    if (reqSet && reqSet.subjects) {
+      const rows = reqSet.subjects.map(subj => {
+        const result = calculateSubjectHoursWithLookback(courses, subj.pattern, subj.lookbackYears);
+        const needed = Math.max(0, subj.hoursRequired - result.validHours);
+        const statusClass = needed === 0 ? 'lb-met' : result.validHours > 0 ? 'lb-partial' : 'lb-none';
+        const statusText = needed === 0 ? '✓ Met' : '⚠ Need ' + needed + 'h';
+        const lookbackText = subj.lookbackYears ? subj.lookbackYears + 'yr' : '—';
+
+        return '<tr>' +
+          '<td class="lb-subject">' + escHtml(subj.name) + '</td>' +
+          '<td class="lb-required">' + subj.hoursRequired + 'h</td>' +
+          '<td class="lb-total">' + result.totalHours + 'h</td>' +
+          '<td class="lb-valid">' + result.validHours + 'h' + (subj.lookbackYears ? ' <span class="lb-window">' + lookbackText + '</span>' : '') + '</td>' +
+          '<td class="lb-status ' + statusClass + '">' + statusText + '</td>' +
+          '</tr>';
+      }).join('');
+
+      if (rows && !sections.some(s => s.includes(reqSetName))) {
+        sections.push(`
+          <div class="lookback-req-group">
+            <div class="lookback-req-title">${escHtml(reqSetName)}</div>
+            <table class="lookback-table">
+              <thead>
+                <tr>
+                  <th>Subject</th>
+                  <th>Required</th>
+                  <th>Total</th>
+                  <th>Valid</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>`);
+      }
+    }
+  }
+
+  if (sections.length === 0) return '';
+
+  return `<div class="lookback-section">
+    <div class="lookback-section-title">State CE Requirements</div>
+    ${sections.join('')}
   </div>`;
 }
 
