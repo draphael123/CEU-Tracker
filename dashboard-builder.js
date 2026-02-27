@@ -94,6 +94,10 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
   const runDate = new Date().toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' });
   const runIso  = new Date().toISOString();
 
+  // Load providers.json early for credential checks
+  const providers = require('./providers.json');
+  const noCredentialsProviders = providers.filter(p => p.noCredentials === true).map(p => p.name);
+
   // ── Group platform results by provider name ──────────────────────────────
   const platformByProvider = {};
   for (const pr of platformData) {
@@ -165,6 +169,87 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
 
   // All unique states for the state filter chips
   const allStates = [...new Set(flat.map(r => r.state).filter(Boolean))].sort();
+
+  // ── State-by-State Summary ──────────────────────────────────────────────
+  const stateStats = {};
+  for (const rec of flat) {
+    const state = rec.state || 'Unknown';
+    if (!stateStats[state]) stateStats[state] = { total: 0, complete: 0, atRisk: 0, inProgress: 0, unknown: 0 };
+    stateStats[state].total++;
+    const st = getS(rec);
+    if (st === 'Complete') stateStats[state].complete++;
+    else if (st === 'At Risk') stateStats[state].atRisk++;
+    else if (st === 'In Progress') stateStats[state].inProgress++;
+    else stateStats[state].unknown++;
+  }
+
+  // ── AANP Certification Tracking ─────────────────────────────────────────
+  const aanpCertData = platformData.filter(p => p.platform === 'AANP Cert' && p.status === 'success');
+  const aanpCertByProvider = {};
+  for (const cert of aanpCertData) {
+    aanpCertByProvider[cert.providerName] = {
+      status: cert.certStatus || 'Unknown',
+      expirationDate: cert.certExpires,
+      hoursEarned: cert.hoursEarned,
+      hoursRequired: cert.hoursRequired,
+      pharmacyHours: cert.pharmacyHoursEarned,
+      pharmacyRequired: cert.pharmacyHoursRequired
+    };
+  }
+
+  // ── Deadline urgency buckets with provider cards ────────────────────────
+  const deadlineProviders30 = [];
+  const deadlineProviders60 = [];
+  const deadlineProviders90 = [];
+  for (const [name, info] of Object.entries(providerMap)) {
+    const earliestDeadline = Math.min(...info.licenses.map(l => daysUntil(parseDate(l.renewalDeadline)) ?? 9999));
+    if (earliestDeadline >= 0 && earliestDeadline <= 30) deadlineProviders30.push([name, info, earliestDeadline]);
+    else if (earliestDeadline > 30 && earliestDeadline <= 60) deadlineProviders60.push([name, info, earliestDeadline]);
+    else if (earliestDeadline > 60 && earliestDeadline <= 90) deadlineProviders90.push([name, info, earliestDeadline]);
+  }
+  deadlineProviders30.sort((a, b) => a[2] - b[2]);
+  deadlineProviders60.sort((a, b) => a[2] - b[2]);
+  deadlineProviders90.sort((a, b) => a[2] - b[2]);
+
+  // ── Providers grouped by state ──────────────────────────────────────────
+  const providersByState = {};
+  for (const [name, info] of Object.entries(providerMap)) {
+    const states = [...new Set(info.licenses.map(l => l.state).filter(Boolean))];
+    for (const state of states) {
+      if (!providersByState[state]) providersByState[state] = [];
+      providersByState[state].push([name, info]);
+    }
+  }
+
+  // ── Action Items (Priority Queue) ───────────────────────────────────────
+  const actionItems = {
+    critical: [], // At Risk providers
+    urgent: [],   // Deadlines within 30 days
+    warning: [],  // Deadlines within 60 days
+    info: []      // Missing credentials
+  };
+  for (const [name, info] of Object.entries(providerMap)) {
+    const worstStatus = info.licenses.some(l => getS(l) === 'At Risk') ? 'At Risk'
+                      : info.licenses.some(l => getS(l) === 'In Progress') ? 'In Progress'
+                      : info.licenses.every(l => getS(l) === 'Complete') ? 'Complete'
+                      : 'Unknown';
+    const earliestDeadline = Math.min(...info.licenses.map(l => daysUntil(parseDate(l.renewalDeadline)) ?? 9999));
+    const hoursNeeded = info.licenses.reduce((sum, l) => sum + (l.hoursRemaining || 0), 0);
+
+    if (worstStatus === 'At Risk') {
+      actionItems.critical.push({ name, info, deadline: earliestDeadline, hoursNeeded, reason: 'At Risk - CE requirements behind schedule' });
+    } else if (earliestDeadline >= 0 && earliestDeadline <= 30 && worstStatus !== 'Complete') {
+      actionItems.urgent.push({ name, info, deadline: earliestDeadline, hoursNeeded, reason: 'Deadline within 30 days' });
+    } else if (earliestDeadline > 30 && earliestDeadline <= 60 && worstStatus !== 'Complete') {
+      actionItems.warning.push({ name, info, deadline: earliestDeadline, hoursNeeded, reason: 'Deadline within 60 days' });
+    }
+  }
+  // Add missing credentials to info
+  for (const p of noCredentialsProviders) {
+    if (!actionItems.critical.find(a => a.name === p) && !actionItems.urgent.find(a => a.name === p)) {
+      actionItems.info.push({ name: p, reason: 'Missing CE credentials' });
+    }
+  }
 
   // Pre-render each provider's drawer HTML in Node.js (avoids nested template literal issues)
   const drawerHtmlMap = {};
@@ -551,10 +636,6 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
   const withPlatforms = new Set(platformData.map(p => p.providerName));
   const noPlatformList = Object.keys(providerMap).filter(name => !withPlatforms.has(name) && noCEBrokerList.includes(name));
   const noCredentialsList = noCEBrokerList.filter(name => noPlatformList.includes(name));
-
-  // ── No CE Credentials Found (providers flagged with noCredentials: true) ──
-  const providers = require('./providers.json');
-  const noCredentialsProviders = providers.filter(p => p.noCredentials === true).map(p => p.name);
 
   // ── Credential Gaps Analysis ───────────────────────────────────────────────
   const missingCEBroker = providers
@@ -1694,6 +1775,114 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     .cred-gap-chip.cred-gap-chip-complete small { color: #16a34a; }
     .cred-gap-chip.cred-gap-chip-complete:hover { background: #bbf7d0; }
     .cred-gap-none { font-size: 0.85rem; color: #94a3b8; font-style: italic; }
+
+    /* ─ Provider View Styles ─ */
+    .provider-view { display: none; padding: 0 40px 24px; }
+    .provider-view.active { display: block; }
+    .export-btn { padding: 8px 16px; background: #059669; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 600; margin-left: auto; }
+    .export-btn:hover { background: #047857; }
+
+    /* ─ Deadline Buckets ─ */
+    .deadline-buckets { display: flex; flex-direction: column; gap: 24px; }
+    .deadline-bucket { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.07); overflow: hidden; }
+    .bucket-header { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid #e2e8f0; }
+    .bucket-header.bucket-urgent { background: linear-gradient(90deg, #fef2f2 0%, #fff 100%); border-left: 4px solid #dc2626; }
+    .bucket-header.bucket-warning { background: linear-gradient(90deg, #fffbeb 0%, #fff 100%); border-left: 4px solid #d97706; }
+    .bucket-header.bucket-upcoming { background: linear-gradient(90deg, #f0fdf4 0%, #fff 100%); border-left: 4px solid #16a34a; }
+    .bucket-badge { padding: 4px 12px; border-radius: 99px; font-size: 0.75rem; font-weight: 700; }
+    .bucket-urgent .bucket-badge { background: #dc2626; color: #fff; }
+    .bucket-warning .bucket-badge { background: #d97706; color: #fff; }
+    .bucket-upcoming .bucket-badge { background: #16a34a; color: #fff; }
+    .bucket-title { font-weight: 700; color: #0f172a; flex: 1; }
+    .bucket-count { font-size: 0.85rem; color: #64748b; }
+    .bucket-cards { padding: 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+    .empty-bucket { padding: 24px; text-align: center; color: #94a3b8; font-size: 0.9rem; }
+
+    /* ─ State Groups ─ */
+    .state-groups { display: flex; flex-direction: column; gap: 24px; }
+    .state-group { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.07); overflow: hidden; }
+    .state-group-header { display: flex; align-items: center; gap: 12px; padding: 16px 20px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
+    .state-name { font-weight: 800; font-size: 1.1rem; color: #0f172a; min-width: 120px; }
+    .state-mini-stats { display: flex; gap: 8px; flex: 1; flex-wrap: wrap; }
+    .mini-stat { padding: 2px 10px; border-radius: 99px; font-size: 0.75rem; font-weight: 600; }
+    .mini-stat.risk { background: #fee2e2; color: #b91c1c; }
+    .mini-stat.progress { background: #fef3c7; color: #b45309; }
+    .mini-stat.complete { background: #dcfce7; color: #166534; }
+    .state-provider-count { font-size: 0.85rem; color: #64748b; white-space: nowrap; }
+    .state-cards { padding: 16px; }
+
+    /* ─ Action Queue ─ */
+    .action-queue { display: flex; flex-direction: column; gap: 20px; }
+    .action-section { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.07); overflow: hidden; }
+    .action-section-header { display: flex; align-items: center; gap: 10px; padding: 14px 20px; font-weight: 700; }
+    .action-section.action-critical .action-section-header { background: #fef2f2; color: #b91c1c; border-left: 4px solid #dc2626; }
+    .action-section.action-urgent .action-section-header { background: #fef3c7; color: #b45309; border-left: 4px solid #d97706; }
+    .action-section.action-warning .action-section-header { background: #fefce8; color: #854d0e; border-left: 4px solid #eab308; }
+    .action-section.action-info .action-section-header { background: #f1f5f9; color: #475569; border-left: 4px solid #94a3b8; }
+    .action-icon { font-size: 1.1rem; }
+    .action-section-title { flex: 1; }
+    .action-section-count { padding: 2px 10px; border-radius: 99px; font-size: 0.8rem; background: rgba(0,0,0,.1); }
+    .action-items-list { padding: 12px; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+    .action-item-card { padding: 14px 16px; background: #f8fafc; border-radius: 10px; cursor: pointer; transition: all .15s; border: 1px solid #e2e8f0; }
+    .action-item-card:hover { background: #f1f5f9; transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+    .action-item-name { font-weight: 700; color: #0f172a; margin-bottom: 6px; }
+    .action-item-details { display: flex; gap: 12px; margin-bottom: 6px; }
+    .action-detail { font-size: 0.8rem; color: #64748b; }
+    .action-item-reason { font-size: 0.78rem; color: #94a3b8; }
+    .empty-actions { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 60px 20px; color: #16a34a; }
+    .empty-actions .empty-icon { font-size: 2rem; }
+    .empty-actions .empty-text { font-size: 1rem; font-weight: 600; }
+
+    /* ─ AANP Tracker ─ */
+    .aanp-tracker { }
+    .aanp-header { margin-bottom: 20px; }
+    .aanp-header h3 { font-size: 1.2rem; font-weight: 800; color: #0f172a; margin-bottom: 4px; }
+    .aanp-subtitle { font-size: 0.85rem; color: #64748b; }
+    .aanp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+    .aanp-card { background: #fff; border-radius: 12px; padding: 18px; box-shadow: 0 2px 8px rgba(0,0,0,.07); cursor: pointer; transition: all .15s; border-left: 4px solid #16a34a; }
+    .aanp-card:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,.1); }
+    .aanp-card.cert-active { border-left-color: #16a34a; }
+    .aanp-card.cert-warning { border-left-color: #d97706; }
+    .aanp-card.cert-expired { border-left-color: #dc2626; }
+    .aanp-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .aanp-provider-name { font-weight: 700; color: #0f172a; }
+    .aanp-cert-status { padding: 3px 10px; border-radius: 99px; font-size: 0.75rem; font-weight: 600; }
+    .aanp-cert-status.cert-active { background: #dcfce7; color: #166534; }
+    .aanp-cert-status.cert-warning { background: #fef3c7; color: #b45309; }
+    .aanp-cert-status.cert-expired { background: #fee2e2; color: #b91c1c; }
+    .aanp-cert-expiry { font-size: 0.85rem; color: #475569; margin-bottom: 14px; }
+    .aanp-days-left { margin-left: 6px; font-weight: 600; color: #64748b; }
+    .aanp-days-left.urgent { color: #d97706; }
+    .aanp-hours-section { display: flex; flex-direction: column; gap: 8px; }
+    .aanp-hours-row { display: flex; align-items: center; gap: 10px; }
+    .aanp-hours-label { font-size: 0.78rem; color: #64748b; min-width: 80px; }
+    .aanp-progress-bar { flex: 1; height: 8px; background: #e2e8f0; border-radius: 99px; overflow: hidden; }
+    .aanp-progress-bar.pharm { background: #ede9fe; }
+    .aanp-progress-fill { height: 100%; background: #16a34a; border-radius: 99px; }
+    .aanp-progress-bar.pharm .aanp-progress-fill { background: #7c3aed; }
+    .aanp-hours-text { font-size: 0.78rem; color: #475569; min-width: 80px; text-align: right; }
+    .empty-aanp { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 60px 20px; color: #64748b; }
+    .empty-aanp .empty-icon { font-size: 2rem; }
+    .empty-aanp .empty-text { font-size: 0.9rem; text-align: center; max-width: 400px; }
+
+    /* ─ State Stats ─ */
+    .state-stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+    .state-stat-card { background: #fff; border-radius: 12px; padding: 18px; box-shadow: 0 2px 8px rgba(0,0,0,.07); }
+    .state-stat-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .state-stat-name { font-weight: 800; font-size: 1.1rem; color: #0f172a; }
+    .state-stat-total { font-size: 0.85rem; color: #64748b; }
+    .state-stat-bar { display: flex; height: 10px; border-radius: 99px; overflow: hidden; background: #e2e8f0; margin-bottom: 12px; }
+    .state-bar-segment { height: 100%; }
+    .state-bar-segment.complete { background: #16a34a; }
+    .state-bar-segment.progress { background: #d97706; }
+    .state-bar-segment.risk { background: #dc2626; }
+    .state-bar-segment.unknown { background: #94a3b8; }
+    .state-stat-details { display: flex; flex-wrap: wrap; gap: 8px; }
+    .stat-detail { font-size: 0.78rem; padding: 2px 8px; border-radius: 99px; }
+    .stat-detail.complete { background: #dcfce7; color: #166534; }
+    .stat-detail.progress { background: #fef3c7; color: #b45309; }
+    .stat-detail.risk { background: #fee2e2; color: #b91c1c; }
+    .stat-detail.unknown { background: #f1f5f9; color: #64748b; }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 </head>
@@ -1863,49 +2052,312 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
 
 <!-- ── Tab: Providers ─────────────────────────────────────────────────── -->
 <div class="tab-panel active" id="tab-providers">
-  <!-- Unified Filter Bar -->
-  <div class="providers-filter-bar">
-    <input class="search-box" type="text" id="cardSearch" placeholder="Search providers..." oninput="filterCards()" />
-    <select class="filter-select" id="statusFilter" onchange="setCardFilter(this.value)">
-      <option value="all">All Statuses</option>
-      <option value="At Risk">At Risk</option>
-      <option value="In Progress">In Progress</option>
-      <option value="Complete">Complete</option>
-      <option value="Unknown">Unknown</option>
-    </select>
-    <select class="filter-select" id="typeFilter" onchange="setProviderTypeFilter(this.value)">
-      <option value="all">All Types</option>
-      <option value="NP">NP</option>
-      <option value="MD">MD</option>
-      <option value="DO">DO</option>
-      <option value="RN">RN</option>
-    </select>
-    <select class="filter-select" id="stateFilter" onchange="setStateFilter(this.value)">
-      <option value="all">All States</option>
-      ${allStates.map(s => `<option value="${escHtml(s)}">${escHtml(s)}</option>`).join('')}
-    </select>
-    <select class="filter-select" id="cardSort" onchange="sortCards()">
-      <option value="name">Sort: Name (A-Z)</option>
-      <option value="name-desc">Sort: Name (Z-A)</option>
-      <option value="status">Sort: Risk First</option>
-      <option value="status-asc">Sort: Complete First</option>
-      <option value="deadline">Sort: Deadline (Soonest)</option>
-    </select>
-    <label class="creds-toggle">
-      <input type="checkbox" id="noCredsFilter" onchange="filterCards()">
-      <span>No Creds Only</span>
-    </label>
+  <!-- View Toggle Bar -->
+  <div class="view-toggle-bar">
+    <button class="view-toggle active" onclick="showProviderView('all')">All Providers <span class="view-count">${providerEntries.length}</span></button>
+    <button class="view-toggle" onclick="showProviderView('deadline')">By Deadline <span class="view-count ${deadlineProviders30.length > 0 ? 'warning' : ''}">${deadlineProviders30.length + deadlineProviders60.length + deadlineProviders90.length}</span></button>
+    <button class="view-toggle" onclick="showProviderView('state')">By State</button>
+    <button class="view-toggle" onclick="showProviderView('actions')">Action Items <span class="view-count ${actionItems.critical.length > 0 ? 'warning' : ''}">${actionItems.critical.length + actionItems.urgent.length}</span></button>
+    <button class="view-toggle" onclick="showProviderView('aanp')">AANP Cert <span class="view-count">${aanpCertData.length}</span></button>
+    <button class="view-toggle" onclick="showProviderView('stats')">State Stats</button>
+    <button class="export-btn" onclick="exportMissingCredentials()">Export Missing Creds</button>
   </div>
 
-  <!-- Provider Count -->
-  <div class="providers-count">
-    <span id="providerFilterCount">${providerEntries.length} of ${providerEntries.length} providers</span>
-    <button class="reset-btn" onclick="resetProviderFilters()">Reset</button>
+  <!-- All Providers View -->
+  <div class="provider-view active" id="provider-all">
+    <!-- Filter Bar -->
+    <div class="providers-filter-bar">
+      <input class="search-box" type="text" id="cardSearch" placeholder="Search providers..." oninput="filterCards()" />
+      <select class="filter-select" id="statusFilter" onchange="setCardFilter(this.value)">
+        <option value="all">All Statuses</option>
+        <option value="At Risk">At Risk</option>
+        <option value="In Progress">In Progress</option>
+        <option value="Complete">Complete</option>
+        <option value="Unknown">Unknown</option>
+      </select>
+      <select class="filter-select" id="typeFilter" onchange="setProviderTypeFilter(this.value)">
+        <option value="all">All Types</option>
+        <option value="NP">NP</option>
+        <option value="MD">MD</option>
+        <option value="DO">DO</option>
+        <option value="RN">RN</option>
+      </select>
+      <select class="filter-select" id="stateFilter" onchange="setStateFilter(this.value)">
+        <option value="all">All States</option>
+        ${allStates.map(s => `<option value="${escHtml(s)}">${escHtml(s)}</option>`).join('')}
+      </select>
+      <select class="filter-select" id="cardSort" onchange="sortCards()">
+        <option value="name">Sort: Name (A-Z)</option>
+        <option value="name-desc">Sort: Name (Z-A)</option>
+        <option value="status">Sort: Risk First</option>
+        <option value="status-asc">Sort: Complete First</option>
+        <option value="deadline">Sort: Deadline (Soonest)</option>
+      </select>
+      <label class="creds-toggle">
+        <input type="checkbox" id="noCredsFilter" onchange="filterCards()">
+        <span>No Creds Only</span>
+      </label>
+    </div>
+
+    <!-- Provider Count -->
+    <div class="providers-count">
+      <span id="providerFilterCount">${providerEntries.length} of ${providerEntries.length} providers</span>
+      <button class="reset-btn" onclick="resetProviderFilters()">Reset</button>
+    </div>
+
+    <!-- All Providers Cards Grid -->
+    <div class="cards-grid" id="allCardsGrid">
+      ${profileCards}
+    </div>
   </div>
 
-  <!-- All Providers Cards Grid -->
-  <div class="cards-grid" id="allCardsGrid">
-    ${profileCards}
+  <!-- By Deadline View -->
+  <div class="provider-view" id="provider-deadline">
+    <div class="deadline-buckets">
+      <!-- 30 Days Bucket -->
+      <div class="deadline-bucket bucket-30">
+        <div class="bucket-header bucket-urgent">
+          <span class="bucket-badge">30 Days</span>
+          <span class="bucket-title">Due Within 30 Days</span>
+          <span class="bucket-count">${deadlineProviders30.length} provider${deadlineProviders30.length !== 1 ? 's' : ''}</span>
+        </div>
+        <div class="bucket-cards">
+          ${deadlineProviders30.length > 0
+            ? deadlineProviders30.map(([name, info, days]) => buildProviderCard([name, info])).join('')
+            : '<div class="empty-bucket">No providers with deadlines in next 30 days</div>'}
+        </div>
+      </div>
+
+      <!-- 60 Days Bucket -->
+      <div class="deadline-bucket bucket-60">
+        <div class="bucket-header bucket-warning">
+          <span class="bucket-badge">60 Days</span>
+          <span class="bucket-title">Due Within 31-60 Days</span>
+          <span class="bucket-count">${deadlineProviders60.length} provider${deadlineProviders60.length !== 1 ? 's' : ''}</span>
+        </div>
+        <div class="bucket-cards">
+          ${deadlineProviders60.length > 0
+            ? deadlineProviders60.map(([name, info, days]) => buildProviderCard([name, info])).join('')
+            : '<div class="empty-bucket">No providers with deadlines in 31-60 days</div>'}
+        </div>
+      </div>
+
+      <!-- 90 Days Bucket -->
+      <div class="deadline-bucket bucket-90">
+        <div class="bucket-header bucket-upcoming">
+          <span class="bucket-badge">90 Days</span>
+          <span class="bucket-title">Due Within 61-90 Days</span>
+          <span class="bucket-count">${deadlineProviders90.length} provider${deadlineProviders90.length !== 1 ? 's' : ''}</span>
+        </div>
+        <div class="bucket-cards">
+          ${deadlineProviders90.length > 0
+            ? deadlineProviders90.map(([name, info, days]) => buildProviderCard([name, info])).join('')
+            : '<div class="empty-bucket">No providers with deadlines in 61-90 days</div>'}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- By State View -->
+  <div class="provider-view" id="provider-state">
+    <div class="state-groups">
+      ${Object.entries(providersByState).sort((a, b) => a[0].localeCompare(b[0])).map(([state, stateProviders]) => {
+        const stats = stateStats[state] || { total: 0, complete: 0, atRisk: 0, inProgress: 0 };
+        return `<div class="state-group">
+          <div class="state-group-header">
+            <span class="state-name">${escHtml(state)}</span>
+            <div class="state-mini-stats">
+              ${stats.atRisk > 0 ? `<span class="mini-stat risk">${stats.atRisk} at risk</span>` : ''}
+              ${stats.inProgress > 0 ? `<span class="mini-stat progress">${stats.inProgress} in progress</span>` : ''}
+              ${stats.complete > 0 ? `<span class="mini-stat complete">${stats.complete} complete</span>` : ''}
+            </div>
+            <span class="state-provider-count">${stateProviders.length} provider${stateProviders.length !== 1 ? 's' : ''}</span>
+          </div>
+          <div class="cards-grid state-cards">
+            ${stateProviders.map(([name, info]) => buildProviderCard([name, info])).join('')}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>
+
+  <!-- Action Items View -->
+  <div class="provider-view" id="provider-actions">
+    <div class="action-queue">
+      <!-- Critical Actions -->
+      ${actionItems.critical.length > 0 ? `
+      <div class="action-section action-critical">
+        <div class="action-section-header">
+          <span class="action-icon">⚠</span>
+          <span class="action-section-title">Critical - At Risk</span>
+          <span class="action-section-count">${actionItems.critical.length}</span>
+        </div>
+        <div class="action-items-list">
+          ${actionItems.critical.map(item => `
+            <div class="action-item-card" onclick="openProvider('${escHtml(item.name).replace(/'/g, '&#39;')}')">
+              <div class="action-item-name">${escHtml(item.name)}</div>
+              <div class="action-item-details">
+                <span class="action-detail">${item.deadline >= 0 ? item.deadline + ' days left' : Math.abs(item.deadline) + ' days overdue'}</span>
+                <span class="action-detail">${item.hoursNeeded} hrs needed</span>
+              </div>
+              <div class="action-item-reason">${escHtml(item.reason)}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>` : ''}
+
+      <!-- Urgent Actions -->
+      ${actionItems.urgent.length > 0 ? `
+      <div class="action-section action-urgent">
+        <div class="action-section-header">
+          <span class="action-icon">◷</span>
+          <span class="action-section-title">Urgent - 30 Day Deadline</span>
+          <span class="action-section-count">${actionItems.urgent.length}</span>
+        </div>
+        <div class="action-items-list">
+          ${actionItems.urgent.map(item => `
+            <div class="action-item-card" onclick="openProvider('${escHtml(item.name).replace(/'/g, '&#39;')}')">
+              <div class="action-item-name">${escHtml(item.name)}</div>
+              <div class="action-item-details">
+                <span class="action-detail">${item.deadline} days left</span>
+                <span class="action-detail">${item.hoursNeeded} hrs needed</span>
+              </div>
+              <div class="action-item-reason">${escHtml(item.reason)}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>` : ''}
+
+      <!-- Warning Actions -->
+      ${actionItems.warning.length > 0 ? `
+      <div class="action-section action-warning">
+        <div class="action-section-header">
+          <span class="action-icon">○</span>
+          <span class="action-section-title">Attention - 60 Day Deadline</span>
+          <span class="action-section-count">${actionItems.warning.length}</span>
+        </div>
+        <div class="action-items-list">
+          ${actionItems.warning.map(item => `
+            <div class="action-item-card" onclick="openProvider('${escHtml(item.name).replace(/'/g, '&#39;')}')">
+              <div class="action-item-name">${escHtml(item.name)}</div>
+              <div class="action-item-details">
+                <span class="action-detail">${item.deadline} days left</span>
+                <span class="action-detail">${item.hoursNeeded} hrs needed</span>
+              </div>
+              <div class="action-item-reason">${escHtml(item.reason)}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>` : ''}
+
+      <!-- Info Actions -->
+      ${actionItems.info.length > 0 ? `
+      <div class="action-section action-info">
+        <div class="action-section-header">
+          <span class="action-icon">○</span>
+          <span class="action-section-title">Missing Credentials</span>
+          <span class="action-section-count">${actionItems.info.length}</span>
+        </div>
+        <div class="action-items-list">
+          ${actionItems.info.map(item => `
+            <div class="action-item-card" onclick="openProvider('${escHtml(item.name).replace(/'/g, '&#39;')}')">
+              <div class="action-item-name">${escHtml(item.name)}</div>
+              <div class="action-item-reason">${escHtml(item.reason)}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>` : ''}
+
+      ${actionItems.critical.length + actionItems.urgent.length + actionItems.warning.length + actionItems.info.length === 0 ? `
+      <div class="empty-actions">
+        <span class="empty-icon">✓</span>
+        <span class="empty-text">No action items! All providers are on track.</span>
+      </div>` : ''}
+    </div>
+  </div>
+
+  <!-- AANP Certification View -->
+  <div class="provider-view" id="provider-aanp">
+    <div class="aanp-tracker">
+      <div class="aanp-header">
+        <h3>AANP Certification Status</h3>
+        <p class="aanp-subtitle">National certification tracking for nurse practitioners</p>
+      </div>
+      ${aanpCertData.length > 0 ? `
+      <div class="aanp-grid">
+        ${aanpCertData.map(cert => {
+          const certInfo = aanpCertByProvider[cert.providerName] || {};
+          const daysToExpire = daysUntil(parseDate(cert.certExpires));
+          const statusCls = cert.certStatus === 'Active'
+            ? (daysToExpire !== null && daysToExpire <= 90 ? 'cert-warning' : 'cert-active')
+            : 'cert-expired';
+          const pharmPct = cert.pharmacyHoursRequired > 0
+            ? Math.min(100, Math.round((cert.pharmacyHoursEarned || 0) / cert.pharmacyHoursRequired * 100))
+            : 0;
+          const totalPct = cert.hoursRequired > 0
+            ? Math.min(100, Math.round((cert.hoursEarned || 0) / cert.hoursRequired * 100))
+            : 0;
+          const safeName = escHtml(cert.providerName).replace(/'/g, '&#39;');
+          return `<div class="aanp-card ${statusCls}" onclick="openProvider('${safeName}')">
+            <div class="aanp-card-header">
+              <span class="aanp-provider-name">${escHtml(cert.providerName)}</span>
+              <span class="aanp-cert-status ${statusCls}">${escHtml(cert.certStatus || 'Unknown')}</span>
+            </div>
+            <div class="aanp-cert-expiry">
+              Expires: <strong>${escHtml(cert.certExpires || 'N/A')}</strong>
+              ${daysToExpire !== null ? `<span class="aanp-days-left ${daysToExpire <= 90 ? 'urgent' : ''}">(${daysToExpire}d)</span>` : ''}
+            </div>
+            <div class="aanp-hours-section">
+              <div class="aanp-hours-row">
+                <span class="aanp-hours-label">Total CE</span>
+                <div class="aanp-progress-bar">
+                  <div class="aanp-progress-fill" style="width:${totalPct}%"></div>
+                </div>
+                <span class="aanp-hours-text">${cert.hoursEarned ?? 0}/${cert.hoursRequired ?? 100} hrs</span>
+              </div>
+              <div class="aanp-hours-row">
+                <span class="aanp-hours-label">Pharmacology</span>
+                <div class="aanp-progress-bar pharm">
+                  <div class="aanp-progress-fill" style="width:${pharmPct}%"></div>
+                </div>
+                <span class="aanp-hours-text">${cert.pharmacyHoursEarned ?? 0}/${cert.pharmacyHoursRequired ?? 25} hrs</span>
+              </div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>` : `
+      <div class="empty-aanp">
+        <span class="empty-icon">○</span>
+        <span class="empty-text">No AANP certification data available. Configure AANP Cert credentials for providers.</span>
+      </div>`}
+    </div>
+  </div>
+
+  <!-- State Stats View -->
+  <div class="provider-view" id="provider-stats">
+    <div class="state-stats-grid">
+      ${Object.entries(stateStats).sort((a, b) => b[1].total - a[1].total).map(([state, stats]) => {
+        const completePct = stats.total > 0 ? Math.round(stats.complete / stats.total * 100) : 0;
+        return `<div class="state-stat-card">
+          <div class="state-stat-header">
+            <span class="state-stat-name">${escHtml(state)}</span>
+            <span class="state-stat-total">${stats.total} license${stats.total !== 1 ? 's' : ''}</span>
+          </div>
+          <div class="state-stat-bar">
+            <div class="state-bar-segment complete" style="width:${stats.total > 0 ? (stats.complete / stats.total * 100) : 0}%"></div>
+            <div class="state-bar-segment progress" style="width:${stats.total > 0 ? (stats.inProgress / stats.total * 100) : 0}%"></div>
+            <div class="state-bar-segment risk" style="width:${stats.total > 0 ? (stats.atRisk / stats.total * 100) : 0}%"></div>
+            <div class="state-bar-segment unknown" style="width:${stats.total > 0 ? (stats.unknown / stats.total * 100) : 0}%"></div>
+          </div>
+          <div class="state-stat-details">
+            <span class="stat-detail complete">${stats.complete} complete</span>
+            <span class="stat-detail progress">${stats.inProgress} in progress</span>
+            <span class="stat-detail risk">${stats.atRisk} at risk</span>
+            ${stats.unknown > 0 ? `<span class="stat-detail unknown">${stats.unknown} unknown</span>` : ''}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
   </div>
 </div>
 
@@ -2152,6 +2604,32 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     const btns = platformsTab.querySelectorAll('.view-toggle');
     const labels = ['matrix','cards','gaps'];
     btns[labels.indexOf(name)]?.classList.add('active');
+  }
+
+  // ── Provider View Toggles ──
+  function showProviderView(name) {
+    const providersTab = document.getElementById('tab-providers');
+    providersTab.querySelectorAll('.provider-view').forEach(v => v.classList.remove('active'));
+    providersTab.querySelectorAll('.view-toggle').forEach(b => b.classList.remove('active'));
+    document.getElementById('provider-' + name)?.classList.add('active');
+    const btns = providersTab.querySelectorAll('.view-toggle');
+    const labels = ['all','deadline','state','actions','aanp','stats'];
+    btns[labels.indexOf(name)]?.classList.add('active');
+  }
+
+  // ── Export Missing Credentials ──
+  function exportMissingCredentials() {
+    const missingCreds = ${JSON.stringify(missingCEBroker.map(p => ({ name: p.name, type: p.type, hasPlatform: !p.noCredentials })))};
+    const csv = 'Name,Type,Has Platform Access\\n' + missingCreds.map(p =>
+      '"' + p.name.replace(/"/g, '""') + '","' + p.type + '","' + (p.hasPlatform ? 'Yes' : 'No') + '"'
+    ).join('\\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'missing-credentials-' + new Date().toISOString().split('T')[0] + '.csv';
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   // ── Sort cards ──
