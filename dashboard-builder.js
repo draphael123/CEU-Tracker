@@ -556,6 +556,19 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
   const providers = require('./providers.json');
   const noCredentialsProviders = providers.filter(p => p.noCredentials === true).map(p => p.name);
 
+  // ── Credential Gaps Analysis ───────────────────────────────────────────────
+  const missingCEBroker = providers
+    .filter(p => !p.username || !p.password)
+    .map(p => ({ name: p.name, type: p.type, noCredentials: p.noCredentials === true }));
+
+  const missingNetCE = providers
+    .filter(p => !p.platforms?.some(plat => plat.platform === 'NetCE'))
+    .map(p => ({ name: p.name, type: p.type, noCredentials: p.noCredentials === true }));
+
+  const haveBoth = providers
+    .filter(p => p.username && p.password && p.platforms?.some(plat => plat.platform === 'NetCE'))
+    .map(p => ({ name: p.name, type: p.type }));
+
   // ── Split providers into clinicians and RNs ──────────────────────────────
   const providerEntries = Object.entries(providerMap);
   const clinicianEntries = providerEntries.filter(([name, info]) => !isRN(name, info.type));
@@ -1657,6 +1670,30 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     .plat-provider-chip { padding: 4px 10px; background: #f1f5f9; border-radius: 99px; font-size: 0.78rem; color: #475569; cursor: pointer; transition: all .15s; }
     .plat-provider-chip:hover { background: #e0f2fe; color: #0369a1; }
     .no-providers { font-size: 0.85rem; color: #94a3b8; font-style: italic; }
+
+    /* ─ Credential Gaps View ─ */
+    .credential-gaps-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 20px; padding: 0 40px; }
+    .cred-gap-card { background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+    .cred-gap-header { display: flex; align-items: center; gap: 10px; padding: 16px 20px; color: #fff; }
+    .cred-gap-header.cred-gap-cebroker { background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); }
+    .cred-gap-header.cred-gap-netce { background: linear-gradient(135deg, #d97706 0%, #92400e 100%); }
+    .cred-gap-header.cred-gap-complete { background: linear-gradient(135deg, #16a34a 0%, #166534 100%); }
+    .cred-gap-icon { font-size: 1.3rem; }
+    .cred-gap-title { flex: 1; font-weight: 600; font-size: 0.95rem; }
+    .cred-gap-count { background: rgba(255,255,255,.25); padding: 4px 12px; border-radius: 99px; font-weight: 700; font-size: 0.9rem; }
+    .cred-gap-body { padding: 16px 20px; }
+    .cred-gap-subtitle { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; margin-bottom: 8px; }
+    .cred-gap-list { display: flex; flex-wrap: wrap; gap: 8px; }
+    .cred-gap-chip { padding: 6px 12px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; font-size: 0.82rem; color: #991b1b; cursor: pointer; transition: all .15s; }
+    .cred-gap-chip:hover { background: #fee2e2; transform: translateY(-1px); }
+    .cred-gap-chip small { color: #b91c1c; opacity: 0.7; }
+    .cred-gap-chip.cred-gap-chip-none { background: #f1f5f9; border-color: #cbd5e1; color: #64748b; }
+    .cred-gap-chip.cred-gap-chip-none small { color: #94a3b8; }
+    .cred-gap-chip.cred-gap-chip-none:hover { background: #e2e8f0; }
+    .cred-gap-chip.cred-gap-chip-complete { background: #dcfce7; border-color: #86efac; color: #166534; }
+    .cred-gap-chip.cred-gap-chip-complete small { color: #16a34a; }
+    .cred-gap-chip.cred-gap-chip-complete:hover { background: #bbf7d0; }
+    .cred-gap-none { font-size: 0.85rem; color: #94a3b8; font-style: italic; }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 </head>
@@ -1878,6 +1915,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
   <div class="view-toggle-bar">
     <button class="view-toggle active" onclick="showPlatformView('matrix')">Coverage Matrix</button>
     <button class="view-toggle" onclick="showPlatformView('cards')">Platform Cards</button>
+    <button class="view-toggle" onclick="showPlatformView('gaps')">Credential Gaps</button>
   </div>
 
   <!-- Coverage Matrix View -->
@@ -1949,6 +1987,78 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
           '</div>' +
         '</div>';
       }).join('')}
+    </div>
+  </div>
+
+  <!-- Credential Gaps View -->
+  <div class="platform-view" id="platform-gaps">
+    <div class="credential-gaps-grid">
+      <!-- Missing CE Broker -->
+      <div class="cred-gap-card">
+        <div class="cred-gap-header cred-gap-cebroker">
+          <span class="cred-gap-icon">🔑</span>
+          <span class="cred-gap-title">Missing CE Broker Credentials</span>
+          <span class="cred-gap-count">${missingCEBroker.length}</span>
+        </div>
+        <div class="cred-gap-body">
+          <div class="cred-gap-subtitle">With some platform access (${missingCEBroker.filter(p => !p.noCredentials).length})</div>
+          <div class="cred-gap-list">
+            ${missingCEBroker.filter(p => !p.noCredentials).map(p => {
+              const safeName = escHtml(p.name).replace(/'/g, '&#39;');
+              return '<span class="cred-gap-chip" onclick="openProvider(\'' + safeName + '\')">' + escHtml(p.name) + ' <small>(' + p.type + ')</small></span>';
+            }).join('') || '<span class="cred-gap-none">None</span>'}
+          </div>
+          <div class="cred-gap-subtitle" style="margin-top: 12px;">No credentials at all (${missingCEBroker.filter(p => p.noCredentials).length})</div>
+          <div class="cred-gap-list">
+            ${missingCEBroker.filter(p => p.noCredentials).map(p => {
+              const safeName = escHtml(p.name).replace(/'/g, '&#39;');
+              return '<span class="cred-gap-chip cred-gap-chip-none" onclick="openProvider(\'' + safeName + '\')">' + escHtml(p.name) + ' <small>(' + p.type + ')</small></span>';
+            }).join('') || '<span class="cred-gap-none">None</span>'}
+          </div>
+        </div>
+      </div>
+
+      <!-- Missing NetCE -->
+      <div class="cred-gap-card">
+        <div class="cred-gap-header cred-gap-netce">
+          <span class="cred-gap-icon">📚</span>
+          <span class="cred-gap-title">Missing NetCE Credentials</span>
+          <span class="cred-gap-count">${missingNetCE.length}</span>
+        </div>
+        <div class="cred-gap-body">
+          <div class="cred-gap-subtitle">Have other platform access (${missingNetCE.filter(p => !p.noCredentials).length})</div>
+          <div class="cred-gap-list">
+            ${missingNetCE.filter(p => !p.noCredentials).map(p => {
+              const safeName = escHtml(p.name).replace(/'/g, '&#39;');
+              return '<span class="cred-gap-chip" onclick="openProvider(\'' + safeName + '\')">' + escHtml(p.name) + ' <small>(' + p.type + ')</small></span>';
+            }).join('') || '<span class="cred-gap-none">None</span>'}
+          </div>
+          <div class="cred-gap-subtitle" style="margin-top: 12px;">No credentials at all (${missingNetCE.filter(p => p.noCredentials).length})</div>
+          <div class="cred-gap-list">
+            ${missingNetCE.filter(p => p.noCredentials).map(p => {
+              const safeName = escHtml(p.name).replace(/'/g, '&#39;');
+              return '<span class="cred-gap-chip cred-gap-chip-none" onclick="openProvider(\'' + safeName + '\')">' + escHtml(p.name) + ' <small>(' + p.type + ')</small></span>';
+            }).join('') || '<span class="cred-gap-none">None</span>'}
+          </div>
+        </div>
+      </div>
+
+      <!-- Have Both -->
+      <div class="cred-gap-card">
+        <div class="cred-gap-header cred-gap-complete">
+          <span class="cred-gap-icon">✓</span>
+          <span class="cred-gap-title">Have Both CE Broker & NetCE</span>
+          <span class="cred-gap-count">${haveBoth.length}</span>
+        </div>
+        <div class="cred-gap-body">
+          <div class="cred-gap-list">
+            ${haveBoth.map(p => {
+              const safeName = escHtml(p.name).replace(/'/g, '&#39;');
+              return '<span class="cred-gap-chip cred-gap-chip-complete" onclick="openProvider(\'' + safeName + '\')">' + escHtml(p.name) + ' <small>(' + p.type + ')</small></span>';
+            }).join('') || '<span class="cred-gap-none">None</span>'}
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -2040,7 +2150,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     platformsTab.querySelectorAll('.view-toggle').forEach(b => b.classList.remove('active'));
     document.getElementById('platform-' + name)?.classList.add('active');
     const btns = platformsTab.querySelectorAll('.view-toggle');
-    const labels = ['matrix','cards'];
+    const labels = ['matrix','cards','gaps'];
     btns[labels.indexOf(name)]?.classList.add('active');
   }
 
