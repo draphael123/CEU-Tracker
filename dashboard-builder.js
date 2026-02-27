@@ -80,7 +80,7 @@ function saveHistory(allProviderRecords, runResults) {
  * @param {LicenseRecord[][]} allProviderRecords
  * @param {{ name:string, status:string, error?:string }[]} [runResults]
  */
-function buildDashboard(allProviderRecords, runResults = [], platformData = [], licenseData = {}, stateBoardData = []) {
+function buildDashboard(allProviderRecords, runResults = [], platformData = []) {
   const history = saveHistory(allProviderRecords, runResults);
   const flat    = flattenRecords(allProviderRecords, runResults);
   const runDate = new Date().toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' });
@@ -377,6 +377,24 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     return RN_FIRST_NAMES.some(rn => firstName.toLowerCase().startsWith(rn.toLowerCase()));
   };
 
+  // ── Helper to determine why a provider has Unknown status ────────────────
+  const getUnknownReason = (providerName) => {
+    // Check if login failed
+    const failedLogin = loginErrors.find(r => r.name === providerName);
+    if (failedLogin) {
+      return { reason: 'Login Failed', detail: failedLogin.error || 'CE Broker login error', icon: '⚠', cls: 'unknown-error' };
+    }
+    // Check if no CE Broker credentials
+    if (noCEBrokerList.includes(providerName)) {
+      const hasPlatform = withPlatforms.has(providerName);
+      if (hasPlatform) {
+        return { reason: 'No CE Broker', detail: 'Platform data only', icon: '○', cls: 'unknown-partial' };
+      }
+      return { reason: 'No Credentials', detail: 'No CE Broker or platform logins', icon: '○', cls: 'unknown-none' };
+    }
+    return { reason: 'Unknown', detail: 'Data unavailable', icon: '—', cls: 'unknown-default' };
+  };
+
   // ── Helper to build a single provider card ───────────────────────────────
   const buildProviderCard = ([name, info]) => {
     const licBadges = info.licenses.map(lic => {
@@ -433,13 +451,16 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
                       : info.licenses.every(l => getS(l) === 'Complete')    ? 'Complete'
                       : 'Unknown';
 
+    // Get specific reason for Unknown status
+    const unknownInfo = worstStatus === 'Unknown' ? getUnknownReason(name) : null;
+
     // Earliest deadline (for sorting)
     const earliestDeadline = Math.min(...info.licenses.map(l => daysUntil(parseDate(l.renewalDeadline)) ?? 9999));
     const cardBorderCls = {
       Complete:      'card-ok',
       'In Progress': 'card-prog',
       'At Risk':     'card-risk',
-      Unknown:       'card-unk',
+      Unknown:       unknownInfo?.cls === 'unknown-error' ? 'card-error' : 'card-unk',
     }[worstStatus] || 'card-unk';
 
     const initials = name.split(/[\s,]+/).filter(Boolean).slice(0, 2)
@@ -471,6 +492,13 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       }).join('');
     const platTagsRow = platTags ? `<div class="card-plat-tags">${platTags}</div>` : '';
 
+    // Unknown reason banner
+    const unknownBanner = unknownInfo ? `
+      <div class="unknown-reason ${unknownInfo.cls}">
+        <span class="unknown-icon">${unknownInfo.icon}</span>
+        <span class="unknown-text"><strong>${escHtml(unknownInfo.reason)}</strong> — ${escHtml(unknownInfo.detail)}</span>
+      </div>` : '';
+
     return `<div class="provider-card ${cardBorderCls} card-clickable"
         data-provider="${escHtml(name)}"
         data-status="${worstStatus}"
@@ -479,11 +507,13 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
         data-type="${escHtml(info.type || '')}"
         data-no-creds="${noCredentialsProviders.includes(name) || noCEBrokerList.includes(name)}"
         onclick="openProvider(this.dataset.provider)">
+      ${unknownBanner}
       <div class="card-top">
         <div class="avatar" style="background:${
         worstStatus === 'Complete'    ? '#0d9488'
       : worstStatus === 'In Progress' ? '#d97706'
       : worstStatus === 'At Risk'     ? '#dc2626'
+      : unknownInfo?.cls === 'unknown-error' ? '#b91c1c'
       :                                  '#64748b'
       }">${escHtml(initials)}</div>
         <div class="card-info">
@@ -692,6 +722,41 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .provider-card.card-prog { border-left-color: #d97706; }
     .provider-card.card-risk { border-left-color: #dc2626; }
     .provider-card.card-unk  { border-left-color: #93c5fd; }
+    .provider-card.card-error { border-left-color: #f87171; }
+
+    /* Unknown reason banner */
+    .unknown-reason {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      margin-bottom: 12px;
+      font-size: 0.78rem;
+    }
+    .unknown-reason.unknown-none {
+      background: #f1f5f9;
+      color: #64748b;
+      border: 1px solid #e2e8f0;
+    }
+    .unknown-reason.unknown-partial {
+      background: #eff6ff;
+      color: #1e40af;
+      border: 1px solid #bfdbfe;
+    }
+    .unknown-reason.unknown-error {
+      background: #fef2f2;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+    }
+    .unknown-reason.unknown-default {
+      background: #f8fafc;
+      color: #475569;
+      border: 1px solid #e2e8f0;
+    }
+    .unknown-icon { font-size: 1rem; }
+    .unknown-text { flex: 1; }
+    .unknown-text strong { font-weight: 700; }
 
     .card-top { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
     .avatar {
@@ -775,6 +840,50 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       transition: all .15s;
     }
     .filter-btn:hover, .filter-btn.active { background: #1d4ed8; color: #fff; border-color: #1d4ed8; }
+    .filter-select {
+      padding: 7px 12px;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 8px;
+      background: #fff;
+      font-size: 0.82rem;
+      cursor: pointer;
+      min-width: 140px;
+    }
+    .filter-select:focus { border-color: #1d4ed8; outline: none; }
+    .control-row {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .license-controls {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    .license-controls .search-box {
+      width: 100%;
+      max-width: 400px;
+      margin-bottom: 12px;
+    }
+    .filter-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 40px 16px;
+      font-size: 0.85rem;
+      color: #64748b;
+    }
+    .reset-btn {
+      padding: 6px 14px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      background: #f8fafc;
+      cursor: pointer;
+      font-size: 0.78rem;
+      color: #475569;
+      transition: all .15s;
+    }
+    .reset-btn:hover { background: #e2e8f0; border-color: #94a3b8; }
 
     /* ─ Table ─ */
     .table-wrap { padding: 0 40px 16px; overflow-x: auto; }
@@ -799,20 +908,6 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .status-risk     { background: #fca5a5; color: #7f1d1d; }
     .status-pending  { background: #cbd5e1; color: #334155; }
     .status-unknown  { background: #e2e8f0; color: #475569; }
-
-    /* ─ Licenses & Applications tab ─ */
-    .license-summary { display: flex; flex-wrap: wrap; gap: 12px; padding: 0 40px 20px; }
-    .license-summary .stat-card { flex: 1; min-width: 140px; text-align: center; }
-    .license-summary .stat-card .stat-num { font-size: 2rem; font-weight: 800; }
-    .license-summary .stat-card .stat-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: .5px; color: #64748b; margin-top: 4px; }
-    .license-summary .stat-card.complete { border-top: 4px solid #16a34a; }
-    .license-summary .stat-card.complete .stat-num { color: #15803d; }
-    .license-summary .stat-card.warning { border-top: 4px solid #d97706; }
-    .license-summary .stat-card.warning .stat-num { color: #b45309; }
-    .license-summary .stat-card.at-risk { border-top: 4px solid #dc2626; }
-    .license-summary .stat-card.at-risk .stat-num { color: #b91c1c; }
-    .license-summary .stat-card.expired { border-top: 4px solid #6b7280; }
-    .license-summary .stat-card.expired .stat-num { color: #4b5563; }
 
     .data-table { width: 100%; border-collapse: collapse; margin: 0 40px 40px; max-width: calc(100% - 80px); font-size: 0.84rem; }
     .data-table th, .data-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
@@ -907,6 +1002,101 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .stat-complete .stat-number, .stat-complete .stat-label { color: #16a34a; }
     .stat-no-creds { border-left: 4px solid #6b7280; }
     .stat-no-creds .stat-number, .stat-no-creds .stat-label { color: #6b7280; }
+
+    /* ─ New Dashboard Tab ─ */
+    .dashboard-stats-row { display: flex; gap: 16px; padding: 24px 40px 16px; flex-wrap: wrap; }
+    .dash-stat-card { display: flex; align-items: center; gap: 12px; background: #fff; border-radius: 12px; padding: 14px 20px; box-shadow: 0 2px 8px rgba(0,0,0,.06); flex: 1; min-width: 140px; }
+    .dash-stat-icon { font-size: 1.5rem; opacity: 0.9; }
+    .dash-stat-content { display: flex; flex-direction: column; }
+    .dash-stat-num { font-size: 1.8rem; font-weight: 800; line-height: 1; }
+    .dash-stat-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.8; }
+    .dash-stat-risk { background: linear-gradient(135deg, #fef2f2, #fff); border-left: 4px solid #dc2626; }
+    .dash-stat-risk .dash-stat-num, .dash-stat-risk .dash-stat-label { color: #dc2626; }
+    .dash-stat-warning { background: linear-gradient(135deg, #fffbeb, #fff); border-left: 4px solid #d97706; }
+    .dash-stat-warning .dash-stat-num, .dash-stat-warning .dash-stat-label { color: #d97706; }
+    .dash-stat-complete { background: linear-gradient(135deg, #f0fdf4, #fff); border-left: 4px solid #16a34a; }
+    .dash-stat-complete .dash-stat-num, .dash-stat-complete .dash-stat-label { color: #16a34a; }
+    .dash-stat-unknown { background: linear-gradient(135deg, #f8fafc, #fff); border-left: 4px solid #64748b; }
+    .dash-stat-unknown .dash-stat-num, .dash-stat-unknown .dash-stat-label { color: #64748b; }
+
+    .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding: 0 40px 24px; }
+    @media (max-width: 900px) { .dashboard-grid { grid-template-columns: 1fr; } }
+    .dashboard-actions, .dashboard-deadlines { background: #fff; border-radius: 14px; padding: 20px 24px; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+    .dash-section-header { font-size: 0.9rem; font-weight: 700; color: #1e293b; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .dash-action-list { display: flex; flex-direction: column; gap: 10px; }
+    .dash-action-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 10px; cursor: pointer; transition: all .15s; }
+    .dash-action-item:hover { transform: translateX(4px); }
+    .dash-action-icon { font-size: 1.1rem; width: 24px; text-align: center; }
+    .dash-action-text { flex: 1; font-size: 0.88rem; color: #334155; }
+    .dash-action-text strong { font-weight: 700; }
+    .dash-action-arrow { color: #94a3b8; font-size: 0.9rem; }
+    .dash-action-critical { background: #fef2f2; border-left: 3px solid #dc2626; }
+    .dash-action-critical:hover { background: #fee2e2; }
+    .dash-action-warning { background: #fffbeb; border-left: 3px solid #d97706; }
+    .dash-action-warning:hover { background: #fef3c7; }
+    .dash-action-info { background: #f8fafc; border-left: 3px solid #64748b; }
+    .dash-action-info:hover { background: #f1f5f9; }
+    .dash-action-pending { background: #eff6ff; border-left: 3px solid #3b82f6; }
+    .dash-action-pending:hover { background: #dbeafe; }
+    .dash-action-error { background: #fef2f2; border-left: 3px solid #dc2626; }
+    .dash-action-error:hover { background: #fee2e2; }
+    .dash-action-empty { display: flex; align-items: center; gap: 12px; padding: 16px; color: #16a34a; font-size: 0.9rem; }
+
+    .dash-deadline-summary { display: flex; gap: 12px; margin-bottom: 16px; }
+    .dash-deadline-row { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: #f8fafc; border-radius: 8px; cursor: pointer; transition: all .15s; flex: 1; }
+    .dash-deadline-row:hover { background: #f1f5f9; }
+    .dash-deadline-row.has-items { background: #fffbeb; }
+    .dash-dl-badge { padding: 3px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 700; }
+    .dash-dl-badge.urgent { background: #dc2626; color: #fff; }
+    .dash-dl-badge.soon { background: #d97706; color: #fff; }
+    .dash-dl-badge.upcoming { background: #3b82f6; color: #fff; }
+    .dash-dl-count { font-size: 1.2rem; font-weight: 800; color: #1e293b; }
+    .dash-dl-label { font-size: 0.75rem; color: #64748b; }
+    .dash-deadline-preview { border-top: 1px solid #e2e8f0; padding-top: 12px; margin-top: 4px; }
+    .dash-preview-title { font-size: 0.75rem; font-weight: 600; color: #64748b; margin-bottom: 8px; text-transform: uppercase; }
+    .dash-preview-item { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 0.85rem; }
+    .dash-preview-name { flex: 1; color: #334155; font-weight: 500; }
+    .dash-preview-state { color: #64748b; font-size: 0.78rem; }
+    .dash-preview-days { font-weight: 700; font-size: 0.8rem; }
+    .dash-preview-item.di-risk .dash-preview-days { color: #dc2626; }
+    .dash-preview-item.di-progress .dash-preview-days { color: #d97706; }
+    .dash-preview-item.di-complete .dash-preview-days { color: #16a34a; }
+    .dash-preview-more { font-size: 0.78rem; color: #3b82f6; margin-top: 4px; }
+
+    .dashboard-run-summary { background: #fff; margin: 0 40px 24px; padding: 16px 24px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+    .run-summary-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .run-summary-title { font-weight: 700; font-size: 0.85rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+    .run-summary-time { font-size: 0.85rem; color: #1e293b; }
+    .run-summary-ago { font-size: 0.78rem; color: #64748b; margin-left: auto; }
+    .run-summary-stats { display: flex; gap: 24px; flex-wrap: wrap; }
+    .run-stat { display: flex; gap: 8px; align-items: center; font-size: 0.85rem; }
+    .run-stat-label { color: #64748b; font-weight: 500; }
+    .run-stat-value { color: #1e293b; }
+    .run-ok { color: #16a34a; }
+    .run-fail { color: #dc2626; }
+
+    /* ─ Providers Filter Bar ─ */
+    .providers-filter-bar { display: flex; gap: 12px; padding: 20px 40px 12px; flex-wrap: wrap; align-items: center; }
+    .providers-filter-bar .search-box { flex: 1; min-width: 200px; }
+    .providers-filter-bar .filter-select { min-width: 120px; }
+    .providers-count { display: flex; justify-content: space-between; align-items: center; padding: 0 40px 16px; font-size: 0.85rem; color: #64748b; }
+
+    /* ─ View Toggle Buttons ─ */
+    .view-toggle-bar { display: flex; gap: 8px; padding: 20px 40px 0; flex-wrap: wrap; }
+    .view-toggle { padding: 8px 16px; border: 2px solid #e2e8f0; border-radius: 8px; background: #fff; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: #64748b; transition: all .15s; display: flex; align-items: center; gap: 8px; }
+    .view-toggle:hover { border-color: #cbd5e1; color: #475569; }
+    .view-toggle.active { background: #1d4ed8; color: #fff; border-color: #1d4ed8; }
+    .view-count { font-size: 0.75rem; padding: 2px 8px; border-radius: 10px; background: rgba(0,0,0,.1); }
+    .view-toggle.active .view-count { background: rgba(255,255,255,.2); }
+    .view-count.warning { background: #d97706; color: #fff; }
+
+    .license-view, .report-view { display: none; padding: 0 40px 24px; }
+    .license-view.active, .report-view.active { display: block; }
+
+    .empty-state { padding: 60px 40px; text-align: center; color: #64748b; }
+    .empty-hint { font-size: 0.85rem; margin-top: 8px; }
+    .empty-message { text-align: center; color: #94a3b8; padding: 24px; }
+
     /* ─ Overview tab ─ */
     .about-box { margin: 0 40px 8px; background: #fff; border-radius: 14px; padding: 24px 28px; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
     .about-steps { display: flex; flex-direction: column; gap: 14px; }
@@ -1416,544 +1606,224 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
 
 <!-- ── Tabs ───────────────────────────────────────────────────────────── -->
 <div class="tab-bar">
-  <button class="tab-btn active" onclick="showTab('overview')">Overview</button>
-  <button class="tab-btn"        onclick="showTab('profiles')">Team Members</button>
-  <button class="tab-btn"        onclick="showTab('attention')">Needs Attention${(atRisk + noCredentialsProviders.length) > 0 ? ` <span class="tab-badge">${atRisk + noCredentialsProviders.length}</span>` : ''}</button>
-  <button class="tab-btn"        onclick="showTab('table')">Full Table</button>
-  <button class="tab-btn"        onclick="showTab('runlog')">Run Log</button>
-  <button class="tab-btn"        onclick="showTab('chart')">Progress Chart</button>
-  <button class="tab-btn"        onclick="showTab('calendar')">Deadline Calendar</button>
-  <button class="tab-btn"        onclick="showTab('licenses')">Licenses & Applications${(licenseData.stats?.criticalLicenses || 0) + (licenseData.stats?.expiredLicenses || 0) > 0 ? ` <span class="tab-badge">${(licenseData.stats?.criticalLicenses || 0) + (licenseData.stats?.expiredLicenses || 0)}</span>` : ''}</button>
+  <button class="tab-btn active" onclick="showTab('dashboard')">Dashboard${(atRisk + noCredentialsProviders.length) > 0 ? ` <span class="tab-badge">${atRisk + noCredentialsProviders.length}</span>` : ''}</button>
+  <button class="tab-btn"        onclick="showTab('providers')">Providers</button>
+  <button class="tab-btn"        onclick="showTab('reports')">Reports</button>
 </div>
 
 <!-- ── Tab: Overview ──────────────────────────────────────────────────── -->
-<div class="tab-panel active" id="tab-overview">
-  <div class="stats-cards">
-    <div class="stat-card stat-at-risk">
-      <div class="stat-number">${atRisk}</div>
-      <div class="stat-label">At Risk</div>
-      <div class="stat-icon">⚠</div>
-    </div>
-    <div class="stat-card stat-in-progress">
-      <div class="stat-number">${inProg}</div>
-      <div class="stat-label">In Progress</div>
-      <div class="stat-icon">◷</div>
-    </div>
-    <div class="stat-card stat-complete">
-      <div class="stat-number">${complete}</div>
-      <div class="stat-label">Complete</div>
-      <div class="stat-icon">✓</div>
-    </div>
-    <div class="stat-card stat-no-creds">
-      <div class="stat-number">${noCredentialsProviders.length}</div>
-      <div class="stat-label">No Credentials</div>
-      <div class="stat-icon">✗</div>
-    </div>
-  </div>
-
-  <div class="section-title">About This Dashboard</div>
-  <div class="about-box">
-    <div class="about-steps">
-      <div class="about-step"><span class="step-num">1</span><div><strong>CE Broker</strong> — Logs into each provider's CE Broker account to pull license status, hours completed, renewal deadlines, and subject-area requirements.</div></div>
-      <div class="about-step"><span class="step-num">2</span><div><strong>Platform Accounts</strong> — Logs into connected third-party CE platforms (NetCE, CEUfast, AANP Cert, etc.) to pull additional course records and certification status.</div></div>
-      <div class="about-step"><span class="step-num">3</span><div><strong>Auto-Publish</strong> — Builds this dashboard and pushes it to GitHub, triggering an automatic Vercel redeploy so the data is always current.</div></div>
-    </div>
-  </div>
-
-  <div class="section-title">CE Platform Integrations</div>
-  <div class="platform-overview-grid">
-    <div class="poc poc-ce-broker">
-      <div class="poc-hdr"><span class="poc-name">CE Broker</span><span class="poc-badge poc-on">● Connected</span></div>
-      <div class="poc-desc">Primary state licensure tracking</div>
-      <div class="poc-stats"><span class="poc-stat"><strong>${Object.keys(providerMap).length}</strong> providers</span><span class="poc-stat"><strong>${flat.length}</strong> licenses</span></div>
-      <div class="poc-providers">${Object.keys(providerMap).map(n => escHtml(n.split(',')[0])).join(', ')}</div>
-      <a class="poc-link" href="https://cebroker.com" target="_blank" rel="noopener">Visit ↗</a>
-    </div>
-    ${ALL_PLATFORMS.map(p => {
-      const stats = platformStats[p.name];
-      const connected = !!stats;
-      const provCount = stats ? stats.providers.length : 0;
-      const totalH    = stats ? Math.round(stats.totalHours * 10) / 10 : 0;
-      const provList  = stats ? stats.providers.map(n => escHtml(n.split(',')[0])).join(', ') : '';
-      return `<div class="poc ${connected ? 'poc-connected' : 'poc-pending'}">
-        <div class="poc-hdr"><span class="poc-name">${escHtml(p.name)}</span><span class="poc-badge ${connected ? 'poc-on' : 'poc-off'}">${connected ? '● Connected' : '○ Not configured'}</span></div>
-        <div class="poc-desc">${escHtml(p.desc)}</div>
-        ${connected
-          ? `<div class="poc-stats">
-               <span class="poc-stat"><strong>${provCount}</strong> provider${provCount !== 1 ? 's' : ''}</span>
-               ${totalH > 0 ? `<span class="poc-stat"><strong>${totalH}h</strong> tracked</span>` : ''}
-             </div>
-             <div class="poc-providers">${provList}</div>`
-          : `<div class="poc-unconfigured">No credentials configured yet</div>`}
-        <a class="poc-link" href="${escHtml(p.url)}" target="_blank" rel="noopener">Visit ↗</a>
-      </div>`;
-    }).join('')}
-  </div>
-
-  <div class="section-title">Platform Coverage Matrix</div>
-  <div class="coverage-wrap">
-    <div class="matrix-legend">
-      <span class="legend-item"><span class="legend-dot dot-green"></span> Connected</span>
-      <span class="legend-item"><span class="legend-dot dot-gray"></span> Not configured</span>
-      <span class="legend-item"><span class="legend-dot dot-red"></span> No credentials</span>
-    </div>
-    <table class="coverage-table coverage-matrix">
-      <thead><tr>
-        <th>Provider</th>
-        <th>CE Broker</th>
-        ${ALL_PLATFORMS.filter(p => platformStats[p.name]).map(p => `<th>${escHtml(p.name)}</th>`).join('')}
-      </tr></thead>
-      <tbody>
-        ${providers.map(prov => {
-          const name = prov.name;
-          const provPlats = platformByProvider[name] || [];
-          const hasCEBroker = prov.username && prov.password;
-          const hasNoCreds = prov.noCredentials === true;
-          const rowClass = hasNoCreds ? 'cov-row-none' : '';
-          return `<tr class="${rowClass}">
-            <td class="cov-name">${escHtml(name)}</td>
-            <td class="cov-cell ${hasNoCreds ? 'cov-none' : hasCEBroker ? 'cov-yes' : 'cov-no'}">${hasNoCreds ? '✗' : hasCEBroker ? '✓' : '—'}</td>
-            ${ALL_PLATFORMS.filter(p => platformStats[p.name]).map(p => {
-              const has = provPlats.some(pr => pr.platform === p.name && pr.status === 'success');
-              const configured = (prov.platforms || []).some(pl => pl.platform === p.name);
-              return `<td class="cov-cell ${hasNoCreds ? 'cov-none' : has ? 'cov-yes' : configured ? 'cov-pending' : 'cov-no'}">${hasNoCreds ? '✗' : has ? '✓' : configured ? '○' : '—'}</td>`;
-            }).join('')}
-          </tr>`;
-        }).join('')}
-      </tbody>
-    </table>
-  </div>
-
-  ${(noCEBrokerList.length > 0 || noPlatformList.length > 0 || noCredentialsProviders.length > 0 || atRisk > 0) ? `
-  <div class="section-title">Action Required</div>
-  <div class="action-required-box">
-    ${atRisk > 0 ? `
-    <div class="action-section action-critical">
-      <div class="action-header">
-        <span class="action-icon">⚠</span>
-        <span class="action-title">At Risk — Immediate Attention (${atRisk})</span>
+<!-- ── Tab: Dashboard (Consolidated Overview) ────────────────────────────── -->
+<div class="tab-panel active" id="tab-dashboard">
+  <!-- Compact Status Cards Row -->
+  <div class="dashboard-stats-row">
+    <div class="dash-stat-card dash-stat-risk">
+      <div class="dash-stat-icon">⚠</div>
+      <div class="dash-stat-content">
+        <div class="dash-stat-num">${atRisk}</div>
+        <div class="dash-stat-label">At Risk</div>
       </div>
-      <div class="action-desc">These licenses are at risk of non-compliance. Hours are not on track to meet requirements before the renewal deadline.</div>
-      <div class="action-list">${flat.filter(r => getS(r) === 'At Risk').map(r => `<span class="action-name action-name-critical">${escHtml(r.providerName)} (${escHtml(r.state || '?')})</span>`).join('')}</div>
-    </div>` : ''}
-    ${noCredentialsProviders.length > 0 ? `
-    <div class="action-section action-no-creds">
-      <div class="action-header">
-        <span class="action-icon">✗</span>
-        <span class="action-title">No CE Credentials on File (${noCredentialsProviders.length})</span>
+    </div>
+    <div class="dash-stat-card dash-stat-warning">
+      <div class="dash-stat-icon">◷</div>
+      <div class="dash-stat-content">
+        <div class="dash-stat-num">${inProg}</div>
+        <div class="dash-stat-label">In Progress</div>
       </div>
-      <div class="action-desc">CEU tracking is not possible for these team members until CE Broker or platform credentials are provided.</div>
-      <div class="action-list">${noCredentialsProviders.map(n => `<span class="action-name action-name-none">${escHtml(n)}</span>`).join('')}</div>
-    </div>` : ''}
-    ${noCEBrokerList.length > 0 ? `
-    <div class="action-section action-warning">
-      <div class="action-header">
-        <span class="action-icon">○</span>
-        <span class="action-title">No CE Broker Credentials (${noCEBrokerList.length})</span>
+    </div>
+    <div class="dash-stat-card dash-stat-complete">
+      <div class="dash-stat-icon">✓</div>
+      <div class="dash-stat-content">
+        <div class="dash-stat-num">${complete}</div>
+        <div class="dash-stat-label">Complete</div>
       </div>
-      <div class="action-desc">These team members don't have CE Broker login credentials configured. Their license status cannot be tracked directly.</div>
-      <div class="action-list">${noCEBrokerList.map(n => `<span class="action-name action-name-warning">${escHtml(n)}</span>`).join('')}</div>
-    </div>` : ''}
-    ${noPlatformList.length > 0 ? `
-    <div class="action-section action-info">
-      <div class="action-header">
-        <span class="action-icon">○</span>
-        <span class="action-title">No Platform Credentials (${noPlatformList.length})</span>
+    </div>
+    <div class="dash-stat-card dash-stat-unknown">
+      <div class="dash-stat-icon">✗</div>
+      <div class="dash-stat-content">
+        <div class="dash-stat-num">${noCredentialsProviders.length}</div>
+        <div class="dash-stat-label">No Creds</div>
       </div>
-      <div class="action-desc">These team members don't have credentials for any CE platform (NetCE, CEUfast, AANP, etc.).</div>
-      <div class="action-list">${noPlatformList.map(n => `<span class="action-name action-name-info">${escHtml(n)}</span>`).join('')}</div>
-    </div>` : ''}
+    </div>
   </div>
-  ` : ''}
-</div>
 
-<!-- ── Tab: Needs Attention ───────────────────────────────────────────── -->
-<div class="tab-panel" id="tab-attention">
-  <div class="section-title">Upcoming Deadlines</div>
-  <div class="deadlines-container">
-    <div class="deadline-group deadline-urgent">
-      <div class="deadline-header">
-        <span class="deadline-badge urgent">Within 30 Days</span>
-        <span class="deadline-count">${deadlines30.length} license${deadlines30.length !== 1 ? 's' : ''}</span>
+  <!-- Two-Column Layout: Actions + Deadlines -->
+  <div class="dashboard-grid">
+    <!-- Action Required Column -->
+    <div class="dashboard-actions">
+      <div class="dash-section-header">Action Required</div>
+      <div class="dash-action-list">
+        ${atRisk > 0 ? `
+        <div class="dash-action-item dash-action-critical" onclick="showTab('providers'); setCardFilter('At Risk');">
+          <span class="dash-action-icon">⚠</span>
+          <span class="dash-action-text"><strong>${atRisk}</strong> provider${atRisk !== 1 ? 's' : ''} at risk</span>
+          <span class="dash-action-arrow">→</span>
+        </div>` : ''}
+        ${noCredentialsProviders.length > 0 ? `
+        <div class="dash-action-item dash-action-info" onclick="showTab('providers'); document.getElementById('noCredsFilter').checked = true; filterCards();">
+          <span class="dash-action-icon">○</span>
+          <span class="dash-action-text"><strong>${noCredentialsProviders.length}</strong> missing CE credentials</span>
+          <span class="dash-action-arrow">→</span>
+        </div>` : ''}
+        ${loginErrors.length > 0 ? `
+        <div class="dash-action-item dash-action-error" onclick="showTab('reports'); showReportView('runlog');">
+          <span class="dash-action-icon">✗</span>
+          <span class="dash-action-text"><strong>${loginErrors.length}</strong> login error${loginErrors.length !== 1 ? 's' : ''}</span>
+          <span class="dash-action-arrow">→</span>
+        </div>` : ''}
+        ${atRisk === 0 && noCredentialsProviders.length === 0 && loginErrors.length === 0 ? `
+        <div class="dash-action-empty">
+          <span class="dash-action-icon">✓</span>
+          <span class="dash-action-text">No immediate action needed</span>
+        </div>` : ''}
+      </div>
+    </div>
+
+    <!-- Upcoming Deadlines Column -->
+    <div class="dashboard-deadlines">
+      <div class="dash-section-header">Upcoming Deadlines</div>
+      <div class="dash-deadline-summary">
+        <div class="dash-deadline-row ${deadlines30.length > 0 ? 'has-items' : ''}" onclick="showTab('reports'); showReportView('calendar');">
+          <span class="dash-dl-badge urgent">30d</span>
+          <span class="dash-dl-count">${deadlines30.length}</span>
+          <span class="dash-dl-label">license${deadlines30.length !== 1 ? 's' : ''}</span>
+        </div>
+        <div class="dash-deadline-row ${deadlines60.length > 0 ? 'has-items' : ''}" onclick="showTab('reports'); showReportView('calendar');">
+          <span class="dash-dl-badge soon">60d</span>
+          <span class="dash-dl-count">${deadlines60.length}</span>
+          <span class="dash-dl-label">license${deadlines60.length !== 1 ? 's' : ''}</span>
+        </div>
+        <div class="dash-deadline-row ${deadlines90.length > 0 ? 'has-items' : ''}" onclick="showTab('reports'); showReportView('calendar');">
+          <span class="dash-dl-badge upcoming">90d</span>
+          <span class="dash-dl-count">${deadlines90.length}</span>
+          <span class="dash-dl-label">license${deadlines90.length !== 1 ? 's' : ''}</span>
+        </div>
       </div>
       ${deadlines30.length > 0 ? `
-      <div class="deadline-list">
-        ${deadlines30.map(r => `
-        <div class="deadline-item ${r.status === 'At Risk' ? 'di-risk' : r.status === 'Complete' ? 'di-complete' : 'di-progress'}">
-          <div class="di-name">${escHtml(r.providerName)}</div>
-          <div class="di-state">${escHtml(r.state || '?')}</div>
-          <div class="di-days">${r.days}d</div>
-          <div class="di-date">${r.renewalDeadline || '—'}</div>
-          <div class="di-status">${r.status === 'Complete' ? '✓' : r.status === 'At Risk' ? '⚠' : '◷'}</div>
+      <div class="dash-deadline-preview">
+        <div class="dash-preview-title">Next 30 Days</div>
+        ${deadlines30.slice(0, 5).map(r => `
+        <div class="dash-preview-item ${r.status === 'At Risk' ? 'di-risk' : r.status === 'Complete' ? 'di-complete' : 'di-progress'}">
+          <span class="dash-preview-name">${escHtml(r.providerName?.split(',')[0] || '?')}</span>
+          <span class="dash-preview-state">${escHtml(r.state || '?')}</span>
+          <span class="dash-preview-days">${r.days}d</span>
         </div>`).join('')}
-      </div>` : '<div class="deadline-empty">No deadlines in this period</div>'}
+        ${deadlines30.length > 5 ? `<div class="dash-preview-more">+${deadlines30.length - 5} more</div>` : ''}
+      </div>` : ''}
     </div>
-    <div class="deadline-group deadline-soon">
-      <div class="deadline-header">
-        <span class="deadline-badge soon">31-60 Days</span>
-        <span class="deadline-count">${deadlines60.length} license${deadlines60.length !== 1 ? 's' : ''}</span>
+  </div>
+
+  <!-- Last Run Summary Bar -->
+  <div class="dashboard-run-summary">
+    <div class="run-summary-header">
+      <span class="run-summary-title">Last Scrape</span>
+      <span class="run-summary-time" id="lastScrapedValue" data-iso="${runIso}">${escHtml(runDate)}</span>
+      <span class="run-summary-ago" id="lastScrapedAgo"></span>
+    </div>
+    <div class="run-summary-stats">
+      <div class="run-stat">
+        <span class="run-stat-label">CE Broker</span>
+        <span class="run-stat-value">${(runResults || []).filter(r => r.status === 'success').length} <span class="run-ok">✓</span></span>
+        ${loginErrors.length > 0 ? `<span class="run-stat-value">${loginErrors.length} <span class="run-fail">✗</span></span>` : ''}
+        <span class="run-stat-value">${(runResults || []).filter(r => r.status === 'not_configured').length} skipped</span>
       </div>
-      ${deadlines60.length > 0 ? `
-      <div class="deadline-list">
-        ${deadlines60.map(r => `
-        <div class="deadline-item ${r.status === 'At Risk' ? 'di-risk' : r.status === 'Complete' ? 'di-complete' : 'di-progress'}">
-          <div class="di-name">${escHtml(r.providerName)}</div>
-          <div class="di-state">${escHtml(r.state || '?')}</div>
-          <div class="di-days">${r.days}d</div>
-          <div class="di-date">${r.renewalDeadline || '—'}</div>
-          <div class="di-status">${r.status === 'Complete' ? '✓' : r.status === 'At Risk' ? '⚠' : '◷'}</div>
-        </div>`).join('')}
-      </div>` : '<div class="deadline-empty">No deadlines in this period</div>'}
-    </div>
-    <div class="deadline-group deadline-upcoming">
-      <div class="deadline-header">
-        <span class="deadline-badge upcoming">61-90 Days</span>
-        <span class="deadline-count">${deadlines90.length} license${deadlines90.length !== 1 ? 's' : ''}</span>
+      <div class="run-stat">
+        <span class="run-stat-label">Platforms</span>
+        <span class="run-stat-value">${platformData.filter(p => p.status === 'success').length} <span class="run-ok">✓</span></span>
       </div>
-      ${deadlines90.length > 0 ? `
-      <div class="deadline-list">
-        ${deadlines90.map(r => `
-        <div class="deadline-item ${r.status === 'At Risk' ? 'di-risk' : r.status === 'Complete' ? 'di-complete' : 'di-progress'}">
-          <div class="di-name">${escHtml(r.providerName)}</div>
-          <div class="di-state">${escHtml(r.state || '?')}</div>
-          <div class="di-days">${r.days}d</div>
-          <div class="di-date">${r.renewalDeadline || '—'}</div>
-          <div class="di-status">${r.status === 'Complete' ? '✓' : r.status === 'At Risk' ? '⚠' : '◷'}</div>
-        </div>`).join('')}
-      </div>` : '<div class="deadline-empty">No deadlines in this period</div>'}
-    </div>
-  </div>
-
-  ${loginErrors.length > 0 ? `
-  <div class="section-title">Login Errors</div>
-  <div class="login-errors-box">
-    <div class="error-desc">These accounts had login failures during the last run. Credentials may need updating.</div>
-    <div class="error-list">
-      ${loginErrors.map(e => `
-      <div class="error-item">
-        <span class="error-name">${escHtml(e.name)}</span>
-        <span class="error-msg">${escHtml(e.error || 'Login failed')}</span>
-      </div>`).join('')}
-    </div>
-  </div>
-  ` : ''}
-
-  ${noCredentialsProviders.length > 0 ? `
-  <div class="section-title">Missing Credentials</div>
-  <div class="missing-creds-box">
-    <div class="missing-desc">These team members have no CE credentials on file. Add their CE Broker or platform login to enable tracking.</div>
-    <div class="missing-grid">
-      ${noCredentialsProviders.map(n => `<div class="missing-card">${escHtml(n)}</div>`).join('')}
-    </div>
-  </div>
-  ` : ''}
-</div>
-
-<!-- ── Tab: Provider Profiles ─────────────────────────────────────────── -->
-<div class="tab-panel" id="tab-profiles">
-  <div class="profiles-header">
-    <div class="sub-tabs">
-      <button class="sub-tab active" onclick="showSubTab('clinicians')">Clinicians (${clinicianEntries.length})</button>
-      <button class="sub-tab" onclick="showSubTab('rns')">Support Staff (${rnEntries.length})</button>
-      <button class="sub-tab" onclick="showSubTab('all-providers')">All (${providerEntries.length})</button>
-    </div>
-  </div>
-  <div class="state-chips">
-    <button class="state-chip active" id="schip-all" onclick="setStateFilter('all')">All States</button>
-    ${allStates.map(s => `<button class="state-chip" id="schip-${escHtml(s)}" onclick="setStateFilter('${escHtml(s)}')">${escHtml(s)}</button>`).join('')}
-  </div>
-  <div class="controls">
-    <input class="search-box" type="text" id="cardSearch" placeholder="Search provider..." oninput="filterCards()" />
-    <div class="control-group">
-      <label class="control-label">Status:</label>
-      <button class="filter-btn active" id="cbtn-all"         onclick="setCardFilter('all')">All</button>
-      <button class="filter-btn"        id="cbtn-Complete"    onclick="setCardFilter('Complete')">Complete</button>
-      <button class="filter-btn"        id="cbtn-In Progress" onclick="setCardFilter('In Progress')">In Progress</button>
-      <button class="filter-btn"        id="cbtn-At Risk"     onclick="setCardFilter('At Risk')">At Risk</button>
-    </div>
-    <div class="control-group">
-      <label class="control-label">Type:</label>
-      <button class="filter-btn active" id="tbtn-all" onclick="toggleTypeFilter('all')">All</button>
-      <button class="filter-btn"        id="tbtn-NP"  onclick="toggleTypeFilter('NP')">NP</button>
-      <button class="filter-btn"        id="tbtn-MD"  onclick="toggleTypeFilter('MD')">MD</button>
-      <button class="filter-btn"        id="tbtn-DO"  onclick="toggleTypeFilter('DO')">DO</button>
-      <button class="filter-btn"        id="tbtn-RN"  onclick="toggleTypeFilter('RN')">RN</button>
-    </div>
-    <div class="control-group">
-      <label class="creds-toggle">
-        <input type="checkbox" id="noCredsFilter" onchange="filterCards()">
-        <span>No Credentials Only</span>
-      </label>
-    </div>
-    <div class="control-group">
-      <label class="control-label">Sort:</label>
-      <select class="sort-select" id="cardSort" onchange="sortCards()">
-        <option value="name">Name (A-Z)</option>
-        <option value="name-desc">Name (Z-A)</option>
-        <option value="status">Status (Risk First)</option>
-        <option value="status-asc">Status (Complete First)</option>
-        <option value="deadline">Deadline (Soonest)</option>
-        <option value="deadline-desc">Deadline (Latest)</option>
-      </select>
-    </div>
-  </div>
-
-  <div class="sub-panel active" id="sub-clinicians">
-    <div class="cards-grid" id="cardsGrid">
-      ${clinicianCards}
-    </div>
-  </div>
-
-  <div class="sub-panel" id="sub-rns">
-    <div class="cards-grid" id="rnCardsGrid">
-      ${rnCards}
-    </div>
-  </div>
-
-  <div class="sub-panel" id="sub-all-providers">
-    <div class="cards-grid" id="allCardsGrid">
-      ${profileCards}
     </div>
   </div>
 </div>
 
-<!-- ── Tab: Full Table ────────────────────────────────────────────────── -->
-<div class="tab-panel" id="tab-table">
-  <div class="controls">
-    <input class="search-box" type="text" id="tableSearch" placeholder="Search provider..." oninput="filterTable()" />
-    <button class="filter-btn active" id="tbtn-all"         onclick="setTableFilter('all')">All</button>
-    <button class="filter-btn"        id="tbtn-Complete"    onclick="setTableFilter('Complete')">Complete</button>
-    <button class="filter-btn"        id="tbtn-In Progress" onclick="setTableFilter('In Progress')">In Progress</button>
-    <button class="filter-btn"        id="tbtn-At Risk"     onclick="setTableFilter('At Risk')">At Risk</button>
+<!-- ── Tab: Providers ─────────────────────────────────────────────────── -->
+<div class="tab-panel" id="tab-providers">
+  <!-- Unified Filter Bar -->
+  <div class="providers-filter-bar">
+    <input class="search-box" type="text" id="cardSearch" placeholder="Search providers..." oninput="filterCards()" />
+    <select class="filter-select" id="statusFilter" onchange="setCardFilter(this.value)">
+      <option value="all">All Statuses</option>
+      <option value="At Risk">At Risk</option>
+      <option value="In Progress">In Progress</option>
+      <option value="Complete">Complete</option>
+      <option value="Unknown">Unknown</option>
+    </select>
+    <select class="filter-select" id="typeFilter" onchange="setProviderTypeFilter(this.value)">
+      <option value="all">All Types</option>
+      <option value="NP">NP</option>
+      <option value="MD">MD</option>
+      <option value="DO">DO</option>
+      <option value="RN">RN</option>
+    </select>
+    <select class="filter-select" id="stateFilter" onchange="setStateFilter(this.value)">
+      <option value="all">All States</option>
+      ${allStates.map(s => `<option value="${escHtml(s)}">${escHtml(s)}</option>`).join('')}
+    </select>
+    <select class="filter-select" id="cardSort" onchange="sortCards()">
+      <option value="name">Sort: Name (A-Z)</option>
+      <option value="name-desc">Sort: Name (Z-A)</option>
+      <option value="status">Sort: Risk First</option>
+      <option value="status-asc">Sort: Complete First</option>
+      <option value="deadline">Sort: Deadline (Soonest)</option>
+    </select>
+    <label class="creds-toggle">
+      <input type="checkbox" id="noCredsFilter" onchange="filterCards()">
+      <span>No Creds Only</span>
+    </label>
   </div>
-  <div class="table-wrap">
-    <table id="mainTable">
-      <thead>
-        <tr>
-          <th onclick="sortTable(0)">Provider <span class="sort-icon">↕</span></th>
-          <th onclick="sortTable(1)" style="text-align:center">Type <span class="sort-icon">↕</span></th>
-          <th onclick="sortTable(2)" style="text-align:center">State <span class="sort-icon">↕</span></th>
-          <th onclick="sortTable(3)" style="text-align:center">Renewal Deadline <span class="sort-icon">↕</span></th>
-          <th onclick="sortTable(4)" style="text-align:center">Hours <span class="sort-icon">↕</span></th>
-          <th onclick="sortTable(5)" style="text-align:center">Status <span class="sort-icon">↕</span></th>
-          <th style="text-align:center">Links</th>
-        </tr>
-      </thead>
-      <tbody id="tableBody">
-        ${rows}
-      </tbody>
-    </table>
-  </div>
-</div>
 
-<!-- ── Tab: Run Log ───────────────────────────────────────────────────── -->
-<div class="tab-panel" id="tab-runlog">
-  <div class="section-title">Last Run Results</div>
-  <div class="run-table-wrap">
-    <table>
-      <thead><tr>
-        <th>Provider</th>
-        <th style="text-align:center;width:140px">Result</th>
-        <th>Error Message</th>
-      </tr></thead>
-      <tbody>${runRows || '<tr><td colspan="3" style="text-align:center;color:#94a3b8;padding:24px">No run data available</td></tr>'}</tbody>
-    </table>
+  <!-- Provider Count -->
+  <div class="providers-count">
+    <span id="providerFilterCount">${providerEntries.length} of ${providerEntries.length} providers</span>
+    <button class="reset-btn" onclick="resetProviderFilters()">Reset</button>
   </div>
-</div>
 
-<!-- ── Tab: Progress Chart ────────────────────────────────────────────── -->
-<div class="tab-panel" id="tab-chart">
-  <div class="section-title">CEU Progress</div>
-  <div class="chart-wrap">
-    <div class="chart-section">
-      <div class="chart-section-title">Hours Completed vs. Required — Current Run</div>
-      <div class="chart-canvas-wrap"><canvas id="hoursChart"></canvas></div>
-    </div>
-    <div class="chart-section">
-      <div class="chart-section-title">Progress Over Time</div>
-      <div id="historyChartWrap" class="chart-canvas-wrap"><canvas id="historyChart"></canvas></div>
-    </div>
+  <!-- All Providers Cards Grid -->
+  <div class="cards-grid" id="allCardsGrid">
+    ${profileCards}
   </div>
 </div>
 
-<!-- ── Tab: Deadline Calendar ─────────────────────────────────────────── -->
-<div class="tab-panel" id="tab-calendar">
-  <div class="section-title">Renewal Deadline Calendar</div>
-  <div class="cal-wrap">
-    ${calendarHtml}
-  </div>
-</div>
-
-<!-- ── Tab: Licenses & Applications ──────────────────────────────────────── -->
-<div class="tab-panel" id="tab-licenses">
-  <div class="section-title">Licenses & Applications</div>
-
-  <!-- Sub-tabs -->
-  <div class="sub-tab-bar">
-    <button class="sub-tab active" onclick="showLicenseSubTab('all-licenses')">All Licenses</button>
-    <button class="sub-tab" onclick="showLicenseSubTab('applications')">Pending Applications${(licenseData.applications?.filter(a => a.status !== 'Issued').length || 0) > 0 ? ` <span class="tab-badge-sm">${licenseData.applications?.filter(a => a.status !== 'Issued').length || 0}</span>` : ''}</button>
-    <button class="sub-tab" onclick="showLicenseSubTab('renewals')">Upcoming Renewals${(licenseData.renewals?.length || 0) > 0 ? ` <span class="tab-badge-sm">${licenseData.renewals?.length || 0}</span>` : ''}</button>
-    <button class="sub-tab" onclick="showLicenseSubTab('state-scrape')">State Board Scrape${stateBoardData.length > 0 ? ` <span class="tab-badge-sm">${stateBoardData.filter(s => s.status === 'success').length}/${stateBoardData.length}</span>` : ''}</button>
+<!-- ── Tab: Reports ─────────────────────────────────────────────────────── -->
+<div class="tab-panel" id="tab-reports">
+  <!-- View Toggle Buttons -->
+  <div class="view-toggle-bar">
+    <button class="view-toggle active" onclick="showReportView('charts')">Progress Charts</button>
+    <button class="view-toggle" onclick="showReportView('calendar')">Deadline Calendar</button>
+    <button class="view-toggle" onclick="showReportView('runlog')">Run History</button>
   </div>
 
-  <!-- Filters -->
-  <div class="controls" style="margin-top: 16px;">
-    <input class="search-box" type="text" id="licenseSearch" placeholder="Search licenses..." oninput="filterLicenses()" />
-    <div class="control-group">
-      <label class="control-label">Status:</label>
-      <button class="filter-btn active" id="lbtn-all" onclick="setLicenseFilter('all')">All</button>
-      <button class="filter-btn" id="lbtn-Active" onclick="setLicenseFilter('Active')">Active</button>
-      <button class="filter-btn" id="lbtn-Warning" onclick="setLicenseFilter('Warning')">Warning</button>
-      <button class="filter-btn" id="lbtn-Critical" onclick="setLicenseFilter('Critical')">Critical</button>
-      <button class="filter-btn" id="lbtn-Expired" onclick="setLicenseFilter('Expired')">Expired</button>
-    </div>
-  </div>
-
-  <!-- All Licenses Sub-panel -->
-  <div class="sub-panel active" id="sub-all-licenses">
-    <div class="license-summary">
-      <div class="stat-card"><div class="stat-num">${licenseData.stats?.totalLicenses || 0}</div><div class="stat-label">Total Licenses</div></div>
-      <div class="stat-card complete"><div class="stat-num">${licenseData.stats?.activeLicenses || 0}</div><div class="stat-label">Active</div></div>
-      <div class="stat-card warning"><div class="stat-num">${licenseData.stats?.warningLicenses || 0}</div><div class="stat-label">Warning (30-90 days)</div></div>
-      <div class="stat-card at-risk"><div class="stat-num">${licenseData.stats?.criticalLicenses || 0}</div><div class="stat-label">Critical (&lt;30 days)</div></div>
-      <div class="stat-card expired"><div class="stat-num">${licenseData.stats?.expiredLicenses || 0}</div><div class="stat-label">Expired</div></div>
-    </div>
-    <table class="data-table" id="licensesTable">
-      <thead>
-        <tr>
-          <th onclick="sortLicenseTable(0)">Provider</th>
-          <th onclick="sortLicenseTable(1)">State</th>
-          <th onclick="sortLicenseTable(2)">Type</th>
-          <th onclick="sortLicenseTable(3)">License #</th>
-          <th onclick="sortLicenseTable(4)">Issued</th>
-          <th onclick="sortLicenseTable(5)">Expires</th>
-          <th onclick="sortLicenseTable(6)">Status</th>
-          <th>Notes</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${(licenseData.licenses || []).map(lic => {
-          const statusClass = lic.status === 'Active' ? 'complete' : lic.status === 'Warning' ? 'warning' : lic.status === 'Critical' ? 'at-risk' : lic.status === 'Expired' ? 'expired' : '';
-          const statusText = lic.status === 'Active' ? 'Active' : lic.status === 'Warning' ? `${lic.daysUntil}d` : lic.status === 'Critical' ? `${lic.daysUntil}d` : lic.status === 'Expired' ? 'Expired' : 'Unknown';
-          return `<tr data-status="${lic.status}" data-provider="${escHtml(lic.provider)}" data-state="${escHtml(lic.state)}">
-            <td>${escHtml(lic.provider)}</td>
-            <td>${escHtml(lic.state)}</td>
-            <td>${escHtml(lic.licenseType)}</td>
-            <td><code>${escHtml(lic.licenseNumber)}</code></td>
-            <td>${escHtml(lic.issued)}</td>
-            <td>${escHtml(lic.expires)}</td>
-            <td><span class="status-pill ${statusClass}">${statusText}</span></td>
-            <td class="notes-cell">${escHtml(lic.notes)}</td>
-          </tr>`;
-        }).join('')}
-      </tbody>
-    </table>
-  </div>
-
-  <!-- Pending Applications Sub-panel -->
-  <div class="sub-panel" id="sub-applications">
-    <div class="section-subtitle">Pending License Applications</div>
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>Provider</th>
-          <th>State</th>
-          <th>Type</th>
-          <th>License Type</th>
-          <th>Status</th>
-          <th>Notes</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${(licenseData.applications || []).filter(app => app.status !== 'Issued').map(app => {
-          const statusClass = app.status === 'Submitted' ? 'warning' : app.status === 'In Progress' ? 'in-progress' : app.status === 'Not Started' ? '' : 'complete';
-          return `<tr>
-            <td>${escHtml(app.provider)}</td>
-            <td>${escHtml(app.state)}</td>
-            <td>${escHtml(app.type)}</td>
-            <td>${escHtml(app.licenseType)}</td>
-            <td><span class="status-pill ${statusClass}">${escHtml(app.status)}</span></td>
-            <td class="notes-cell">${escHtml(app.notes)}</td>
-          </tr>`;
-        }).join('')}
-      </tbody>
-    </table>
-  </div>
-
-  <!-- Upcoming Renewals Sub-panel -->
-  <div class="sub-panel" id="sub-renewals">
-    <div class="section-subtitle">Upcoming License Renewals</div>
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>Provider</th>
-          <th>State</th>
-          <th>Type</th>
-          <th>License Type</th>
-          <th>Expires</th>
-          <th>Status</th>
-          <th>Assigned</th>
-          <th>Notes</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${(licenseData.renewals || []).map(ren => {
-          const statusClass = ren.licenseStatus === 'Critical' ? 'at-risk' : ren.licenseStatus === 'Warning' ? 'warning' : '';
-          return `<tr>
-            <td>${escHtml(ren.provider)}</td>
-            <td>${escHtml(ren.state)}</td>
-            <td>${escHtml(ren.type)}</td>
-            <td>${escHtml(ren.licenseType)}</td>
-            <td>${escHtml(ren.expires)}</td>
-            <td><span class="status-pill ${statusClass}">${ren.daysUntil !== null ? ren.daysUntil + 'd' : escHtml(ren.status)}</span></td>
-            <td>${escHtml(ren.assigned)}</td>
-            <td class="notes-cell">${escHtml(ren.notes)}</td>
-          </tr>`;
-        }).join('')}
-      </tbody>
-    </table>
-  </div>
-
-  <!-- State Board Scrape Results Sub-panel -->
-  <div class="sub-panel" id="sub-state-scrape">
-    <div class="section-subtitle">State Board License Verification (Live Scrape)</div>
-    <p style="padding: 0 40px; color: #64748b; font-size: 0.85rem; margin-bottom: 16px;">
-      Real-time license status scraped from state licensing board portals (WA, OH, WI, NJ, IN, MI).
-    </p>
-    ${stateBoardData.length === 0 ? `
-      <div style="padding: 40px; text-align: center; color: #64748b;">
-        <p>No state board scrape data available yet.</p>
-        <p style="font-size: 0.85rem;">Run the scraper to fetch live license status from state portals.</p>
+  <!-- Charts View -->
+  <div class="report-view active" id="report-charts">
+    <div class="chart-wrap">
+      <div class="chart-section">
+        <div class="chart-section-title">Hours Completed vs. Required</div>
+        <div class="chart-canvas-wrap"><canvas id="hoursChart"></canvas></div>
       </div>
-    ` : `
-    <table class="data-table">
-      <thead>
-        <tr>
+      <div class="chart-section">
+        <div class="chart-section-title">Progress Over Time</div>
+        <div id="historyChartWrap" class="chart-canvas-wrap"><canvas id="historyChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Calendar View -->
+  <div class="report-view" id="report-calendar">
+    <div class="cal-wrap">
+      ${calendarHtml}
+    </div>
+  </div>
+
+  <!-- Run Log View -->
+  <div class="report-view" id="report-runlog">
+    <div class="run-table-wrap">
+      <table>
+        <thead><tr>
           <th>Provider</th>
-          <th>State</th>
-          <th>Scrape Status</th>
-          <th>Licenses Found</th>
-          <th>Details</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${stateBoardData.map(sb => {
-          const statusClass = sb.status === 'success' ? 'complete' : 'at-risk';
-          const licCount = sb.licenses?.length || 0;
-          const licDetails = sb.licenses?.map(l =>
-            (l.type || '') + ' ' + (l.licenseNumber || '') + ': ' + (l.status || 'Unknown') + ' (exp: ' + (l.expires || 'N/A') + ')'
-          ).join('; ') || sb.error || 'No data';
-          return '<tr>' +
-            '<td>' + escHtml(sb.provider) + '</td>' +
-            '<td>' + escHtml(sb.state) + '</td>' +
-            '<td><span class="status-pill ' + statusClass + '">' + (sb.status === 'success' ? 'Success' : 'Failed') + '</span></td>' +
-            '<td>' + licCount + '</td>' +
-            '<td class="notes-cell">' + escHtml(licDetails) + '</td>' +
-          '</tr>';
-        }).join('')}
-      </tbody>
-    </table>
-    `}
+          <th style="text-align:center;width:140px">Result</th>
+          <th>Error Message</th>
+        </tr></thead>
+        <tbody>${runRows || '<tr><td colspan="3" class="empty-message">No run data available</td></tr>'}</tbody>
+      </table>
+    </div>
   </div>
 </div>
 
@@ -1973,82 +1843,23 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
   function showTab(name) {
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById('tab-' + name).classList.add('active');
+    document.getElementById('tab-' + name)?.classList.add('active');
     const btns = document.querySelectorAll('.tab-btn');
-    const labels = ['overview','profiles','attention','table','runlog','chart','calendar','licenses'];
+    const labels = ['dashboard','providers','reports'];
     btns[labels.indexOf(name)]?.classList.add('active');
-    if (name === 'chart') initCharts();
+    if (name === 'reports') initCharts();
   }
 
-  // ── Sub-tabs (within Provider Profiles) ──
-  function showSubTab(name) {
-    document.querySelectorAll('.sub-panel').forEach(p => p.classList.remove('active'));
-    document.querySelectorAll('.sub-tab').forEach(b => b.classList.remove('active'));
-    document.getElementById('sub-' + name)?.classList.add('active');
-    const btns = document.querySelectorAll('.sub-tab');
-    const labels = ['clinicians','rns','all-providers'];
+  // ── Report View Toggles ──
+  function showReportView(name) {
+    const reportsTab = document.getElementById('tab-reports');
+    reportsTab.querySelectorAll('.report-view').forEach(p => p.classList.remove('active'));
+    reportsTab.querySelectorAll('.view-toggle').forEach(b => b.classList.remove('active'));
+    document.getElementById('report-' + name)?.classList.add('active');
+    const btns = reportsTab.querySelectorAll('.view-toggle');
+    const labels = ['charts','calendar','runlog'];
     btns[labels.indexOf(name)]?.classList.add('active');
-  }
-
-  // ── Sub-tabs (within Licenses & Applications) ──
-  function showLicenseSubTab(name) {
-    const licensesTab = document.getElementById('tab-licenses');
-    licensesTab.querySelectorAll('.sub-panel').forEach(p => p.classList.remove('active'));
-    licensesTab.querySelectorAll('.sub-tab').forEach(b => b.classList.remove('active'));
-    document.getElementById('sub-' + name)?.classList.add('active');
-    const btns = licensesTab.querySelectorAll('.sub-tab');
-    const labels = ['all-licenses','applications','renewals','state-scrape'];
-    btns[labels.indexOf(name)]?.classList.add('active');
-  }
-
-  // ── License filter ──
-  let licenseFilter = 'all';
-  function filterLicenses() {
-    const q = document.getElementById('licenseSearch')?.value.toLowerCase() || '';
-    const rows = document.querySelectorAll('#licensesTable tbody tr');
-    rows.forEach(row => {
-      const provider = (row.dataset.provider || '').toLowerCase();
-      const state = (row.dataset.state || '').toLowerCase();
-      const status = row.dataset.status || '';
-      const matchQ = !q || provider.includes(q) || state.includes(q);
-      const matchF = licenseFilter === 'all' || status === licenseFilter;
-      row.style.display = (matchQ && matchF) ? '' : 'none';
-    });
-  }
-  function setLicenseFilter(f) {
-    licenseFilter = f;
-    document.querySelectorAll('[id^="lbtn-"]').forEach(b => b.classList.remove('active'));
-    document.getElementById('lbtn-' + f)?.classList.add('active');
-    filterLicenses();
-  }
-
-  // ── License table sort ──
-  let licenseSortCol = -1;
-  let licenseSortAsc = true;
-  function sortLicenseTable(colIdx) {
-    const table = document.getElementById('licensesTable');
-    const tbody = table.querySelector('tbody');
-    const rows = Array.from(tbody.querySelectorAll('tr'));
-    if (licenseSortCol === colIdx) {
-      licenseSortAsc = !licenseSortAsc;
-    } else {
-      licenseSortCol = colIdx;
-      licenseSortAsc = true;
-    }
-    rows.sort((a, b) => {
-      const aVal = a.cells[colIdx]?.textContent || '';
-      const bVal = b.cells[colIdx]?.textContent || '';
-      // Try date sort for columns 4, 5 (Issued, Expires)
-      if (colIdx === 4 || colIdx === 5) {
-        const aDate = new Date(aVal);
-        const bDate = new Date(bVal);
-        if (!isNaN(aDate) && !isNaN(bDate)) {
-          return licenseSortAsc ? aDate - bDate : bDate - aDate;
-        }
-      }
-      return licenseSortAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
-    });
-    rows.forEach(row => tbody.appendChild(row));
+    if (name === 'charts') initCharts();
   }
 
   // ── Sort cards ──
@@ -2084,69 +1895,76 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
   // ── Provider drawer HTML (pre-rendered at build time, embedded as JSON) ──
   const DRAWER_HTML = ${safeJson(drawerHtmlMap)};
 
-  // ── State filter ──
+  // ── Provider Filters ──
   let stateFilter = 'all';
+  let cardFilter = 'all';
+  let typeFilter = 'all';
+
   function setStateFilter(s) {
     stateFilter = s;
-    document.querySelectorAll('[id^="schip-"]').forEach(b => b.classList.remove('active'));
-    const btn = document.getElementById('schip-' + s);
-    if (btn) btn.classList.add('active');
+    const select = document.getElementById('stateFilter');
+    if (select) select.value = s;
     filterCards();
   }
 
-  // ── Card filter ──
-  let cardFilter = 'all';
-  let typeFilters = new Set(['all']);
-
-  function filterCards() {
-    const q = document.getElementById('cardSearch').value.toLowerCase();
-    const noCredsOnly = document.getElementById('noCredsFilter')?.checked || false;
-    const grids = ['cardsGrid', 'rnCardsGrid', 'allCardsGrid'];
-    grids.forEach(gridId => {
-      const grid = document.getElementById(gridId);
-      if (!grid) return;
-      grid.querySelectorAll('.provider-card').forEach(card => {
-        const name   = (card.dataset.provider || '').toLowerCase();
-        const status = card.dataset.status || '';
-        const states = (card.dataset.states || '').split(',');
-        const type   = card.dataset.type || '';
-        const noCreds = card.dataset.noCreds === 'true';
-        const matchQ = !q || name.includes(q);
-        const matchF = cardFilter === 'all' || status === cardFilter;
-        const matchS = stateFilter === 'all' || states.includes(stateFilter);
-        const matchT = typeFilters.has('all') || typeFilters.has(type);
-        const matchC = !noCredsOnly || noCreds;
-        card.style.display = (matchQ && matchF && matchS && matchT && matchC) ? '' : 'none';
-      });
-    });
-  }
-
-  function toggleTypeFilter(t) {
-    if (t === 'all') {
-      typeFilters = new Set(['all']);
-    } else {
-      typeFilters.delete('all');
-      if (typeFilters.has(t)) {
-        typeFilters.delete(t);
-        if (typeFilters.size === 0) typeFilters.add('all');
-      } else {
-        typeFilters.add(t);
-      }
-    }
-    document.querySelectorAll('[id^="tbtn-"]').forEach(b => b.classList.remove('active'));
-    typeFilters.forEach(f => {
-      const btn = document.getElementById('tbtn-' + f);
-      if (btn) btn.classList.add('active');
-    });
-    filterCards();
-  }
   function setCardFilter(f) {
     cardFilter = f;
-    document.querySelectorAll('[id^="cbtn-"]').forEach(b => b.classList.remove('active'));
-    const btn = document.getElementById('cbtn-' + f);
-    if (btn) btn.classList.add('active');
+    const select = document.getElementById('statusFilter');
+    if (select) select.value = f;
     filterCards();
   }
+
+  function setProviderTypeFilter(t) {
+    typeFilter = t;
+    filterCards();
+  }
+
+  function filterCards() {
+    const q = (document.getElementById('cardSearch')?.value || '').toLowerCase();
+    const noCredsOnly = document.getElementById('noCredsFilter')?.checked || false;
+    const grid = document.getElementById('allCardsGrid');
+    if (!grid) return;
+
+    let visibleCount = 0;
+    const totalCount = grid.querySelectorAll('.provider-card').length;
+
+    grid.querySelectorAll('.provider-card').forEach(card => {
+      const name   = (card.dataset.provider || '').toLowerCase();
+      const status = card.dataset.status || '';
+      const states = (card.dataset.states || '').split(',');
+      const type   = card.dataset.type || '';
+      const noCreds = card.dataset.noCreds === 'true';
+      const matchQ = !q || name.includes(q);
+      const matchF = cardFilter === 'all' || status === cardFilter;
+      const matchS = stateFilter === 'all' || states.includes(stateFilter);
+      const matchT = typeFilter === 'all' || type === typeFilter;
+      const matchC = !noCredsOnly || noCreds;
+      const visible = matchQ && matchF && matchS && matchT && matchC;
+      card.style.display = visible ? '' : 'none';
+      if (visible) visibleCount++;
+    });
+
+    // Update count display
+    const countEl = document.getElementById('providerFilterCount');
+    if (countEl) countEl.textContent = visibleCount + ' of ' + totalCount + ' providers';
+  }
+
+  function resetProviderFilters() {
+    document.getElementById('cardSearch').value = '';
+    document.getElementById('statusFilter').value = 'all';
+    document.getElementById('typeFilter').value = 'all';
+    document.getElementById('stateFilter').value = 'all';
+    document.getElementById('cardSort').value = 'name';
+    document.getElementById('noCredsFilter').checked = false;
+    stateFilter = 'all';
+    cardFilter = 'all';
+    typeFilter = 'all';
+    filterCards();
+    sortCards();
+  }
+
+  // Legacy support
+  function toggleTypeFilter(t) { setProviderTypeFilter(t); }
 
   // ── Provider detail drawer ──
   function openProvider(name) {
