@@ -1732,15 +1732,15 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
 
 <!-- ── Tabs ───────────────────────────────────────────────────────────── -->
 <div class="tab-bar">
-  <button class="tab-btn active" onclick="showTab('dashboard')">Dashboard${(atRisk + noCredentialsProviders.length) > 0 ? ` <span class="tab-badge">${atRisk + noCredentialsProviders.length}</span>` : ''}</button>
-  <button class="tab-btn"        onclick="showTab('providers')">Providers</button>
+  <button class="tab-btn"        onclick="showTab('dashboard')">Dashboard${(atRisk + noCredentialsProviders.length) > 0 ? ` <span class="tab-badge">${atRisk + noCredentialsProviders.length}</span>` : ''}</button>
+  <button class="tab-btn active" onclick="showTab('providers')">Providers</button>
   <button class="tab-btn"        onclick="showTab('platforms')">Platforms</button>
   <button class="tab-btn"        onclick="showTab('reports')">Reports</button>
 </div>
 
 <!-- ── Tab: Overview ──────────────────────────────────────────────────── -->
 <!-- ── Tab: Dashboard (Consolidated Overview) ────────────────────────────── -->
-<div class="tab-panel active" id="tab-dashboard">
+<div class="tab-panel" id="tab-dashboard">
   <!-- Compact Status Cards Row -->
   <div class="dashboard-stats-row">
     <div class="dash-stat-card dash-stat-risk">
@@ -1862,7 +1862,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
 </div>
 
 <!-- ── Tab: Providers ─────────────────────────────────────────────────── -->
-<div class="tab-panel" id="tab-providers">
+<div class="tab-panel active" id="tab-providers">
   <!-- Unified Filter Bar -->
   <div class="providers-filter-bar">
     <input class="search-box" type="text" id="cardSearch" placeholder="Search providers..." oninput="filterCards()" />
