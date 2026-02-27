@@ -251,6 +251,75 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     }
   }
 
+  // ── Lookback Compliance Data (for Compliance tab) ─────────────────────────
+  const STATE_ABBREV = {
+    'Florida': 'FL', 'Ohio': 'OH', 'Michigan': 'MI', 'Texas': 'TX',
+    'New York': 'NY', 'California': 'CA', 'New Mexico': 'NM', 'New Hampshire': 'NH',
+    'Georgia': 'GA', 'Pennsylvania': 'PA', 'Illinois': 'IL', 'North Carolina': 'NC',
+  };
+
+  const lookbackComplianceData = [];
+  for (const [pName, info] of Object.entries(providerMap)) {
+    const providerStates = [...new Set(info.licenses.map(l => l.state).filter(Boolean))];
+    const allCourses = info.licenses.flatMap(l => l.completedCourses || []);
+
+    for (const state of providerStates) {
+      const stateKey = STATE_REQUIREMENTS[state] ? state : STATE_ABBREV[state];
+      const stateReqs = STATE_REQUIREMENTS[stateKey];
+      if (!stateReqs) continue;
+
+      // Check autonomous APRN requirements (Florida)
+      if (stateReqs.autonomousAPRN && info.type === 'NP') {
+        const autoReqs = stateReqs.autonomousAPRN;
+        for (const subj of autoReqs.subjects || []) {
+          if (!subj.lookbackYears) continue; // Only include subjects with lookback
+          const result = calculateSubjectHoursWithLookback(allCourses, subj.pattern, subj.lookbackYears);
+          const needed = Math.max(0, subj.hoursRequired - result.validHours);
+          lookbackComplianceData.push({
+            providerName: pName,
+            providerType: info.type,
+            state: stateReqs.name || state,
+            requirement: autoReqs.description || 'Autonomous APRN',
+            subject: subj.name,
+            hoursRequired: subj.hoursRequired,
+            totalHours: result.totalHours,
+            validHours: result.validHours,
+            lookbackYears: subj.lookbackYears,
+            needed,
+            status: needed === 0 ? 'Met' : 'Needs ' + needed + 'h'
+          });
+        }
+      }
+
+      // Check standard APRN requirements
+      const reqSet = stateReqs[info.type] || stateReqs.APRN;
+      if (reqSet && reqSet.subjects) {
+        for (const subj of reqSet.subjects) {
+          if (!subj.lookbackYears) continue; // Only include subjects with lookback
+          const result = calculateSubjectHoursWithLookback(allCourses, subj.pattern, subj.lookbackYears);
+          const needed = Math.max(0, subj.hoursRequired - result.validHours);
+          lookbackComplianceData.push({
+            providerName: pName,
+            providerType: info.type,
+            state: stateReqs.name || state,
+            requirement: reqSet.description || 'Standard',
+            subject: subj.name,
+            hoursRequired: subj.hoursRequired,
+            totalHours: result.totalHours,
+            validHours: result.validHours,
+            lookbackYears: subj.lookbackYears,
+            needed,
+            status: needed === 0 ? 'Met' : 'Needs ' + needed + 'h'
+          });
+        }
+      }
+    }
+  }
+
+  // Summary counts for compliance tab
+  const lookbackMet = lookbackComplianceData.filter(d => d.needed === 0).length;
+  const lookbackNotMet = lookbackComplianceData.filter(d => d.needed > 0).length;
+
   // Pre-render each provider's drawer HTML in Node.js (avoids nested template literal issues)
   const drawerHtmlMap = {};
   for (const [pName, info] of Object.entries(providerMap)) {
@@ -1883,6 +1952,60 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     .stat-detail.progress { background: #fef3c7; color: #b45309; }
     .stat-detail.risk { background: #fee2e2; color: #b91c1c; }
     .stat-detail.unknown { background: #f1f5f9; color: #64748b; }
+
+    /* ─ Compliance Tab ─ */
+    .compliance-header { display: flex; justify-content: space-between; align-items: flex-start; padding: 20px 40px; gap: 20px; flex-wrap: wrap; }
+    .compliance-title h2 { font-size: 1.3rem; font-weight: 800; color: #0f172a; margin-bottom: 4px; }
+    .compliance-subtitle { font-size: 0.85rem; color: #64748b; }
+    .compliance-summary { display: flex; gap: 16px; }
+    .compliance-stat { background: #fff; border-radius: 10px; padding: 14px 20px; box-shadow: 0 2px 8px rgba(0,0,0,.07); text-align: center; min-width: 80px; }
+    .compliance-stat-num { font-size: 1.8rem; font-weight: 800; display: block; }
+    .compliance-stat-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; }
+    .compliance-met .compliance-stat-num { color: #16a34a; }
+    .compliance-notmet .compliance-stat-num { color: #dc2626; }
+
+    .compliance-table-wrap { padding: 0 40px 20px; overflow-x: auto; }
+    .compliance-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.07); }
+    .compliance-table th { background: #f8fafc; padding: 12px 14px; text-align: left; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; border-bottom: 2px solid #e2e8f0; }
+    .compliance-table td { padding: 12px 14px; border-bottom: 1px solid #f1f5f9; font-size: 0.88rem; }
+    .compliance-table tr { cursor: pointer; transition: background .15s; }
+    .compliance-table tr:hover { background: #f8fafc; }
+    .compliance-table tr.comp-met { background: #f0fdf4; }
+    .compliance-table tr.comp-met:hover { background: #dcfce7; }
+    .compliance-table tr.comp-partial { background: #fffbeb; }
+    .compliance-table tr.comp-partial:hover { background: #fef3c7; }
+    .compliance-table tr.comp-none { background: #fef2f2; }
+    .compliance-table tr.comp-none:hover { background: #fee2e2; }
+
+    .comp-provider { font-weight: 600; color: #0f172a; }
+    .comp-state { font-weight: 500; }
+    .comp-req { font-size: 0.82rem; color: #64748b; max-width: 180px; }
+    .comp-subject { font-weight: 500; }
+    .comp-num { text-align: center; font-family: monospace; }
+    .comp-valid { font-weight: 700; }
+    .comp-window { font-size: 0.78rem; text-align: center; color: #64748b; }
+    .comp-window small { color: #94a3b8; }
+    .comp-status { font-weight: 600; text-align: center; white-space: nowrap; }
+    .comp-status.comp-met { color: #16a34a; }
+    .comp-status.comp-partial { color: #d97706; }
+    .comp-status.comp-none { color: #dc2626; }
+
+    .compliance-legend { padding: 0 40px 20px; display: flex; gap: 20px; flex-wrap: wrap; }
+    .compliance-legend .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.82rem; color: #64748b; }
+    .compliance-legend .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+    .compliance-legend .legend-dot.comp-met { background: #dcfce7; border: 1px solid #86efac; }
+    .compliance-legend .legend-dot.comp-partial { background: #fef3c7; border: 1px solid #fcd34d; }
+    .compliance-legend .legend-dot.comp-none { background: #fee2e2; border: 1px solid #fca5a5; }
+
+    .compliance-info { margin: 0 40px 20px; padding: 16px 20px; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; }
+    .compliance-info h4 { font-size: 0.9rem; font-weight: 700; color: #0f172a; margin-bottom: 8px; }
+    .compliance-info p { font-size: 0.85rem; color: #475569; margin-bottom: 8px; line-height: 1.5; }
+    .compliance-info p:last-child { margin-bottom: 0; }
+
+    .compliance-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 60px 40px; text-align: center; }
+    .compliance-empty .empty-icon { font-size: 2rem; color: #94a3b8; }
+    .compliance-empty .empty-text { font-size: 1rem; color: #64748b; }
+    .compliance-empty .empty-hint { font-size: 0.85rem; color: #94a3b8; margin-top: 8px; }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 </head>
@@ -1922,6 +2045,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
 <!-- ── Tabs ───────────────────────────────────────────────────────────── -->
 <div class="tab-bar">
   <button class="tab-btn active" onclick="showTab('providers')">Team View</button>
+  <button class="tab-btn"        onclick="showTab('compliance')">Compliance${lookbackNotMet > 0 ? ` <span class="tab-badge">${lookbackNotMet}</span>` : ''}</button>
   <button class="tab-btn"        onclick="showTab('platforms')">Platforms</button>
   <button class="tab-btn"        onclick="showTab('reports')">Reports</button>
   <button class="tab-btn"        onclick="showTab('dashboard')">Dashboard${(atRisk + noCredentialsProviders.length) > 0 ? ` <span class="tab-badge">${atRisk + noCredentialsProviders.length}</span>` : ''}</button>
@@ -2359,6 +2483,82 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
       }).join('')}
     </div>
   </div>
+</div>
+
+<!-- ── Tab: Compliance (Lookback Requirements) ─────────────────────────────── -->
+<div class="tab-panel" id="tab-compliance">
+  <div class="compliance-header">
+    <div class="compliance-title">
+      <h2>State Lookback Requirements</h2>
+      <p class="compliance-subtitle">Certain CE hours must be completed within specific time windows (e.g., last 5 years)</p>
+    </div>
+    <div class="compliance-summary">
+      <div class="compliance-stat compliance-met">
+        <span class="compliance-stat-num">${lookbackMet}</span>
+        <span class="compliance-stat-label">Met</span>
+      </div>
+      <div class="compliance-stat compliance-notmet">
+        <span class="compliance-stat-num">${lookbackNotMet}</span>
+        <span class="compliance-stat-label">Not Met</span>
+      </div>
+    </div>
+  </div>
+
+  ${lookbackComplianceData.length > 0 ? `
+  <div class="compliance-table-wrap">
+    <table class="compliance-table">
+      <thead>
+        <tr>
+          <th>Provider</th>
+          <th>State</th>
+          <th>Requirement</th>
+          <th>Subject</th>
+          <th>Required</th>
+          <th>Total Hrs</th>
+          <th>Valid Hrs</th>
+          <th>Window</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${lookbackComplianceData.map(d => {
+          const statusCls = d.needed === 0 ? 'comp-met' : d.validHours > 0 ? 'comp-partial' : 'comp-none';
+          const cutoffDate = formatLookbackCutoff(d.lookbackYears);
+          const safeName = escHtml(d.providerName).replace(/'/g, '&#39;');
+          return `<tr class="${statusCls}" onclick="openProvider('${safeName}')">
+            <td class="comp-provider">${escHtml(d.providerName)}</td>
+            <td class="comp-state">${escHtml(d.state)}</td>
+            <td class="comp-req">${escHtml(d.requirement)}</td>
+            <td class="comp-subject">${escHtml(d.subject)}</td>
+            <td class="comp-num">${d.hoursRequired}h</td>
+            <td class="comp-num">${d.totalHours}h</td>
+            <td class="comp-num comp-valid">${d.validHours}h</td>
+            <td class="comp-window">${d.lookbackYears}yr<br><small>since ${cutoffDate}</small></td>
+            <td class="comp-status ${statusCls}">${d.needed === 0 ? '✓ Met' : '⚠ ' + d.status}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="compliance-legend">
+    <span class="legend-item"><span class="legend-dot comp-met"></span> Requirement met</span>
+    <span class="legend-item"><span class="legend-dot comp-partial"></span> Partial (some valid hours)</span>
+    <span class="legend-item"><span class="legend-dot comp-none"></span> No valid hours in window</span>
+  </div>
+
+  <div class="compliance-info">
+    <h4>About Lookback Periods</h4>
+    <p>Some states require specific CE hours to be completed within a recent time window. For example, Florida's Autonomous APRN registration requires 45 hours of pharmacology completed within the <strong>past 5 years</strong>.</p>
+    <p>Hours completed outside the lookback window still appear in "Total Hrs" but don't count toward "Valid Hrs" for compliance.</p>
+  </div>
+  ` : `
+  <div class="compliance-empty">
+    <span class="empty-icon">○</span>
+    <span class="empty-text">No lookback requirements configured for current team members.</span>
+    <p class="empty-hint">Lookback requirements are configured in state-requirements.json</p>
+  </div>
+  `}
 </div>
 
 <!-- ── Tab: Platforms ───────────────────────────────────────────────────── -->
