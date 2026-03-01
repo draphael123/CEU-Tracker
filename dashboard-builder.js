@@ -157,7 +157,7 @@ function saveHistory(allProviderRecords, runResults) {
  * @param {LicenseRecord[][]} allProviderRecords
  * @param {{ name:string, status:string, error?:string }[]} [runResults]
  */
-function buildDashboard(allProviderRecords, runResults = [], platformData = []) {
+function buildDashboard(allProviderRecords, runResults = [], platformData = [], licenseData = null) {
   const history = saveHistory(allProviderRecords, runResults);
   const flat    = flattenRecords(allProviderRecords, runResults);
   const runDate = new Date().toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' });
@@ -3321,7 +3321,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = []) 
     document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
     document.getElementById('tab-' + name)?.classList.add('active');
     const btns = document.querySelectorAll('.tab-btn');
-    const labels = ['dashboard','providers','platforms','reports'];
+    const labels = ['dashboard','providers','platforms','reports','licenses'];
     btns[labels.indexOf(name)]?.classList.add('active');
     // Update sidebar nav
     document.querySelector('.nav-item[data-tab="' + name + '"]')?.classList.add('active');
@@ -4074,6 +4074,7 @@ function escHtml(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
 }
+
 
 function safeJson(obj) {
   // Serialize as JSON safe for embedding in an HTML <script> block
