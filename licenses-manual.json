@@ -1,0 +1,150 @@
+{
+  "_instructions": "Add license data manually here. This data will be merged with any scraped data.",
+  "_format": {
+    "providerName": "Exact name from providers.json (e.g., 'Ashley Grout, NP')",
+    "licenses": [
+      {
+        "state": "Two-letter state code (e.g., 'FL')",
+        "licenseNumber": "License number",
+        "licenseType": "RN, APRN, LPN, MD, DO",
+        "status": "Active, Inactive, Expired",
+        "expirationDate": "MM/DD/YYYY format",
+        "issuedDate": "MM/DD/YYYY format (optional)"
+      }
+    ]
+  },
+  "providers": {
+    "Ashley Grout, NP": {
+      "providerType": "NP",
+      "licenses": []
+    },
+    "Bill Carbonneau, NP": {
+      "providerType": "NP",
+      "licenses": []
+    },
+    "Bryana Anderson, NP": {
+      "providerType": "NP",
+      "licenses": []
+    },
+    "Bryce Amos, NP": {
+      "providerType": "NP",
+      "licenses": []
+    },
+    "Catherine Herrington, MD": {
+      "providerType": "MD",
+      "licenses": []
+    },
+    "Doron Stember, MD": {
+      "providerType": "MD",
+      "licenses": []
+    },
+    "Hilary Morgan, RN": {
+      "providerType": "RN",
+      "licenses": []
+    },
+    "Jacquelyn Sexton, NP": {
+      "providerType": "NP",
+      "licenses": []
+    },
+    "Lindsay Burden, NP": {
+      "providerType": "NP",
+      "licenses": []
+    },
+    "Liz Gloor, NP": {
+      "providerType": "NP",
+      "licenses": []
+    },
+    "Mackinzie Johnson, RN": {
+      "providerType": "RN",
+      "licenses": []
+    },
+    "Martin Van Dongen, NP": {
+      "providerType": "NP",
+      "licenses": []
+    },
+    "Priya Chaudhari, NP": {
+      "providerType": "NP",
+      "licenses": []
+    },
+    "Rachel Razi, NP": {
+      "providerType": "NP",
+      "licenses": []
+    },
+    "Summer Denny, NP": {
+      "providerType": "NP",
+      "licenses": []
+    },
+    "Terray Humphrey, NP": {
+      "providerType": "NP",
+      "licenses": []
+    },
+    "Tim Mack, NP": {
+      "providerType": "NP",
+      "licenses": []
+    },
+    "Tzvi Doron, DO": {
+      "providerType": "DO",
+      "licenses": []
+    },
+    "Vivien Lee, NP": {
+      "providerType": "NP",
+      "licenses": []
+    },
+    "Victor Lopez, NP": {
+      "providerType": "NP",
+      "licenses": []
+    },
+    "Camryn Burden, RN": {
+      "providerType": "RN",
+      "licenses": []
+    },
+    "Alexis Foster-Horton, NP": {
+      "providerType": "NP",
+      "licenses": []
+    },
+    "Megan Ryan-Riffle, NP": {
+      "providerType": "NP",
+      "licenses": []
+    },
+    "Michele Foster, NP": {
+      "providerType": "NP",
+      "licenses": []
+    },
+    "Danielle Board, NP": {
+      "providerType": "NP",
+      "licenses": []
+    },
+    "DeAnna Maher, NP": {
+      "providerType": "NP",
+      "licenses": []
+    },
+    "Skye Sauls, NP": {
+      "providerType": "NP",
+      "licenses": []
+    },
+    "Brooklyn Kimble, RN": {
+      "providerType": "RN",
+      "licenses": []
+    },
+    "Daniel Fis, RN": {
+      "providerType": "RN",
+      "licenses": []
+    },
+    "Bryce Hanley, RN": {
+      "providerType": "RN",
+      "licenses": []
+    },
+    "Shelby Bailey, RN": {
+      "providerType": "RN",
+      "licenses": []
+    },
+    "Brittany Alexander, RN": {
+      "providerType": "RN",
+      "licenses": []
+    },
+    "Lauren Dovin, RN": {
+      "providerType": "RN",
+      "licenses": []
+    }
+  }
+}

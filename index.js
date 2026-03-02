@@ -7,6 +7,7 @@ const path      = require('path');
 const { execSync } = require('child_process');
 const { launchBrowser, loginProvider, scrapeLicenseData, closePage } = require('./scraper');
 const { runPlatformScrapers } = require('./platform-scrapers');
+const { runLicenseVerification } = require('./license-scraper');
 const { buildReport } = require('./exporter');
 const { buildDashboard } = require('./dashboard-builder');
 const { logger, randomDelay, printSummary, ensureScreenshotsDir } = require('./utils');
@@ -109,6 +110,17 @@ async function main() {
     logger.error(`Platform scraper error: ${platformErr.message}`);
   }
 
+  // ── License verification (DISABLED - CEU scraping only) ─────────────────
+  let licenseData = null;
+  // License verification skipped - only scraping for CEUs
+  // To re-enable, uncomment the following:
+  // try {
+  //   const { licenseData: verifiedLicenses } = await runLicenseVerification(browser, providers);
+  //   licenseData = verifiedLicenses;
+  // } catch (licenseErr) {
+  //   logger.error(`License verification error: ${licenseErr.message}`);
+  // }
+
   // ── Close browser ──────────────────────────────────────────────────────────
   await browser.close();
   logger.info('Browser closed');
@@ -123,7 +135,7 @@ async function main() {
 
   // ── Build HTML dashboard ───────────────────────────────────────────────────
   try {
-    const dashPath = buildDashboard(allRecords, allResults, platformData);
+    const dashPath = buildDashboard(allRecords, allResults, platformData, licenseData);
     logger.success(`Dashboard saved: ${dashPath}`);
   } catch (dashErr) {
     logger.error(`Dashboard build failed: ${dashErr.message}`);
@@ -134,7 +146,7 @@ async function main() {
 
   // ── Auto-publish to Vercel via GitHub push ─────────────────────────────────
   try {
-    execSync('git add public/index.html public/history.json', { cwd: __dirname, stdio: 'pipe' });
+    execSync('git add public/index.html public/history.json public/licenses.json', { cwd: __dirname, stdio: 'pipe' });
     const ts = new Date().toISOString().slice(0, 16).replace('T', ' ');
     execSync(`git commit -m "chore: dashboard update ${ts}"`, { cwd: __dirname, stdio: 'pipe' });
     execSync('git push', { cwd: __dirname, stdio: 'pipe' });

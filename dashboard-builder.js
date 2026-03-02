@@ -220,9 +220,9 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     chartData.required.push(rec.hoursRequired ?? 0);
     const st = getS(rec);
     chartData.colors.push(
-      st === 'Complete'     ? 'rgba(22,163,74,0.8)'
-    : st === 'At Risk'     ? 'rgba(220,38,38,0.8)'
-    : st === 'In Progress' ? 'rgba(217,119,6,0.8)'
+      st === 'Complete'     ? 'rgba(16,185,129,0.9)'
+    : st === 'At Risk'     ? 'rgba(239,68,68,0.9)'
+    : st === 'In Progress' ? 'rgba(245,158,11,0.9)'
     :                        'rgba(100,116,139,0.5)'
     );
   }
@@ -541,9 +541,9 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
 
     drawerHtmlMap[pName] = `<div class="detail-hdr">
       <div class="detail-avatar" style="background:${
-        worstSt === 'Complete'    ? '#0d9488'
-      : worstSt === 'In Progress' ? '#d97706'
-      : worstSt === 'At Risk'     ? '#dc2626'
+        worstSt === 'Complete'    ? '#10b981'
+      : worstSt === 'In Progress' ? '#f59e0b'
+      : worstSt === 'At Risk'     ? '#ef4444'
       :                              '#64748b'
       }">${escHtml(ini)}</div>
       <div style="flex:1;min-width:0">
@@ -652,11 +652,30 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       const state     = lic.state || '??';
       const deadline  = lic.renewalDeadline || '—';
       const days      = daysUntil(parseDate(lic.renewalDeadline));
-      const daysStr   = days !== null
-        ? (days < 0 ? `<span class="overdue">${Math.abs(days)}d overdue</span>`
-          : days <= 60 ? `<span class="urgent">${days}d left</span>`
-          : `${days}d left`)
-        : '';
+
+      // Generate countdown badge with color coding
+      let countdownBadge = '';
+      if (days !== null) {
+        let badgeClass = 'safe';
+        let badgeText = `${days} days`;
+        let badgeIcon = '';
+        if (days < 0) {
+          badgeClass = 'overdue';
+          badgeText = `${Math.abs(days)}d overdue`;
+          badgeIcon = '⚠️ ';
+        } else if (days <= 14) {
+          badgeClass = 'danger critical';
+          badgeText = `${days} days`;
+          badgeIcon = '🔥 ';
+        } else if (days <= 30) {
+          badgeClass = 'danger';
+          badgeText = `${days} days`;
+        } else if (days <= 90) {
+          badgeClass = 'warning';
+          badgeText = `${days} days`;
+        }
+        countdownBadge = `<span class="countdown-badge ${badgeClass}" title="Due: ${escHtml(deadline)}">${badgeIcon}${badgeText}</span>`;
+      }
 
       const badgeCls  = {
         Complete:      'lic-complete',
@@ -675,7 +694,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       const pct = lic.hoursRequired
         ? Math.min(100, Math.round(((lic.hoursCompleted || 0) / lic.hoursRequired) * 100))
         : 0;
-      const barCls = pct >= 100 ? '' : pct >= 50 ? 'partial' : 'low';
+      const barCls = pct >= 100 ? '' : pct >= 50 ? 'partial' : (days !== null && days <= 14 ? 'low critical' : 'low');
 
       const courseUrl = courseSearchUrl(state, lic.licenseType || info.type);
 
@@ -686,10 +705,13 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
           <span class="lic-type">${escHtml(lic.licenseType || info.type || '')}</span>
           <span class="lic-status-text">${escHtml(status)}</span>
         </div>
-        <div class="lic-deadline">Renewal: ${escHtml(deadline)} ${daysStr}</div>
+        <div class="lic-deadline">
+          <span class="deadline-label">Renewal:</span>
+          ${countdownBadge}
+        </div>
         <div class="lic-bar-row">
           <div class="bar-track"><div class="bar-fill ${barCls}" style="width:${pct}%"></div></div>
-          <span class="bar-label">${lic.hoursCompleted ?? '?'} / ${lic.hoursRequired ?? '?'} hrs</span>
+          <span class="bar-label">${lic.hoursCompleted ?? '?'} / ${lic.hoursRequired ?? '?'} hrs <span class="bar-pct">(${pct}%)</span></span>
         </div>
         ${courseUrl ? `<a class="lic-course-link" href="${courseUrl}" target="_blank" rel="noopener">Search Courses ↗</a>` : ''}
       </div>`;
@@ -704,14 +726,16 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     // Get specific reason for Unknown status
     const unknownInfo = worstStatus === 'Unknown' ? getUnknownReason(name) : null;
 
-    // Earliest deadline (for sorting)
+    // Earliest deadline (for sorting) and critical detection
     const earliestDeadline = Math.min(...info.licenses.map(l => daysUntil(parseDate(l.renewalDeadline)) ?? 9999));
+    const isCritical = earliestDeadline <= 14 && earliestDeadline >= 0;
     const cardBorderCls = {
       Complete:      'card-ok',
       'In Progress': 'card-prog',
       'At Risk':     'card-risk',
       Unknown:       unknownInfo?.cls === 'unknown-error' ? 'card-error' : 'card-unk',
     }[worstStatus] || 'card-unk';
+    const criticalCls = isCritical ? 'critical-deadline' : '';
 
     const initials = name.split(/[\s,]+/).filter(Boolean).slice(0, 2)
       .map(w => w[0].toUpperCase()).join('');
@@ -749,7 +773,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
         <span class="unknown-text"><strong>${escHtml(unknownInfo.reason)}</strong> — ${escHtml(unknownInfo.detail)}</span>
       </div>` : '';
 
-    return `<div class="provider-card ${cardBorderCls} card-clickable"
+    return `<div class="provider-card ${cardBorderCls} ${criticalCls} card-clickable"
         data-provider="${escHtml(name)}"
         data-status="${worstStatus}"
         data-states="${escHtml(statesList)}"
@@ -761,10 +785,10 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       <div class="card-top">
         <button class="fav-btn" onclick="event.stopPropagation(); toggleFavorite('${escHtml(name).replace(/'/g, '&#39;')}')" title="Pin to favorites">☆</button>
         <div class="avatar" style="background:${
-        worstStatus === 'Complete'    ? '#0d9488'
-      : worstStatus === 'In Progress' ? '#d97706'
-      : worstStatus === 'At Risk'     ? '#dc2626'
-      : unknownInfo?.cls === 'unknown-error' ? '#b91c1c'
+        worstStatus === 'Complete'    ? '#10b981'
+      : worstStatus === 'In Progress' ? '#f59e0b'
+      : worstStatus === 'At Risk'     ? '#ef4444'
+      : unknownInfo?.cls === 'unknown-error' ? '#dc2626'
       :                                  '#64748b'
       }">${escHtml(initials)}</div>
         <div class="card-info">
@@ -938,7 +962,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
   const runRows = runResults.map(r => `<tr>
     <td>${escHtml(r.name)}</td>
     <td class="center">${getStatusBadge(r.status)}</td>
-    <td>${r.error ? `<span style="color:#dc2626;font-size:0.8rem">${escHtml(r.error)}</span>` : '<span style="color:#94a3b8">—</span>'}</td>
+    <td>${r.error ? `<span style="color:#ef4444;font-size:0.8rem">${escHtml(r.error)}</span>` : '<span style="color:#94a3b8">—</span>'}</td>
   </tr>`).join('');
 
   // ── HTML ─────────────────────────────────────────────────────────────────
@@ -964,12 +988,12 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       --border-dark: #475569;
       --accent-blue: #1d4ed8;
       --accent-blue-hover: #1e40af;
-      --status-green: #16a34a;
-      --status-green-bg: #dcfce7;
-      --status-orange: #d97706;
-      --status-orange-bg: #fef3c7;
-      --status-red: #dc2626;
-      --status-red-bg: #fee2e2;
+      --status-green: #10b981;
+      --status-green-bg: #a7f3d0;
+      --status-amber: #f59e0b;
+      --status-amber-bg: #fde68a;
+      --status-red: #ef4444;
+      --status-red-bg: #fecaca;
       --shadow-sm: 0 2px 8px rgba(0,0,0,.06);
       --shadow-md: 0 4px 12px rgba(0,0,0,.1);
       --shadow-header: 0 4px 20px rgba(0,0,0,.5);
@@ -986,9 +1010,9 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       --text-on-dark: #ffffff;
       --border-color: #475569;
       --border-dark: #64748b;
-      --status-green-bg: #14532d;
-      --status-orange-bg: #78350f;
-      --status-red-bg: #7f1d1d;
+      --status-green-bg: #065f46;
+      --status-amber-bg: #92400e;
+      --status-red-bg: #991b1b;
       --shadow-sm: 0 2px 8px rgba(0,0,0,.3);
       --shadow-md: 0 4px 12px rgba(0,0,0,.4);
       --shadow-header: 0 4px 20px rgba(0,0,0,.7);
@@ -1031,8 +1055,26 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .last-scraped-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); }
     .last-scraped-value { font-size: 0.95rem; color: #e2e8f0; font-weight: 500; margin-top: 2px; }
     .last-scraped-ago { font-size: 0.72rem; color: var(--text-accent); margin-top: 1px; }
-    .theme-toggle { background: rgba(255,255,255,0.1); border: none; padding: 8px 12px; border-radius: 8px; color: var(--text-on-dark); cursor: pointer; font-size: 1.1rem; transition: background 0.2s; }
-    .theme-toggle:hover { background: rgba(255,255,255,0.2); }
+    .theme-toggle {
+      background: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05));
+      border: 1px solid rgba(255,255,255,0.2);
+      padding: 10px 16px;
+      border-radius: 12px;
+      color: var(--text-on-dark);
+      cursor: pointer;
+      font-size: 1.4rem;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .theme-toggle:hover {
+      background: linear-gradient(135deg, rgba(255,255,255,0.25), rgba(255,255,255,0.1));
+      transform: scale(1.05);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .theme-toggle:active { transform: scale(0.95); }
+    .theme-toggle-label { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
     .run-badge { margin-top: 6px; display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
     .run-pill { padding: 3px 10px; border-radius: 99px; font-size: 0.75rem; font-weight: 600; }
     .run-pill.ok   { background: #166534; color: #dcfce7; }
@@ -1047,11 +1089,11 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .stat-card.total { border-top-color: #6366f1; }
     .stat-card.total .num { color: #4f46e5; }
     .stat-card.ok    { border-top-color: var(--status-green); }
-    .stat-card.ok    .num { color: #15803d; }
-    .stat-card.prog  { border-top-color: #d97706; }
-    .stat-card.prog  .num { color: #b45309; }
-    .stat-card.risk  { border-top-color: #dc2626; }
-    .stat-card.risk  .num { color: #b91c1c; }
+    .stat-card.ok    .num { color: #059669; }
+    .stat-card.prog  { border-top-color: #f59e0b; }
+    .stat-card.prog  .num { color: #d97706; }
+    .stat-card.risk  { border-top-color: #ef4444; }
+    .stat-card.risk  .num { color: #dc2626; }
 
     /* ─ Section titles ─ */
     .section-title {
@@ -1067,7 +1109,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       content: '';
       width: 4px;
       height: 1.1em;
-      background: #0d9488;
+      background: #10b981;
       border-radius: 2px;
       flex-shrink: 0;
     }
@@ -1090,15 +1132,50 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       border-radius: 14px;
       padding: 20px;
       box-shadow: var(--shadow-sm);
-      border-left: 5px solid var(--border-color);
-      transition: box-shadow .15s, transform .15s, background-color .3s;
+      border-left: 6px solid var(--border-color);
+      transition: box-shadow .2s, transform .2s, background .3s;
+      position: relative;
     }
-    .provider-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
-    .provider-card.card-ok   { border-left-color: var(--status-green); }
-    .provider-card.card-prog { border-left-color: var(--status-orange); }
-    .provider-card.card-risk { border-left-color: var(--status-red); }
+    .provider-card:hover { box-shadow: var(--shadow-md); transform: translateY(-3px); }
+    .provider-card.card-ok   {
+      border-left-color: var(--status-green);
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, var(--bg-primary) 60%);
+    }
+    .provider-card.card-prog {
+      border-left-color: var(--status-amber);
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, var(--bg-primary) 60%);
+    }
+    .provider-card.card-risk {
+      border-left-color: var(--status-red);
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.18) 0%, var(--bg-primary) 60%);
+    }
+    .provider-card.card-risk.critical-deadline {
+      animation: card-pulse 2s ease-in-out infinite;
+    }
     .provider-card.card-unk  { border-left-color: #93c5fd; }
-    .provider-card.card-error { border-left-color: #f87171; }
+    .provider-card.card-error {
+      border-left-color: #f87171;
+      background: linear-gradient(135deg, rgba(248, 113, 113, 0.1) 0%, var(--bg-primary) 50%);
+    }
+    [data-theme="dark"] .provider-card.card-ok {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, var(--bg-primary) 60%);
+    }
+    [data-theme="dark"] .provider-card.card-prog {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, var(--bg-primary) 60%);
+    }
+    [data-theme="dark"] .provider-card.card-risk {
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.22) 0%, var(--bg-primary) 60%);
+    }
+    [data-theme="dark"] .provider-card.card-prog {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, var(--bg-primary) 50%);
+    }
+    [data-theme="dark"] .provider-card.card-risk {
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, var(--bg-primary) 50%);
+    }
+    @keyframes card-pulse {
+      0%, 100% { box-shadow: var(--shadow-sm); }
+      50% { box-shadow: 0 0 20px rgba(239, 68, 68, 0.3); }
+    }
 
     /* Unknown reason banner */
     .unknown-reason {
@@ -1165,27 +1242,64 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .lic-block.lic-complete  { border-color: #bbf7d0; background: #f0fdf4; }
     .lic-block.lic-progress  { border-color: #fde68a; background: #fffbeb; }
     .lic-block.lic-risk      { border-color: #fecaca; background: #fff5f5; }
+    [data-theme="dark"] .lic-block { border-color: #475569; background: #334155; }
+    [data-theme="dark"] .lic-block.lic-complete { border-color: #166534; background: rgba(22, 163, 74, 0.15); }
+    [data-theme="dark"] .lic-block.lic-progress { border-color: #92400e; background: rgba(217, 119, 6, 0.15); }
+    [data-theme="dark"] .lic-block.lic-risk { border-color: #991b1b; background: rgba(220, 38, 38, 0.15); }
 
     .lic-header { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
     .lic-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
     .dot-green  { background: #16a34a; }
-    .dot-yellow { background: #d97706; }
-    .dot-red    { background: #dc2626; }
+    .dot-yellow { background: #f59e0b; }
+    .dot-red    { background: #ef4444; }
     .dot-gray   { background: #94a3b8; }
     .lic-header strong { font-size: 0.9rem; }
     .lic-type   { font-size: 0.72rem; color: #64748b; background: #e2e8f0; padding: 1px 7px; border-radius: 99px; }
     .lic-status-text { margin-left: auto; font-size: 0.75rem; color: #475569; font-weight: 500; }
+    [data-theme="dark"] .lic-type { background: #475569; color: #cbd5e1; }
+    [data-theme="dark"] .lic-status-text { color: #94a3b8; }
+    [data-theme="dark"] .lic-header strong { color: #f1f5f9; }
+    [data-theme="dark"] .deadline-label { color: #94a3b8; }
 
-    .lic-deadline { font-size: 0.78rem; color: #475569; margin-bottom: 7px; }
-    .overdue  { color: #dc2626; font-weight: 700; }
-    .urgent   { color: #d97706; font-weight: 600; }
+    .lic-deadline { font-size: 0.78rem; color: #475569; margin-bottom: 7px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .deadline-label { color: #64748b; }
 
-    .lic-bar-row { display: flex; align-items: center; gap: 8px; }
-    .bar-track { flex: 1; height: 7px; background: #e2e8f0; border-radius: 99px; overflow: hidden; }
-    .bar-fill  { height: 100%; border-radius: 99px; background: #16a34a; transition: width .4s; }
-    .bar-fill.partial { background: #d97706; }
-    .bar-fill.low     { background: #dc2626; }
-    .bar-label { font-size: 0.75rem; color: #64748b; white-space: nowrap; }
+    /* Countdown badges with color coding */
+    .countdown-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 0.72rem;
+      cursor: help;
+    }
+    .countdown-badge.safe { background: #dcfce7; color: #166534; }
+    .countdown-badge.warning { background: #fef3c7; color: #92400e; }
+    .countdown-badge.danger { background: #fee2e2; color: #991b1b; }
+    .countdown-badge.overdue { background: #991b1b; color: white; }
+    .countdown-badge.critical { animation: pulse 1.5s ease-in-out infinite; }
+    [data-theme="dark"] .countdown-badge.safe { background: #14532d; color: #86efac; }
+    [data-theme="dark"] .countdown-badge.warning { background: #78350f; color: #fde68a; }
+    [data-theme="dark"] .countdown-badge.danger { background: #7f1d1d; color: #fecaca; }
+    [data-theme="dark"] .countdown-badge.overdue { background: #ef4444; color: white; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.7; transform: scale(1.02); }
+    }
+
+    .lic-bar-row { display: flex; align-items: center; gap: 10px; }
+    .bar-track { flex: 1; height: 10px; background: #e2e8f0; border-radius: 99px; overflow: hidden; box-shadow: inset 0 1px 2px rgba(0,0,0,0.1); }
+    .bar-fill  { height: 100%; border-radius: 99px; background: linear-gradient(90deg, #16a34a, #22c55e); transition: width .5s ease-out; }
+    .bar-fill.partial { background: linear-gradient(90deg, #f59e0b, #f59e0b); }
+    .bar-fill.low     { background: linear-gradient(90deg, #ef4444, #ef4444); }
+    .bar-fill.critical { animation: pulse 1.5s ease-in-out infinite; }
+    .bar-label { font-size: 0.78rem; color: #475569; white-space: nowrap; font-weight: 600; min-width: 70px; }
+    .bar-pct { font-size: 0.68rem; color: #94a3b8; margin-left: 2px; }
+    [data-theme="dark"] .bar-track { background: #475569; }
+    [data-theme="dark"] .bar-label { color: #cbd5e1; }
 
     .lic-course-link {
       display: inline-block;
@@ -1307,9 +1421,9 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .notes-cell { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #64748b; font-size: 0.8rem; }
 
     .status-pill { display: inline-block; padding: 3px 10px; border-radius: 99px; font-size: .72rem; font-weight: 600; }
-    .status-pill.complete { background: #dcfce7; color: #15803d; }
-    .status-pill.warning { background: #fef3c7; color: #b45309; }
-    .status-pill.at-risk { background: #fee2e2; color: #b91c1c; }
+    .status-pill.complete { background: #dcfce7; color: #059669; }
+    .status-pill.warning { background: #fef3c7; color: #d97706; }
+    .status-pill.at-risk { background: #fee2e2; color: #dc2626; }
     .status-pill.expired { background: #e5e7eb; color: #374151; }
     .status-pill.in-progress { background: #dbeafe; color: #1d4ed8; }
 
@@ -1324,9 +1438,9 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .detail-row td { background: #f8fafc; color: #475569; font-size: .8rem; }
     .sa-indent { padding-left: 40px !important; font-style: italic; }
     .sa-badge  { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: .7rem; font-weight: 600; }
-    .sa-ok   { background: #dcfce7; color: #15803d; }
-    .sa-prog { background: #fef3c7; color: #b45309; }
-    .sa-risk { background: #fee2e2; color: #b91c1c; }
+    .sa-ok   { background: #dcfce7; color: #059669; }
+    .sa-prog { background: #fef3c7; color: #d97706; }
+    .sa-risk { background: #fee2e2; color: #dc2626; }
     .sa-unk  { background: #f1f5f9; color: #64748b; }
 
     tr.hidden-row { display: none; }
@@ -1337,6 +1451,73 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
 
     /* ─ Footer ─ */
     footer { text-align: center; padding: 16px; font-size: .76rem; color: var(--text-secondary); border-top: 1px solid var(--border-color); margin-top: 8px; background: var(--bg-primary); }
+
+    /* ─ Updates Section ─ */
+    .updates-section {
+      max-width: 900px;
+      margin: 40px auto 20px;
+      padding: 0 24px;
+    }
+    .updates-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--accent-blue);
+    }
+    .updates-header h2 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 0;
+    }
+    .updates-icon {
+      font-size: 1.4rem;
+    }
+    .update-item {
+      background: var(--bg-secondary);
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin-bottom: 12px;
+      border-left: 4px solid var(--accent-blue);
+    }
+    .update-item.new {
+      border-left-color: var(--status-green);
+    }
+    .update-item.removed {
+      border-left-color: var(--status-red);
+    }
+    .update-item.changed {
+      border-left-color: var(--status-amber);
+    }
+    .update-date {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+    .update-title {
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+    .update-desc {
+      font-size: 0.88rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+    .update-badge {
+      display: inline-block;
+      font-size: 0.68rem;
+      padding: 2px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-right: 8px;
+    }
+    .update-badge.new { background: var(--status-green-bg); color: var(--status-green); }
+    .update-badge.removed { background: var(--status-red-bg); color: var(--status-red); }
+    .update-badge.changed { background: var(--status-amber-bg); color: var(--status-amber); }
 
     /* ─ Sidebar Navigation ─ */
     .app-layout { display: flex; min-height: calc(100vh - 82px); }
@@ -1427,7 +1608,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .tab-btn:hover { background: var(--bg-tertiary); color: var(--text-primary); }
     .tab-btn.active {
       color: var(--text-primary);
-      border-bottom-color: #0d9488;
+      border-bottom-color: #10b981;
       background: var(--bg-primary);
       box-shadow: 0 -2px 6px rgba(0,0,0,.05);
     }
@@ -1461,10 +1642,10 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .stat-number { font-size: 2.5rem; font-weight: 800; line-height: 1; }
     .stat-label { font-size: 0.85rem; font-weight: 600; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
     .stat-icon { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); font-size: 2.5rem; opacity: 0.15; }
-    .stat-at-risk { border-left: 4px solid #dc2626; }
-    .stat-at-risk .stat-number, .stat-at-risk .stat-label { color: #dc2626; }
-    .stat-in-progress { border-left: 4px solid #d97706; }
-    .stat-in-progress .stat-number, .stat-in-progress .stat-label { color: #d97706; }
+    .stat-at-risk { border-left: 4px solid #ef4444; }
+    .stat-at-risk .stat-number, .stat-at-risk .stat-label { color: #ef4444; }
+    .stat-in-progress { border-left: 4px solid #f59e0b; }
+    .stat-in-progress .stat-number, .stat-in-progress .stat-label { color: #f59e0b; }
     .stat-complete { border-left: 4px solid #16a34a; }
     .stat-complete .stat-number, .stat-complete .stat-label { color: #16a34a; }
     .stat-no-creds { border-left: 4px solid #6b7280; }
@@ -1477,10 +1658,10 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .dash-stat-content { display: flex; flex-direction: column; }
     .dash-stat-num { font-size: 1.8rem; font-weight: 800; line-height: 1; }
     .dash-stat-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.8; }
-    .dash-stat-risk { background: linear-gradient(135deg, #fef2f2, #fff); border-left: 4px solid #dc2626; }
-    .dash-stat-risk .dash-stat-num, .dash-stat-risk .dash-stat-label { color: #dc2626; }
-    .dash-stat-warning { background: linear-gradient(135deg, #fffbeb, #fff); border-left: 4px solid #d97706; }
-    .dash-stat-warning .dash-stat-num, .dash-stat-warning .dash-stat-label { color: #d97706; }
+    .dash-stat-risk { background: linear-gradient(135deg, #fef2f2, #fff); border-left: 4px solid #ef4444; }
+    .dash-stat-risk .dash-stat-num, .dash-stat-risk .dash-stat-label { color: #ef4444; }
+    .dash-stat-warning { background: linear-gradient(135deg, #fffbeb, #fff); border-left: 4px solid #f59e0b; }
+    .dash-stat-warning .dash-stat-num, .dash-stat-warning .dash-stat-label { color: #f59e0b; }
     .dash-stat-complete { background: linear-gradient(135deg, #f0fdf4, #fff); border-left: 4px solid #16a34a; }
     .dash-stat-complete .dash-stat-num, .dash-stat-complete .dash-stat-label { color: #16a34a; }
     .dash-stat-unknown { background: linear-gradient(135deg, #f8fafc, #fff); border-left: 4px solid #64748b; }
@@ -1497,15 +1678,15 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .dash-action-text { flex: 1; font-size: 0.88rem; color: #334155; }
     .dash-action-text strong { font-weight: 700; }
     .dash-action-arrow { color: #94a3b8; font-size: 0.9rem; }
-    .dash-action-critical { background: #fef2f2; border-left: 3px solid #dc2626; }
+    .dash-action-critical { background: #fef2f2; border-left: 3px solid #ef4444; }
     .dash-action-critical:hover { background: #fee2e2; }
-    .dash-action-warning { background: #fffbeb; border-left: 3px solid #d97706; }
+    .dash-action-warning { background: #fffbeb; border-left: 3px solid #f59e0b; }
     .dash-action-warning:hover { background: #fef3c7; }
     .dash-action-info { background: #f8fafc; border-left: 3px solid #64748b; }
     .dash-action-info:hover { background: #f1f5f9; }
     .dash-action-pending { background: #eff6ff; border-left: 3px solid #3b82f6; }
     .dash-action-pending:hover { background: #dbeafe; }
-    .dash-action-error { background: #fef2f2; border-left: 3px solid #dc2626; }
+    .dash-action-error { background: #fef2f2; border-left: 3px solid #ef4444; }
     .dash-action-error:hover { background: #fee2e2; }
     .dash-action-empty { display: flex; align-items: center; gap: 12px; padding: 16px; color: #16a34a; font-size: 0.9rem; }
 
@@ -1514,8 +1695,8 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .dash-deadline-row:hover { background: #f1f5f9; }
     .dash-deadline-row.has-items { background: #fffbeb; }
     .dash-dl-badge { padding: 3px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 700; }
-    .dash-dl-badge.urgent { background: #dc2626; color: #fff; }
-    .dash-dl-badge.soon { background: #d97706; color: #fff; }
+    .dash-dl-badge.urgent { background: #ef4444; color: #fff; }
+    .dash-dl-badge.soon { background: #f59e0b; color: #fff; }
     .dash-dl-badge.upcoming { background: #3b82f6; color: #fff; }
     .dash-dl-count { font-size: 1.2rem; font-weight: 800; color: #1e293b; }
     .dash-dl-label { font-size: 0.75rem; color: #64748b; }
@@ -1525,8 +1706,8 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .dash-preview-name { flex: 1; color: #334155; font-weight: 500; }
     .dash-preview-state { color: #64748b; font-size: 0.78rem; }
     .dash-preview-days { font-weight: 700; font-size: 0.8rem; }
-    .dash-preview-item.di-risk .dash-preview-days { color: #dc2626; }
-    .dash-preview-item.di-progress .dash-preview-days { color: #d97706; }
+    .dash-preview-item.di-risk .dash-preview-days { color: #ef4444; }
+    .dash-preview-item.di-progress .dash-preview-days { color: #f59e0b; }
     .dash-preview-item.di-complete .dash-preview-days { color: #16a34a; }
     .dash-preview-more { font-size: 0.78rem; color: #3b82f6; margin-top: 4px; }
 
@@ -1540,7 +1721,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .run-stat-label { color: #64748b; font-weight: 500; }
     .run-stat-value { color: #1e293b; }
     .run-ok { color: #16a34a; }
-    .run-fail { color: #dc2626; }
+    .run-fail { color: #ef4444; }
 
     /* ─ Providers Filter Bar ─ */
     .providers-filter-bar { display: flex; gap: 12px; padding: 20px 40px 12px; flex-wrap: wrap; align-items: center; position: sticky; top: 82px; z-index: 50; background: var(--bg-body); border-bottom: 1px solid var(--border-color); }
@@ -1569,7 +1750,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .view-toggle.active { background: var(--accent-blue); color: #fff; border-color: var(--accent-blue); }
     .view-count { font-size: 0.75rem; padding: 2px 8px; border-radius: 10px; background: rgba(0,0,0,.1); }
     .view-toggle.active .view-count { background: rgba(255,255,255,.2); }
-    .view-count.warning { background: var(--status-orange); color: #fff; }
+    .view-count.warning { background: var(--status-amber); color: #fff; }
 
     .license-view, .report-view { display: none; padding: 0 40px 24px; }
     .license-view.active, .report-view.active { display: block; }
@@ -1586,7 +1767,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .platform-overview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; padding: 0 40px; }
     .poc { background: #fff; border-radius: 12px; padding: 16px 18px; box-shadow: 0 2px 8px rgba(0,0,0,.06); display: flex; flex-direction: column; gap: 6px; border-top: 3px solid #e2e8f0; border-left: 4px solid transparent; }
     .poc-connected  { border-top-color: #16a34a; border-left-color: #16a34a; }
-    .poc-ce-broker  { border-top-color: #0d9488; border-left-color: #0d9488; }
+    .poc-ce-broker  { border-top-color: #10b981; border-left-color: #10b981; }
     .poc-pending    { border-top-color: #e2e8f0; border-left-color: #e2e8f0; opacity: 0.75; }
     .poc-hdr { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
     .poc-name { font-weight: 700; font-size: 0.95rem; color: #1e293b; }
@@ -1610,8 +1791,8 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .cov-cell { text-align: center; }
     .cov-yes { color: #16a34a; font-weight: 700; }
     .cov-no  { color: #cbd5e1; }
-    .cov-none { color: #dc2626; font-weight: 700; }
-    .cov-pending { color: #d97706; }
+    .cov-none { color: #ef4444; font-weight: 700; }
+    .cov-pending { color: #f59e0b; }
     .cov-row-none { background: #fef2f2; }
     .coverage-matrix { border-collapse: separate; border-spacing: 0; }
     .matrix-legend { display: flex; gap: 20px; margin-bottom: 12px; padding-left: 4px; }
@@ -1619,7 +1800,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
     .legend-dot.dot-green { background: #16a34a; }
     .legend-dot.dot-gray { background: #cbd5e1; }
-    .legend-dot.dot-red { background: #dc2626; }
+    .legend-dot.dot-red { background: #ef4444; }
 
     .coverage-gaps-box { margin: 0 40px 28px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 12px; padding: 20px 24px; }
     /* ─ Action Required section ─ */
@@ -1633,7 +1814,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .action-list { display: flex; flex-wrap: wrap; gap: 6px; }
     .action-name { font-size: 0.78rem; font-weight: 500; padding: 4px 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; }
     .action-critical { background: #fef2f2; }
-    .action-critical .action-icon, .action-critical .action-title { color: #dc2626; }
+    .action-critical .action-icon, .action-critical .action-title { color: #ef4444; }
     .action-name-critical { background: #fee2e2; border-color: #fca5a5; color: #991b1b; }
     .action-no-creds { background: #fefce8; }
     .action-no-creds .action-icon, .action-no-creds .action-title { color: #a16207; }
@@ -1645,15 +1826,15 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .action-info .action-icon, .action-info .action-title { color: #0369a1; }
     .action-name-info { background: #e0f2fe; border-color: #7dd3fc; color: #0c4a6e; }
     /* ─ Tab badge ─ */
-    .tab-badge { background: #dc2626; color: #fff; font-size: 0.7rem; font-weight: 700; padding: 2px 6px; border-radius: 10px; margin-left: 6px; }
+    .tab-badge { background: #ef4444; color: #fff; font-size: 0.7rem; font-weight: 700; padding: 2px 6px; border-radius: 10px; margin-left: 6px; }
     .tab-badge-sm { background: #64748b; color: #fff; font-size: 0.65rem; font-weight: 600; padding: 1px 5px; border-radius: 8px; margin-left: 4px; }
     /* ─ Needs Attention tab ─ */
     .deadlines-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 0 40px 24px; }
     .deadline-group { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.06); overflow: hidden; }
     .deadline-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-bottom: 1px solid #e2e8f0; }
     .deadline-badge { font-size: 0.8rem; font-weight: 700; padding: 4px 10px; border-radius: 12px; }
-    .deadline-badge.urgent { background: #fee2e2; color: #dc2626; }
-    .deadline-badge.soon { background: #fef3c7; color: #d97706; }
+    .deadline-badge.urgent { background: #fee2e2; color: #ef4444; }
+    .deadline-badge.soon { background: #fef3c7; color: #f59e0b; }
     .deadline-badge.upcoming { background: #dbeafe; color: #2563eb; }
     .deadline-count { font-size: 0.8rem; color: #64748b; }
     .deadline-list { padding: 8px 0; }
@@ -1665,18 +1846,18 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .di-date { font-size: 0.75rem; color: #64748b; min-width: 80px; }
     .di-status { font-size: 0.9rem; }
     .di-risk { background: #fef2f2; }
-    .di-risk .di-days { color: #dc2626; }
+    .di-risk .di-days { color: #ef4444; }
     .di-complete { background: #f0fdf4; }
     .di-complete .di-days { color: #16a34a; }
     .di-progress { background: #fffbeb; }
-    .di-progress .di-days { color: #d97706; }
+    .di-progress .di-days { color: #f59e0b; }
     .deadline-empty { padding: 24px 18px; text-align: center; color: #94a3b8; font-size: 0.85rem; }
     .login-errors-box { margin: 0 40px 24px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; padding: 18px 24px; }
     .error-desc { font-size: 0.85rem; color: #991b1b; margin-bottom: 14px; }
     .error-list { display: flex; flex-direction: column; gap: 8px; }
     .error-item { display: flex; justify-content: space-between; align-items: center; background: #fff; border-radius: 8px; padding: 10px 14px; }
     .error-name { font-weight: 600; color: #1e293b; }
-    .error-msg { font-size: 0.8rem; color: #dc2626; max-width: 50%; text-align: right; }
+    .error-msg { font-size: 0.8rem; color: #ef4444; max-width: 50%; text-align: right; }
     .missing-creds-box { margin: 0 40px 24px; background: #fefce8; border: 1px solid #fde047; border-radius: 12px; padding: 18px 24px; }
     .missing-desc { font-size: 0.85rem; color: #854d0e; margin-bottom: 14px; }
     .missing-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
@@ -1769,16 +1950,16 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .detail-prog-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
     .detail-prog-track { flex: 1; height: 10px; background: #e2e8f0; border-radius: 99px; overflow: hidden; }
     .detail-prog-fill  { height: 100%; border-radius: 99px; background: #16a34a; transition: width .4s; }
-    .detail-prog-fill.partial { background: #d97706; }
-    .detail-prog-fill.low     { background: #dc2626; }
+    .detail-prog-fill.partial { background: #f59e0b; }
+    .detail-prog-fill.low     { background: #ef4444; }
     .detail-prog-label { font-size: 0.82rem; color: #475569; white-space: nowrap; font-weight: 600; }
 
     .detail-sa-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-bottom: 12px; }
     .detail-sa-table th { background: #f1f5f9; color: #64748b; font-weight: 600; padding: 6px 10px; text-align: left; font-size: 0.72rem; text-transform: uppercase; }
     .detail-sa-table td { padding: 7px 10px; border-bottom: 1px solid #f1f5f9; color: #334155; }
     .detail-sa-table tr:last-child td { border-bottom: none; }
-    .sa-done  { color: #15803d; font-weight: 600; }
-    .sa-short { color: #b91c1c; font-weight: 600; }
+    .sa-done  { color: #059669; font-weight: 600; }
+    .sa-short { color: #dc2626; font-weight: 600; }
 
     .detail-lic-num {
       font-size: 0.72rem; color: #64748b; background: #f1f5f9;
@@ -1819,10 +2000,10 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       border-radius: 8px; margin-bottom: 6px;
     }
     .need-topic  { font-size: 0.82rem; font-weight: 600; color: #991b1b; flex: 1; }
-    .need-hours  { font-size: 0.78rem; color: #b91c1c; white-space: nowrap; }
+    .need-hours  { font-size: 0.78rem; color: #dc2626; white-space: nowrap; }
     .need-search {
       font-size: 0.75rem; padding: 3px 10px; background: #fee2e2;
-      color: #b91c1c; border-radius: 6px; text-decoration: none; font-weight: 600;
+      color: #dc2626; border-radius: 6px; text-decoration: none; font-weight: 600;
       white-space: nowrap;
     }
     .need-search:hover { background: #fecaca; }
@@ -2001,7 +2182,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       display: flex; align-items: center; justify-content: space-between;
       padding: 8px 12px; font-size: 0.8rem; font-weight: 700; color: #fff;
     }
-    .platform-card.plat-netce   .platform-card-hdr { background: #0d9488; }
+    .platform-card.plat-netce   .platform-card-hdr { background: #10b981; }
     .platform-card.plat-ceufast .platform-card-hdr { background: #7c3aed; }
     .platform-card.plat-aanp    .platform-card-hdr { background: #1d4ed8; }
     .platform-card.plat-error   .platform-card-hdr { background: #64748b; }
@@ -2070,8 +2251,8 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .lb-window { font-size: 0.68rem; color: #94a3b8; font-weight: 400; margin-left: 4px; }
     .lb-status { font-weight: 600; white-space: nowrap; }
     .lb-status.lb-met { color: #16a34a; }
-    .lb-status.lb-partial { color: #d97706; }
-    .lb-status.lb-none { color: #dc2626; }
+    .lb-status.lb-partial { color: #f59e0b; }
+    .lb-status.lb-none { color: #ef4444; }
 
     /* ─ Platform Coverage Tab ─ */
     .platform-view { display: none; padding: 20px 0; }
@@ -2082,7 +2263,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .legend-item { display: flex; align-items: center; gap: 6px; }
     .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
     .legend-dot.cov-yes { background: #dcfce7; border: 1px solid #16a34a; }
-    .legend-dot.cov-fail { background: #fee2e2; border: 1px solid #dc2626; }
+    .legend-dot.cov-fail { background: #fee2e2; border: 1px solid #ef4444; }
     .legend-dot.cov-no { background: #f1f5f9; border: 1px solid #cbd5e1; }
 
     /* Coverage matrix table */
@@ -2093,8 +2274,8 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .coverage-matrix .cov-provider-hdr { text-align: left; }
     .coverage-matrix .cov-provider { text-align: left; font-weight: 500; cursor: pointer; color: #1d4ed8; }
     .coverage-matrix .cov-provider:hover { text-decoration: underline; }
-    .coverage-matrix .cov-yes { background: #dcfce7; color: #15803d; font-weight: 600; }
-    .coverage-matrix .cov-fail { background: #fee2e2; color: #b91c1c; }
+    .coverage-matrix .cov-yes { background: #dcfce7; color: #059669; font-weight: 600; }
+    .coverage-matrix .cov-fail { background: #fee2e2; color: #dc2626; }
     .coverage-matrix .cov-no { background: #f8fafc; color: #94a3b8; }
     .coverage-matrix tbody tr:hover { background: #f1f5f9; }
     .coverage-matrix tbody tr:hover .cov-yes { background: #bbf7d0; }
@@ -2104,7 +2285,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     /* Platform summary cards */
     .platform-summary-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; padding: 0 40px; }
     .platform-summary-card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,.08); border-top: 4px solid #cbd5e1; }
-    .platform-summary-card.plat-card-netce { border-top-color: #0d9488; }
+    .platform-summary-card.plat-card-netce { border-top-color: #10b981; }
     .platform-summary-card.plat-card-ceufast { border-top-color: #7c3aed; }
     .platform-summary-card.plat-card-aanp { border-top-color: #1d4ed8; }
     .platform-summary-card.plat-card-excl { border-top-color: #f59e0b; }
@@ -2116,7 +2297,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .plat-stat { display: flex; flex-direction: column; align-items: center; min-width: 60px; }
     .plat-stat-num { font-size: 1.5rem; font-weight: 700; color: #1e293b; }
     .plat-stat-num.plat-stat-success { color: #16a34a; }
-    .plat-stat-num.plat-stat-fail { color: #dc2626; }
+    .plat-stat-num.plat-stat-fail { color: #ef4444; }
     .plat-stat-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; }
     .plat-providers-section { border-top: 1px solid #e2e8f0; padding-top: 12px; }
     .plat-providers-title { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; margin-bottom: 8px; }
@@ -2129,8 +2310,8 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .credential-gaps-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 20px; padding: 0 40px; }
     .cred-gap-card { background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
     .cred-gap-header { display: flex; align-items: center; gap: 10px; padding: 16px 20px; color: #fff; }
-    .cred-gap-header.cred-gap-cebroker { background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%); }
-    .cred-gap-header.cred-gap-netce { background: linear-gradient(135deg, #d97706 0%, #92400e 100%); }
+    .cred-gap-header.cred-gap-cebroker { background: linear-gradient(135deg, #ef4444 0%, #991b1b 100%); }
+    .cred-gap-header.cred-gap-netce { background: linear-gradient(135deg, #f59e0b 0%, #92400e 100%); }
     .cred-gap-header.cred-gap-complete { background: linear-gradient(135deg, #16a34a 0%, #166534 100%); }
     .cred-gap-icon { font-size: 1.3rem; }
     .cred-gap-title { flex: 1; font-weight: 600; font-size: 0.95rem; }
@@ -2140,7 +2321,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .cred-gap-list { display: flex; flex-wrap: wrap; gap: 8px; }
     .cred-gap-chip { padding: 6px 12px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; font-size: 0.82rem; color: #991b1b; cursor: pointer; transition: all .15s; }
     .cred-gap-chip:hover { background: #fee2e2; transform: translateY(-1px); }
-    .cred-gap-chip small { color: #b91c1c; opacity: 0.7; }
+    .cred-gap-chip small { color: #dc2626; opacity: 0.7; }
     .cred-gap-chip.cred-gap-chip-none { background: #f1f5f9; border-color: #cbd5e1; color: #64748b; }
     .cred-gap-chip.cred-gap-chip-none small { color: #94a3b8; }
     .cred-gap-chip.cred-gap-chip-none:hover { background: #e2e8f0; }
@@ -2159,12 +2340,12 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .deadline-buckets { display: flex; flex-direction: column; gap: 24px; }
     .deadline-bucket { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.07); overflow: hidden; }
     .bucket-header { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid #e2e8f0; }
-    .bucket-header.bucket-urgent { background: linear-gradient(90deg, #fef2f2 0%, #fff 100%); border-left: 4px solid #dc2626; }
-    .bucket-header.bucket-warning { background: linear-gradient(90deg, #fffbeb 0%, #fff 100%); border-left: 4px solid #d97706; }
+    .bucket-header.bucket-urgent { background: linear-gradient(90deg, #fef2f2 0%, #fff 100%); border-left: 4px solid #ef4444; }
+    .bucket-header.bucket-warning { background: linear-gradient(90deg, #fffbeb 0%, #fff 100%); border-left: 4px solid #f59e0b; }
     .bucket-header.bucket-upcoming { background: linear-gradient(90deg, #f0fdf4 0%, #fff 100%); border-left: 4px solid #16a34a; }
     .bucket-badge { padding: 4px 12px; border-radius: 99px; font-size: 0.75rem; font-weight: 700; }
-    .bucket-urgent .bucket-badge { background: #dc2626; color: #fff; }
-    .bucket-warning .bucket-badge { background: #d97706; color: #fff; }
+    .bucket-urgent .bucket-badge { background: #ef4444; color: #fff; }
+    .bucket-warning .bucket-badge { background: #f59e0b; color: #fff; }
     .bucket-upcoming .bucket-badge { background: #16a34a; color: #fff; }
     .bucket-title { font-weight: 700; color: #0f172a; flex: 1; }
     .bucket-count { font-size: 0.85rem; color: #64748b; }
@@ -2179,7 +2360,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .state-mini-stats { display: flex; gap: 8px; flex: 1; flex-wrap: wrap; }
     .mini-stat { padding: 2px 10px; border-radius: 99px; font-size: 0.75rem; font-weight: 600; }
     .mini-stat.risk { background: var(--status-red-bg); color: var(--status-red); }
-    .mini-stat.progress { background: var(--status-orange-bg); color: var(--status-orange); }
+    .mini-stat.progress { background: var(--status-amber-bg); color: var(--status-amber); }
     .mini-stat.complete { background: var(--status-green-bg); color: var(--status-green); }
     .state-provider-count { font-size: 0.85rem; color: var(--text-secondary); white-space: nowrap; }
     .state-cards { padding: 16px; }
@@ -2203,9 +2384,9 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .type-cards { padding: 16px; }
 
     /* ─ Favorites View ─ */
-    .favorites-header { padding: 16px 20px; background: var(--status-orange-bg); border-radius: 12px; margin-bottom: 20px; display: flex; align-items: center; gap: 16px; }
-    .favorites-title { font-weight: 700; font-size: 1.1rem; color: var(--status-orange); }
-    .favorites-hint { font-size: 0.85rem; color: var(--status-orange); opacity: 0.8; }
+    .favorites-header { padding: 16px 20px; background: var(--status-amber-bg); border-radius: 12px; margin-bottom: 20px; display: flex; align-items: center; gap: 16px; }
+    .favorites-title { font-weight: 700; font-size: 1.1rem; color: var(--status-amber); }
+    .favorites-hint { font-size: 0.85rem; color: var(--status-amber); opacity: 0.8; }
     .favorites-cards { padding: 0; }
     .empty-favorites { text-align: center; padding: 60px 20px; color: var(--text-secondary); font-size: 1rem; background: var(--bg-secondary); border-radius: 12px; }
 
@@ -2222,8 +2403,8 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .action-queue { display: flex; flex-direction: column; gap: 20px; }
     .action-section { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.07); overflow: hidden; }
     .action-section-header { display: flex; align-items: center; gap: 10px; padding: 14px 20px; font-weight: 700; }
-    .action-section.action-critical .action-section-header { background: #fef2f2; color: #b91c1c; border-left: 4px solid #dc2626; }
-    .action-section.action-urgent .action-section-header { background: #fef3c7; color: #b45309; border-left: 4px solid #d97706; }
+    .action-section.action-critical .action-section-header { background: #fef2f2; color: #dc2626; border-left: 4px solid #ef4444; }
+    .action-section.action-urgent .action-section-header { background: #fef3c7; color: #d97706; border-left: 4px solid #f59e0b; }
     .action-section.action-warning .action-section-header { background: #fefce8; color: #854d0e; border-left: 4px solid #eab308; }
     .action-section.action-info .action-section-header { background: #f1f5f9; color: #475569; border-left: 4px solid #94a3b8; }
     .action-icon { font-size: 1.1rem; }
@@ -2249,17 +2430,17 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .aanp-card { background: #fff; border-radius: 12px; padding: 18px; box-shadow: 0 2px 8px rgba(0,0,0,.07); cursor: pointer; transition: all .15s; border-left: 4px solid #16a34a; }
     .aanp-card:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,.1); }
     .aanp-card.cert-active { border-left-color: #16a34a; }
-    .aanp-card.cert-warning { border-left-color: #d97706; }
-    .aanp-card.cert-expired { border-left-color: #dc2626; }
+    .aanp-card.cert-warning { border-left-color: #f59e0b; }
+    .aanp-card.cert-expired { border-left-color: #ef4444; }
     .aanp-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
     .aanp-provider-name { font-weight: 700; color: #0f172a; }
     .aanp-cert-status { padding: 3px 10px; border-radius: 99px; font-size: 0.75rem; font-weight: 600; }
     .aanp-cert-status.cert-active { background: #dcfce7; color: #166534; }
-    .aanp-cert-status.cert-warning { background: #fef3c7; color: #b45309; }
-    .aanp-cert-status.cert-expired { background: #fee2e2; color: #b91c1c; }
+    .aanp-cert-status.cert-warning { background: #fef3c7; color: #d97706; }
+    .aanp-cert-status.cert-expired { background: #fee2e2; color: #dc2626; }
     .aanp-cert-expiry { font-size: 0.85rem; color: #475569; margin-bottom: 14px; }
     .aanp-days-left { margin-left: 6px; font-weight: 600; color: #64748b; }
-    .aanp-days-left.urgent { color: #d97706; }
+    .aanp-days-left.urgent { color: #f59e0b; }
     .aanp-hours-section { display: flex; flex-direction: column; gap: 8px; }
     .aanp-hours-row { display: flex; align-items: center; gap: 10px; }
     .aanp-hours-label { font-size: 0.78rem; color: #64748b; min-width: 80px; }
@@ -2281,14 +2462,14 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .state-stat-bar { display: flex; height: 10px; border-radius: 99px; overflow: hidden; background: #e2e8f0; margin-bottom: 12px; }
     .state-bar-segment { height: 100%; }
     .state-bar-segment.complete { background: #16a34a; }
-    .state-bar-segment.progress { background: #d97706; }
-    .state-bar-segment.risk { background: #dc2626; }
+    .state-bar-segment.progress { background: #f59e0b; }
+    .state-bar-segment.risk { background: #ef4444; }
     .state-bar-segment.unknown { background: #94a3b8; }
     .state-stat-details { display: flex; flex-wrap: wrap; gap: 8px; }
     .stat-detail { font-size: 0.78rem; padding: 2px 8px; border-radius: 99px; }
     .stat-detail.complete { background: #dcfce7; color: #166534; }
-    .stat-detail.progress { background: #fef3c7; color: #b45309; }
-    .stat-detail.risk { background: #fee2e2; color: #b91c1c; }
+    .stat-detail.progress { background: #fef3c7; color: #d97706; }
+    .stat-detail.risk { background: #fee2e2; color: #dc2626; }
     .stat-detail.unknown { background: #f1f5f9; color: #64748b; }
 
     /* ─ Timeline View ─ */
@@ -2332,7 +2513,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .compliance-stat-num { font-size: 1.8rem; font-weight: 800; display: block; }
     .compliance-stat-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; }
     .compliance-met .compliance-stat-num { color: #16a34a; }
-    .compliance-notmet .compliance-stat-num { color: #dc2626; }
+    .compliance-notmet .compliance-stat-num { color: #ef4444; }
 
     .compliance-table-wrap { padding: 0 40px 20px; overflow-x: auto; }
     .compliance-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.07); }
@@ -2357,8 +2538,8 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .comp-window small { color: #94a3b8; }
     .comp-status { font-weight: 600; text-align: center; white-space: nowrap; }
     .comp-status.comp-met { color: #16a34a; }
-    .comp-status.comp-partial { color: #d97706; }
-    .comp-status.comp-none { color: #dc2626; }
+    .comp-status.comp-partial { color: #f59e0b; }
+    .comp-status.comp-none { color: #ef4444; }
 
     .compliance-legend { padding: 0 40px 20px; display: flex; gap: 20px; flex-wrap: wrap; }
     .compliance-legend .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.82rem; color: #64748b; }
@@ -2403,7 +2584,10 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
           : ''}
       </div>
     </div>
-    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode" id="themeToggle">🌙</button>
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark/light mode" id="themeToggle">
+      <span class="theme-icon">🌙</span>
+      <span class="theme-toggle-label">Dark</span>
+    </button>
   </div>
 </header>
 
@@ -3287,6 +3471,50 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
   </main><!-- end main-content -->
 </div><!-- end app-layout -->
 
+<!-- ── Updates Section ──────────────────────────────────────────────────── -->
+<section class="updates-section">
+  <div class="updates-header">
+    <span class="updates-icon">📋</span>
+    <h2>Recent Updates</h2>
+  </div>
+
+  <div class="update-item new">
+    <div class="update-date">March 2, 2026</div>
+    <div class="update-title"><span class="update-badge new">New</span>Ashley Escoe, NP added to tracking</div>
+    <div class="update-desc">New provider added to the compliance dashboard. Credentials pending setup.</div>
+  </div>
+
+  <div class="update-item removed">
+    <div class="update-date">March 2, 2026</div>
+    <div class="update-title"><span class="update-badge removed">Removed</span>Jacquelyn Sexton, NP removed from tracking</div>
+    <div class="update-desc">Provider terminated as of 2/28/2026. Removed from active provider list.</div>
+  </div>
+
+  <div class="update-item new">
+    <div class="update-date">March 2, 2026</div>
+    <div class="update-title"><span class="update-badge new">New</span>Michele Foster credentials added</div>
+    <div class="update-desc">Added Nursing CE Central platform login for Michele Foster, NP.</div>
+  </div>
+
+  <div class="update-item new">
+    <div class="update-date">March 2, 2026</div>
+    <div class="update-title"><span class="update-badge new">New</span>Alexis Foster-Horton credentials added</div>
+    <div class="update-desc">Added NetCE platform login for Alexis Foster-Horton, NP.</div>
+  </div>
+
+  <div class="update-item new">
+    <div class="update-date">March 2, 2026</div>
+    <div class="update-title"><span class="update-badge new">New</span>Skye Sauls credentials added</div>
+    <div class="update-desc">Added CEUfast platform login for Skye Sauls, NP.</div>
+  </div>
+
+  <div class="update-item changed">
+    <div class="update-date">March 2, 2026</div>
+    <div class="update-title"><span class="update-badge changed">Update</span>Dashboard updates section added</div>
+    <div class="update-desc">New updates section added to track provider and system changes over time.</div>
+  </div>
+</section>
+
 <footer>CEU Tracker &nbsp;·&nbsp; Last scraped: ${escHtml(runDate)}</footer>
 
 <script>
@@ -3297,14 +3525,26 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     const newTheme = current === 'dark' ? 'light' : 'dark';
     html.dataset.theme = newTheme;
     localStorage.setItem('ceu-theme', newTheme);
-    document.getElementById('themeToggle').textContent = newTheme === 'dark' ? '☀️' : '🌙';
+    updateThemeButton(newTheme);
+  }
+  function updateThemeButton(theme) {
+    const btn = document.getElementById('themeToggle');
+    const icon = btn.querySelector('.theme-icon');
+    const label = btn.querySelector('.theme-toggle-label');
+    if (theme === 'dark') {
+      icon.textContent = '☀️';
+      label.textContent = 'Light';
+    } else {
+      icon.textContent = '🌙';
+      label.textContent = 'Dark';
+    }
   }
   // Restore theme on load
   (function() {
     const saved = localStorage.getItem('ceu-theme');
     if (saved === 'dark') {
       document.documentElement.dataset.theme = 'dark';
-      document.getElementById('themeToggle').textContent = '☀️';
+      updateThemeButton('dark');
     }
   })();
 
