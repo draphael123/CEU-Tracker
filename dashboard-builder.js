@@ -174,6 +174,22 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     platformByProvider[pr.providerName].push(pr);
   }
 
+  // ── Aggregate platform hours by provider (for platform-only providers) ───
+  const platformTotalsByProvider = {};
+  for (const [providerName, platforms] of Object.entries(platformByProvider)) {
+    const successfulPlatforms = platforms.filter(p => p.status === 'success');
+    const totalHours = successfulPlatforms.reduce((sum, p) => sum + (p.hoursEarned || 0), 0);
+    const totalCourses = successfulPlatforms.reduce((sum, p) => sum + (p.courses?.length || 0), 0);
+    const platformNames = successfulPlatforms.map(p => p.platform);
+    platformTotalsByProvider[providerName] = {
+      totalHours,
+      totalCourses,
+      platformCount: successfulPlatforms.length,
+      platforms: platformNames,
+      details: successfulPlatforms.map(p => ({ platform: p.platform, hours: p.hoursEarned || 0, courses: p.courses?.length || 0 }))
+    };
+  }
+
   // ── Platform overview data ────────────────────────────────────────────────
   const ALL_PLATFORMS = [
     { name: 'NetCE',              url: 'https://www.netce.com',         slug: 'netce',   desc: 'Online continuing education courses' },
@@ -647,7 +663,39 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
 
   // ── Helper to build a single provider card ───────────────────────────────
   const buildProviderCard = ([name, info]) => {
-    const licBadges = info.licenses.map(lic => {
+    // Check if this is a platform-only provider (no CE Broker data)
+    const isPlatformOnly = info.licenses.every(l => l.hoursRequired === null && l.state === null);
+    const platformTotals = platformTotalsByProvider[name];
+    const hasPlatformData = platformTotals && platformTotals.totalHours > 0;
+
+    // For platform-only providers with data, show platform summary instead
+    let licBadges;
+    if (isPlatformOnly && hasPlatformData) {
+      const platformBlocks = platformTotals.details.map(p => `
+        <div class="lic-block lic-platform">
+          <div class="lic-header">
+            <span class="lic-dot dot-blue"></span>
+            <strong>${escHtml(p.platform)}</strong>
+            <span class="lic-type">Platform</span>
+            <span class="lic-status-text platform-status">✓ Connected</span>
+          </div>
+          <div class="lic-bar-row platform-hours">
+            <span class="platform-hours-big">${p.hours}</span>
+            <span class="platform-hours-label">hours earned</span>
+          </div>
+          <div class="platform-courses">${p.courses} course${p.courses !== 1 ? 's' : ''} on record</div>
+        </div>
+      `).join('');
+
+      licBadges = `
+        <div class="platform-summary-header">
+          <span class="platform-icon">📊</span>
+          <span>Platform CEU Data (${platformTotals.totalHours} total hours)</span>
+        </div>
+        ${platformBlocks}
+      `;
+    } else {
+      licBadges = info.licenses.map(lic => {
       const status    = getS(lic);
       const state     = lic.state || '??';
       const deadline  = lic.renewalDeadline || '—';
@@ -716,12 +764,18 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
         ${courseUrl ? `<a class="lic-course-link" href="${courseUrl}" target="_blank" rel="noopener">Search Courses ↗</a>` : ''}
       </div>`;
     }).join('');
+    }
 
-    // Overall worst status for card border
-    const worstStatus = info.licenses.some(l => getS(l) === 'At Risk')      ? 'At Risk'
-                      : info.licenses.some(l => getS(l) === 'In Progress')  ? 'In Progress'
-                      : info.licenses.every(l => getS(l) === 'Complete')    ? 'Complete'
-                      : 'Unknown';
+    // Overall worst status for card border (give platform-only providers a special status)
+    let worstStatus;
+    if (isPlatformOnly && hasPlatformData) {
+      worstStatus = 'Platform';
+    } else {
+      worstStatus = info.licenses.some(l => getS(l) === 'At Risk')      ? 'At Risk'
+                  : info.licenses.some(l => getS(l) === 'In Progress')  ? 'In Progress'
+                  : info.licenses.every(l => getS(l) === 'Complete')    ? 'Complete'
+                  : 'Unknown';
+    }
 
     // Get specific reason for Unknown status
     const unknownInfo = worstStatus === 'Unknown' ? getUnknownReason(name) : null;
@@ -733,6 +787,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       Complete:      'card-ok',
       'In Progress': 'card-prog',
       'At Risk':     'card-risk',
+      Platform:      'card-platform',
       Unknown:       unknownInfo?.cls === 'unknown-error' ? 'card-error' : 'card-unk',
     }[worstStatus] || 'card-unk';
     const criticalCls = isCritical ? 'critical-deadline' : '';
@@ -742,12 +797,17 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
 
     const statesList = info.licenses.map(l => l.state).filter(Boolean).join(',');
 
-    // State chips — one per license
-    const stateChips = info.licenses.map(lic => {
-      const st  = getS(lic);
-      const cls = { Complete: 'sc-green', 'In Progress': 'sc-yellow', 'At Risk': 'sc-red', Unknown: 'sc-gray' }[st] || 'sc-gray';
-      return `<span class="card-state-chip ${cls}">${escHtml(lic.state || '?')} ${escHtml(lic.licenseType || info.type || '')}</span>`;
-    }).join('');
+    // State chips — one per license (or platform summary for platform-only)
+    let stateChips;
+    if (isPlatformOnly && hasPlatformData) {
+      stateChips = `<span class="card-state-chip sc-blue">${platformTotals.totalHours}h from ${platformTotals.platformCount} platform${platformTotals.platformCount !== 1 ? 's' : ''}</span>`;
+    } else {
+      stateChips = info.licenses.map(lic => {
+        const st  = getS(lic);
+        const cls = { Complete: 'sc-green', 'In Progress': 'sc-yellow', 'At Risk': 'sc-red', Unknown: 'sc-gray' }[st] || 'sc-gray';
+        return `<span class="card-state-chip ${cls}">${escHtml(lic.state || '?')} ${escHtml(lic.licenseType || info.type || '')}</span>`;
+      }).join('');
+    }
 
     // Platform tags — show platform, hours, and course count
     const platTags = (platformByProvider[name] || [])
@@ -788,6 +848,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
         worstStatus === 'Complete'    ? '#10b981'
       : worstStatus === 'In Progress' ? '#f59e0b'
       : worstStatus === 'At Risk'     ? '#ef4444'
+      : worstStatus === 'Platform'    ? '#3b82f6'
       : unknownInfo?.cls === 'unknown-error' ? '#dc2626'
       :                                  '#64748b'
       }">${escHtml(initials)}</div>
@@ -795,7 +856,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
           <div class="card-name">${escHtml(name)}</div>
           <div class="card-states">${stateChips}</div>
         </div>
-        <div class="card-lic-count">${info.licenses.length} license${info.licenses.length !== 1 ? 's' : ''} <span class="card-arrow">›</span></div>
+        <div class="card-lic-count">${isPlatformOnly && hasPlatformData ? `${platformTotals.platformCount} platform${platformTotals.platformCount !== 1 ? 's' : ''}` : `${info.licenses.length} license${info.licenses.length !== 1 ? 's' : ''}`} <span class="card-arrow">›</span></div>
       </div>
       <div class="lic-blocks">${licBadges}</div>
       ${platTagsRow}
@@ -1153,6 +1214,10 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       animation: card-pulse 2s ease-in-out infinite;
     }
     .provider-card.card-unk  { border-left-color: #93c5fd; }
+    .provider-card.card-platform {
+      border-left-color: #3b82f6;
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, var(--bg-primary) 60%);
+    }
     .provider-card.card-error {
       border-left-color: #f87171;
       background: linear-gradient(135deg, rgba(248, 113, 113, 0.1) 0%, var(--bg-primary) 50%);
@@ -1242,16 +1307,60 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .lic-block.lic-complete  { border-color: #bbf7d0; background: #f0fdf4; }
     .lic-block.lic-progress  { border-color: #fde68a; background: #fffbeb; }
     .lic-block.lic-risk      { border-color: #fecaca; background: #fff5f5; }
+    .lic-block.lic-platform  { border-color: #93c5fd; background: #eff6ff; }
     [data-theme="dark"] .lic-block { border-color: #475569; background: #334155; }
     [data-theme="dark"] .lic-block.lic-complete { border-color: #166534; background: rgba(22, 163, 74, 0.15); }
     [data-theme="dark"] .lic-block.lic-progress { border-color: #92400e; background: rgba(217, 119, 6, 0.15); }
     [data-theme="dark"] .lic-block.lic-risk { border-color: #991b1b; background: rgba(220, 38, 38, 0.15); }
+    [data-theme="dark"] .lic-block.lic-platform { border-color: #1d4ed8; background: rgba(59, 130, 246, 0.15); }
+
+    /* ─ Platform summary for platform-only providers ─ */
+    .platform-summary-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #3b82f6;
+      margin-bottom: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px dashed #93c5fd;
+    }
+    .platform-icon { font-size: 1rem; }
+    .platform-hours {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      margin-top: 4px;
+    }
+    .platform-hours-big {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #1d4ed8;
+    }
+    .platform-hours-label {
+      font-size: 0.75rem;
+      color: #64748b;
+    }
+    .platform-courses {
+      font-size: 0.72rem;
+      color: #64748b;
+      margin-top: 4px;
+    }
+    .platform-status {
+      color: #10b981 !important;
+      font-weight: 600;
+    }
+    [data-theme="dark"] .platform-summary-header { color: #60a5fa; border-bottom-color: #1d4ed8; }
+    [data-theme="dark"] .platform-hours-big { color: #60a5fa; }
 
     .lic-header { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
     .lic-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
     .dot-green  { background: #16a34a; }
     .dot-yellow { background: #f59e0b; }
     .dot-red    { background: #ef4444; }
+    .dot-blue   { background: #3b82f6; }
+    .dot-gray   { background: #94a3b8; }
     .dot-gray   { background: #94a3b8; }
     .lic-header strong { font-size: 0.9rem; }
     .lic-type   { font-size: 0.72rem; color: #64748b; background: #e2e8f0; padding: 1px 7px; border-radius: 99px; }
@@ -1889,6 +1998,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .sc-yellow { background: #fef9c3; color: #854d0e; }
     .sc-red    { background: #fee2e2; color: #7f1d1d; }
     .sc-gray   { background: #f1f5f9; color: #475569; }
+    .sc-blue   { background: #dbeafe; color: #1e40af; }
     .card-plat-tags { display: flex; flex-wrap: wrap; gap: 5px; padding: 8px 12px 4px; border-top: 1px solid #f1f5f9; }
     .card-plat-tag { font-size: 0.68rem; font-weight: 600; padding: 2px 7px; border-radius: 10px; }
     .plat-tag-netce   { background: #ccfbf1; color: #0f766e; }
