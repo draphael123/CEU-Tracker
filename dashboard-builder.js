@@ -3,6 +3,8 @@
 const fs   = require('fs');
 const path = require('path');
 const { daysUntil, parseDate, getStatus, courseSearchUrl, calculateSubjectHoursWithLookback, formatLookbackCutoff } = require('./utils');
+const { getHealthSummary } = require('./credential-health');
+const { loadCosts, calculateAllProviderSpending, calculateRolling12MonthSpending } = require('./cost-utils');
 
 const OUTPUT_HTML    = path.join(__dirname, 'dashboard.html');
 
@@ -153,6 +155,37 @@ function saveHistory(allProviderRecords, runResults) {
 }
 
 /**
+ * Build history log HTML from history array
+ */
+function buildHistoryLog(history) {
+  return history.slice(-20).reverse().map((run, i) => {
+    const runTime = new Date(run.timestamp);
+    const dateStr = runTime.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const timeStr = runTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    const provCount = run.providers?.length || 0;
+    const successCount = run.results?.filter(r => r.status === 'success').length || 0;
+    const failCount = run.results?.filter(r => r.status === 'login_error' || r.status === 'failed').length || 0;
+    const isLatest = i === 0;
+    const latestClass = isLatest ? 'history-latest' : '';
+    const failHtml = failCount > 0 ? '<span class="history-stat history-stat-fail">' + failCount + ' ✗</span>' : '';
+    const latestBadge = isLatest ? '<span class="history-badge-latest">Latest</span>' : '';
+
+    return '<div class="history-item ' + latestClass + '">' +
+      '<div class="history-time">' +
+        '<span class="history-date">' + dateStr + '</span>' +
+        '<span class="history-clock">' + timeStr + '</span>' +
+      '</div>' +
+      '<div class="history-stats">' +
+        '<span class="history-stat history-stat-ok">' + successCount + ' ✓</span>' +
+        failHtml +
+        '<span class="history-stat history-stat-total">' + provCount + ' providers</span>' +
+      '</div>' +
+      latestBadge +
+    '</div>';
+  }).join('');
+}
+
+/**
  * Build and write dashboard.html.
  * @param {LicenseRecord[][]} allProviderRecords
  * @param {{ name:string, status:string, error?:string }[]} [runResults]
@@ -166,6 +199,9 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
   // Load providers.json early for credential checks
   const providers = require('./providers.json');
   const noCredentialsProviders = providers.filter(p => p.noCredentials === true).map(p => p.name);
+
+  // ── Get credential health summary ─────────────────────────────────────────
+  const healthSummary = getHealthSummary();
 
   // ── Group platform results by provider name ──────────────────────────────
   const platformByProvider = {};
@@ -204,6 +240,20 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     if (!platformStats[pr.platform]) platformStats[pr.platform] = { providers: [], totalHours: 0 };
     platformStats[pr.platform].providers.push(pr.providerName);
     if (pr.status === 'success' && pr.hoursEarned) platformStats[pr.platform].totalHours += pr.hoursEarned;
+  }
+
+  // ── Load cost data and calculate spending stats ────────────────────────────
+  const costData = loadCosts();
+  const courseHistory = loadCourseHistory();
+  const spendingStats = calculateAllProviderSpending(courseHistory, costData);
+
+  // Aggregate orders from platform data
+  const ordersByProvider = {};
+  for (const pr of platformData) {
+    if (pr.orders && pr.orders.length > 0) {
+      if (!ordersByProvider[pr.providerName]) ordersByProvider[pr.providerName] = [];
+      ordersByProvider[pr.providerName].push(...pr.orders);
+    }
   }
 
   // ── Aggregate stats ──────────────────────────────────────────────────────
@@ -555,6 +605,11 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     const allCourses = info.licenses.flatMap(l => l.completedCourses || []);
     const lookbackSection = buildLookbackComplianceSection(providerStates, info.type, allCourses);
 
+    // Build spending section
+    const providerSpending = spendingStats.byProvider[pName] || null;
+    const providerOrders = ordersByProvider[pName] || [];
+    const spendingSection = buildSpendingSection(pName, providerSpending, providerOrders);
+
     drawerHtmlMap[pName] = `<div class="detail-hdr">
       <div class="detail-avatar" style="background:${
         worstSt === 'Complete'    ? '#10b981'
@@ -571,6 +626,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     </div>
     <div>${licCards}</div>
     ${lookbackSection}
+    ${spendingSection}
     ${platformSection}`;
   }
 
@@ -839,10 +895,14 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
         data-states="${escHtml(statesList)}"
         data-deadline="${earliestDeadline}"
         data-type="${escHtml(info.type || '')}"
+        data-completed="${info.licenses?.[0]?.hoursCompleted || 0}"
+        data-required="${info.licenses?.[0]?.hoursRequired || 0}"
+        data-remaining="${info.licenses?.[0]?.hoursRemaining || 0}"
         data-no-creds="${noCredentialsProviders.includes(name) || noCEBrokerList.includes(name)}"
         onclick="openProvider(this.dataset.provider)">
       ${unknownBanner}
       <div class="card-top">
+        <input type="checkbox" class="bulk-select-cb" onclick="event.stopPropagation(); updateBulkSelection()" title="Select for bulk export">
         <button class="fav-btn" onclick="event.stopPropagation(); toggleFavorite('${escHtml(name).replace(/'/g, '&#39;')}')" title="Pin to favorites">☆</button>
         <div class="avatar" style="background:${
         worstStatus === 'Complete'    ? '#10b981'
@@ -1114,7 +1174,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     header h1 span { color: var(--text-accent); }
     .header-meta { text-align: right; display: flex; align-items: center; gap: 16px; }
     .last-scraped-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); }
-    .last-scraped-value { font-size: 0.95rem; color: #e2e8f0; font-weight: 500; margin-top: 2px; }
+    .last-scraped-value { font-size: 0.95rem; color: #e2e8f0; font-weight: 700; margin-top: 2px; }
     .last-scraped-ago { font-size: 0.72rem; color: var(--text-accent); margin-top: 1px; }
     .theme-toggle {
       background: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05));
@@ -1141,6 +1201,45 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .run-pill.ok   { background: #166534; color: #dcfce7; }
     .run-pill.notconfig { background: #475569; color: #e2e8f0; }
     .run-pill.fail { background: #7f1d1d; color: #fee2e2; }
+
+    /* ─ Global Search ─ */
+    .global-search-wrap { position: relative; }
+    .global-search {
+      width: 200px; padding: 10px 14px; border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.1);
+      color: #fff; font-size: 0.85rem;
+      transition: all 0.2s;
+    }
+    .global-search:focus {
+      width: 280px; outline: none;
+      border-color: var(--text-accent);
+      background: rgba(255,255,255,0.15);
+    }
+    .global-search::placeholder { color: rgba(255,255,255,0.5); }
+    .global-search-results {
+      position: absolute; top: 100%; left: 0; right: 0;
+      background: var(--bg-primary); border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      max-height: 320px; overflow-y: auto;
+      display: none; z-index: 1000; margin-top: 8px;
+    }
+    .global-search-results.active { display: block; }
+    .search-result-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 16px; cursor: pointer;
+      border-bottom: 1px solid var(--border-color);
+      transition: background 0.15s;
+    }
+    .search-result-item:last-child { border-bottom: none; }
+    .search-result-item:hover { background: var(--bg-secondary); }
+    .search-result-name { font-weight: 600; color: var(--text-primary); }
+    .search-result-meta { font-size: 0.75rem; color: var(--text-secondary); }
+    .search-result-badge { font-size: 0.7rem; padding: 2px 8px; border-radius: 6px; font-weight: 600; }
+    .search-result-badge.ok { background: #d1fae5; color: #059669; }
+    .search-result-badge.risk { background: #fecaca; color: #dc2626; }
+    .search-result-badge.prog { background: #fef3c7; color: #d97706; }
+    .search-no-results { padding: 16px; text-align: center; color: var(--text-secondary); font-size: 0.85rem; }
 
     /* ─ Stat cards ─ */
     .stats { display: flex; gap: 14px; padding: 28px 40px 0; flex-wrap: wrap; }
@@ -2184,6 +2283,107 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .cal-entry-date  { font-size: 0.78rem; color: #64748b; white-space: nowrap; }
     .cal-entry-days  { font-size: 0.75rem; white-space: nowrap; }
 
+    /* ─ Status Page ─ */
+    .status-page { padding: 24px 40px; }
+    .status-section { background: var(--bg-primary); border-radius: 16px; padding: 24px; margin-bottom: 24px; box-shadow: var(--shadow-sm); }
+    .status-section-title { display: flex; align-items: center; gap: 10px; font-size: 1.1rem; font-weight: 700; color: var(--text-primary); margin-bottom: 20px; }
+    .status-icon { font-size: 1.3rem; }
+    .status-cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; }
+    .status-card { background: var(--bg-secondary); border-radius: 12px; padding: 16px 20px; text-align: center; }
+    .status-card-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); margin-bottom: 8px; }
+    .status-card-value { font-size: 1.5rem; font-weight: 800; color: var(--text-primary); }
+    .status-card-sub { font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px; }
+    .status-card-success { border-left: 4px solid #10b981; }
+    .status-card-success .status-card-value { color: #10b981; }
+    .status-card-error { border-left: 4px solid #ef4444; }
+    .status-card-error .status-card-value { color: #ef4444; }
+    .status-card-info { border-left: 4px solid #3b82f6; }
+    .status-card-info .status-card-value { color: #3b82f6; }
+
+    .health-summary { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+    .health-stat { flex: 1; min-width: 100px; text-align: center; padding: 16px; border-radius: 12px; }
+    .health-num { display: block; font-size: 2rem; font-weight: 800; }
+    .health-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    .health-healthy { background: #d1fae5; }
+    .health-healthy .health-num { color: #059669; }
+    .health-healthy .health-label { color: #047857; }
+    .health-degraded { background: #fef3c7; }
+    .health-degraded .health-num { color: #d97706; }
+    .health-degraded .health-label { color: #b45309; }
+    .health-warning { background: #fed7aa; }
+    .health-warning .health-num { color: #ea580c; }
+    .health-warning .health-label { color: #c2410c; }
+    .health-critical { background: #fecaca; }
+    .health-critical .health-num { color: #dc2626; }
+    .health-critical .health-label { color: #b91c1c; }
+
+    .health-issues { margin-top: 20px; }
+    .health-issues-title { font-size: 0.9rem; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; }
+    .health-issues-list { display: flex; flex-direction: column; gap: 10px; }
+    .health-issue-item { display: flex; align-items: center; gap: 16px; padding: 14px 18px; border-radius: 10px; background: var(--bg-secondary); }
+    .health-issue-critical { border-left: 4px solid #dc2626; }
+    .health-issue-warning { border-left: 4px solid #ea580c; }
+    .health-issue-degraded { border-left: 4px solid #d97706; }
+    .health-issue-status { min-width: 80px; }
+    .health-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+    .health-dot-critical { background: #dc2626; }
+    .health-dot-warning { background: #ea580c; }
+    .health-dot-degraded { background: #d97706; }
+    .health-status-text { font-size: 0.7rem; font-weight: 700; }
+    .health-issue-info { flex: 1; }
+    .health-issue-provider { font-weight: 700; color: var(--text-primary); }
+    .health-issue-platform { font-size: 0.8rem; color: var(--text-secondary); }
+    .health-issue-details { text-align: right; }
+    .health-issue-failures { font-size: 0.8rem; color: #dc2626; font-weight: 600; }
+    .health-issue-error { font-size: 0.72rem; color: var(--text-secondary); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .health-all-good { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 24px; background: #d1fae5; border-radius: 12px; }
+    .health-all-good-icon { font-size: 1.5rem; color: #059669; }
+    .health-all-good-text { font-size: 1rem; font-weight: 600; color: #047857; }
+
+    .error-log { display: flex; flex-direction: column; gap: 8px; }
+    .error-log-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: #fef2f2; border-radius: 8px; border-left: 3px solid #ef4444; }
+    .error-log-type { font-size: 0.72rem; font-weight: 700; background: #fee2e2; color: #dc2626; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+    .error-log-provider { font-weight: 600; color: #1e293b; min-width: 150px; }
+    .error-log-msg { font-size: 0.8rem; color: #64748b; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .scheduler-info { display: flex; flex-direction: column; gap: 12px; }
+    .scheduler-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: var(--bg-secondary); border-radius: 8px; }
+    .scheduler-label { font-weight: 600; color: var(--text-secondary); }
+    .scheduler-value { font-weight: 700; color: var(--text-primary); }
+    .scheduler-enabled { color: #059669; }
+
+    /* ─ Scrape History Log ─ */
+    .history-log { display: flex; flex-direction: column; gap: 8px; max-height: 400px; overflow-y: auto; }
+    .history-item {
+      display: flex; align-items: center; gap: 16px;
+      padding: 12px 16px; background: var(--bg-secondary);
+      border-radius: 8px; border-left: 3px solid var(--border-color);
+    }
+    .history-item.history-latest { border-left-color: #10b981; background: rgba(16, 185, 129, 0.1); }
+    .history-time { min-width: 100px; }
+    .history-date { font-weight: 700; color: var(--text-primary); display: block; }
+    .history-clock { font-size: 0.75rem; color: var(--text-secondary); }
+    .history-stats { display: flex; gap: 10px; flex: 1; }
+    .history-stat { font-size: 0.8rem; padding: 3px 10px; border-radius: 6px; font-weight: 600; }
+    .history-stat-ok { background: #d1fae5; color: #059669; }
+    .history-stat-fail { background: #fecaca; color: #dc2626; }
+    .history-stat-total { background: var(--bg-tertiary); color: var(--text-secondary); }
+    .history-badge-latest { font-size: 0.7rem; padding: 3px 8px; background: #10b981; color: #fff; border-radius: 6px; font-weight: 700; text-transform: uppercase; }
+    .history-summary { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color); text-align: center; }
+    .history-total { font-size: 0.85rem; color: var(--text-secondary); }
+    [data-theme="dark"] .history-stat-ok { background: rgba(16, 185, 129, 0.2); }
+    [data-theme="dark"] .history-stat-fail { background: rgba(220, 38, 38, 0.2); }
+    [data-theme="dark"] .history-item.history-latest { background: rgba(16, 185, 129, 0.15); }
+
+    [data-theme="dark"] .health-healthy { background: rgba(5, 150, 105, 0.2); }
+    [data-theme="dark"] .health-degraded { background: rgba(217, 119, 6, 0.2); }
+    [data-theme="dark"] .health-warning { background: rgba(234, 88, 12, 0.2); }
+    [data-theme="dark"] .health-critical { background: rgba(220, 38, 38, 0.2); }
+    [data-theme="dark"] .health-all-good { background: rgba(5, 150, 105, 0.2); }
+    [data-theme="dark"] .health-all-good-text { color: #34d399; }
+    [data-theme="dark"] .error-log-item { background: rgba(254, 242, 242, 0.1); }
+
     /* ─ Mobile (768px and below) ─ */
     @media (max-width: 768px) {
       header {
@@ -2255,6 +2455,53 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       .about-box { margin: 0 16px 8px; padding: 16px; }
       .chart-canvas-wrap { height: 260px; }
       .poc { padding: 12px 14px; }
+
+      /* Status page mobile */
+      .status-page { padding: 16px; }
+      .status-section { padding: 16px; }
+      .status-cards-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      .status-card { padding: 12px; }
+      .status-card-value { font-size: 1.2rem; }
+      .health-summary { gap: 10px; }
+      .health-stat { min-width: 70px; padding: 12px 8px; }
+      .health-num { font-size: 1.5rem; }
+      .health-issue-item { flex-direction: column; align-items: flex-start; gap: 8px; }
+      .health-issue-details { text-align: left; width: 100%; }
+      .health-issue-error { max-width: 100%; white-space: normal; }
+      .error-log-item { flex-direction: column; align-items: flex-start; gap: 6px; }
+      .error-log-msg { white-space: normal; }
+      .scheduler-item { flex-direction: column; align-items: flex-start; gap: 4px; }
+
+      /* History log mobile */
+      .history-item { flex-direction: column; align-items: flex-start; gap: 8px; }
+      .history-time { display: flex; gap: 8px; align-items: center; }
+      .history-date { display: inline; }
+      .history-stats { flex-wrap: wrap; }
+
+      /* Global search mobile */
+      .global-search { width: 140px; font-size: 0.8rem; padding: 8px 12px; }
+      .global-search:focus { width: 200px; }
+      .global-search-results { left: auto; right: 0; width: 280px; }
+
+      /* Bulk selection mobile */
+      .bulk-controls { width: 100%; margin-left: 0; padding-left: 0; border-left: none; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.2); }
+      .bulk-select-cb { width: 22px; height: 22px; }
+      .view-toggle-bar { gap: 6px; padding: 16px 16px 0; }
+      .view-toggle { padding: 6px 12px; font-size: 0.75rem; }
+      .export-btn { padding: 6px 12px; font-size: 0.75rem; }
+      .bulk-btn { padding: 5px 10px; font-size: 0.75rem; }
+      .bulk-count { font-size: 0.75rem; min-width: auto; }
+
+      /* Improved mobile navigation */
+      .sidebar { width: 100%; transform: translateX(-100%); }
+      .sidebar.open { transform: translateX(0); }
+      .nav-item { padding: 14px 16px; }
+      .nav-label { font-size: 0.95rem; }
+
+      /* Better touch targets */
+      .provider-card { padding: 16px; }
+      .stat-card { min-height: 90px; }
+      button, .btn { min-height: 44px; }
     }
 
     /* ─ Print / Export PDF ─ */
@@ -2364,6 +2611,22 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .lb-status.lb-partial { color: #f59e0b; }
     .lb-status.lb-none { color: #ef4444; }
 
+    /* ─ Spending Section ─ */
+    .spending-section { margin-top: 20px; padding: 16px; background: #f0fdf4; border-radius: 12px; border: 1px solid #bbf7d0; }
+    .spending-section-title { font-size: 0.85rem; font-weight: 700; color: #166534; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .spending-section-title::before { content: '$'; font-family: monospace; }
+    .spending-no-data { font-size: 0.78rem; color: #64748b; font-style: italic; }
+    .spending-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 12px; margin-bottom: 16px; }
+    .spending-stat { text-align: center; padding: 12px 8px; background: white; border-radius: 8px; border: 1px solid #dcfce7; }
+    .spending-stat-value { display: block; font-size: 1.1rem; font-weight: 700; color: #166534; }
+    .spending-stat-label { display: block; font-size: 0.68rem; color: #64748b; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.3px; }
+    .spending-orders { margin-top: 12px; }
+    .spending-orders-title { font-size: 0.75rem; font-weight: 600; color: #166534; margin-bottom: 8px; }
+    .spending-order-item { display: flex; justify-content: space-between; padding: 6px 8px; background: white; border-radius: 4px; margin-bottom: 4px; font-size: 0.78rem; }
+    .spending-order-date { color: #64748b; }
+    .spending-order-total { font-weight: 600; color: #166534; }
+    .spending-more { font-size: 0.72rem; color: #94a3b8; font-style: italic; padding: 4px 8px; }
+
     /* ─ Platform Coverage Tab ─ */
     .platform-view { display: none; padding: 20px 0; }
     .platform-view.active { display: block; }
@@ -2445,6 +2708,22 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .provider-view.active { display: block; }
     .export-btn { padding: 8px 16px; background: #059669; color: #fff; border: none; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 600; margin-left: auto; }
     .export-btn:hover { background: #047857; }
+    .export-btn:disabled { background: #94a3b8; cursor: not-allowed; opacity: 0.6; }
+    .export-btn.pdf-btn { background: #dc2626; }
+    .export-btn.pdf-btn:hover { background: #b91c1c; }
+    .export-btn.pdf-btn:disabled { background: #94a3b8; }
+
+    /* ─ Bulk Selection Controls ─ */
+    .bulk-controls { display: flex; align-items: center; gap: 8px; margin-left: 16px; padding-left: 16px; border-left: 1px solid rgba(255,255,255,0.2); }
+    .bulk-btn { padding: 6px 12px; background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.3); border-radius: 6px; cursor: pointer; font-size: 0.8rem; transition: all 0.2s; }
+    .bulk-btn:hover { background: rgba(255,255,255,0.25); }
+    .bulk-count { font-size: 0.85rem; color: rgba(255,255,255,0.8); min-width: 80px; }
+    .bulk-count.has-selection { color: #10b981; font-weight: 600; }
+    .bulk-export-btn { margin-left: 0; }
+
+    /* ─ Bulk Selection Checkbox ─ */
+    .bulk-select-cb { width: 18px; height: 18px; cursor: pointer; accent-color: #3b82f6; margin-right: 4px; flex-shrink: 0; }
+    .provider-card.selected { box-shadow: 0 0 0 2px #3b82f6, var(--shadow-md); }
 
     /* ─ Deadline Buckets ─ */
     .deadline-buckets { display: flex; flex-direction: column; gap: 24px; }
@@ -2694,6 +2973,10 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
           : ''}
       </div>
     </div>
+    <div class="global-search-wrap">
+      <input type="text" class="global-search" id="globalSearch" placeholder="Quick search..." onkeyup="globalSearchHandler(event)" />
+      <div class="global-search-results" id="globalSearchResults"></div>
+    </div>
     <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark/light mode" id="themeToggle">
       <span class="theme-icon">🌙</span>
       <span class="theme-toggle-label">Dark</span>
@@ -2727,6 +3010,11 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
         <span class="nav-icon">📋</span>
         <span class="nav-label">Dashboard</span>
         ${(atRisk + noCredentialsProviders.length) > 0 ? `<span class="nav-badge warn">${atRisk + noCredentialsProviders.length}</span>` : ''}
+      </button>
+      <button class="nav-item" onclick="showTab('status')" data-tab="status">
+        <span class="nav-icon">⚙️</span>
+        <span class="nav-label">Status</span>
+        ${healthSummary.critical > 0 ? `<span class="nav-badge warn">${healthSummary.critical}</span>` : ''}
       </button>
     </nav>
     <div class="sidebar-footer">
@@ -2888,6 +3176,13 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     <button class="view-toggle" onclick="showProviderView('timeline')">Timeline</button>
     <button class="export-btn" onclick="exportMissingCredentials()">Export Missing Creds</button>
     <button class="export-btn" onclick="exportFilteredResults()">Export Filtered</button>
+    <div class="bulk-controls">
+      <button class="bulk-btn" onclick="selectAllVisible()" title="Select all visible providers">Select All</button>
+      <button class="bulk-btn" onclick="clearSelection()" title="Clear selection">Clear</button>
+      <span class="bulk-count" id="bulkCount">0 selected</span>
+      <button class="export-btn bulk-export-btn" onclick="exportSelectedCSV()" id="exportSelectedCSV" disabled>Export CSV</button>
+      <button class="export-btn bulk-export-btn pdf-btn" onclick="exportSelectedPDF()" id="exportSelectedPDF" disabled>Export PDF</button>
+    </div>
   </div>
 
   <!-- All Providers View -->
@@ -3625,6 +3920,157 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
   </div>
 </section>
 
+<!-- ── Tab: Status ─────────────────────────────────────────────────────── -->
+<div class="tab-panel" id="tab-status">
+  <div class="status-page">
+    <!-- Scrape Status Section -->
+    <div class="status-section">
+      <h2 class="status-section-title">
+        <span class="status-icon">📡</span>
+        Last Scrape Status
+      </h2>
+      <div class="status-cards-grid">
+        <div class="status-card">
+          <div class="status-card-label">Last Run</div>
+          <div class="status-card-value">${escHtml(runDate)}</div>
+        </div>
+        <div class="status-card status-card-success">
+          <div class="status-card-label">CE Broker Logins</div>
+          <div class="status-card-value">${runResults.filter(r => r.status === 'success').length} / ${runResults.filter(r => r.status !== 'not_configured').length}</div>
+          <div class="status-card-sub">successful</div>
+        </div>
+        <div class="status-card status-card-info">
+          <div class="status-card-label">Platform Scrapers</div>
+          <div class="status-card-value">${platformData.filter(p => p.status === 'success').length} / ${platformData.length}</div>
+          <div class="status-card-sub">successful</div>
+        </div>
+        <div class="status-card ${runResults.filter(r => r.status === 'login_error').length > 0 ? 'status-card-error' : 'status-card-success'}">
+          <div class="status-card-label">Errors</div>
+          <div class="status-card-value">${runResults.filter(r => r.status === 'login_error').length + platformData.filter(p => p.status === 'failed').length}</div>
+          <div class="status-card-sub">this run</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Credential Health Section -->
+    <div class="status-section">
+      <h2 class="status-section-title">
+        <span class="status-icon">🔐</span>
+        Credential Health
+      </h2>
+      <div class="health-summary">
+        <div class="health-stat health-healthy">
+          <span class="health-num">${healthSummary.healthy}</span>
+          <span class="health-label">Healthy</span>
+        </div>
+        <div class="health-stat health-degraded">
+          <span class="health-num">${healthSummary.degraded}</span>
+          <span class="health-label">Degraded</span>
+        </div>
+        <div class="health-stat health-warning">
+          <span class="health-num">${healthSummary.warning}</span>
+          <span class="health-label">Warning</span>
+        </div>
+        <div class="health-stat health-critical">
+          <span class="health-num">${healthSummary.critical}</span>
+          <span class="health-label">Critical</span>
+        </div>
+      </div>
+
+      ${healthSummary.credentials.filter(c => c.status !== 'healthy').length > 0 ? `
+      <div class="health-issues">
+        <h3 class="health-issues-title">Credentials Requiring Attention</h3>
+        <div class="health-issues-list">
+          ${healthSummary.credentials.filter(c => c.status !== 'healthy').map(cred => `
+            <div class="health-issue-item health-issue-${cred.status}">
+              <div class="health-issue-status">
+                <span class="health-dot health-dot-${cred.status}"></span>
+                <span class="health-status-text">${cred.status.toUpperCase()}</span>
+              </div>
+              <div class="health-issue-info">
+                <div class="health-issue-provider">${escHtml(cred.providerName)}</div>
+                <div class="health-issue-platform">${escHtml(cred.platform)}</div>
+              </div>
+              <div class="health-issue-details">
+                <div class="health-issue-failures">${cred.consecutiveFailures} consecutive failure${cred.consecutiveFailures !== 1 ? 's' : ''}</div>
+                ${cred.lastError ? `<div class="health-issue-error">${escHtml(cred.lastError.substring(0, 80))}${cred.lastError.length > 80 ? '...' : ''}</div>` : ''}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      ` : `
+      <div class="health-all-good">
+        <span class="health-all-good-icon">✓</span>
+        <span class="health-all-good-text">All credentials are healthy</span>
+      </div>
+      `}
+    </div>
+
+    <!-- Recent Errors Section -->
+    ${(runResults.filter(r => r.error).length + platformData.filter(p => p.error).length) > 0 ? `
+    <div class="status-section">
+      <h2 class="status-section-title">
+        <span class="status-icon">⚠️</span>
+        Recent Errors
+      </h2>
+      <div class="error-log">
+        ${runResults.filter(r => r.error).map(r => `
+          <div class="error-log-item">
+            <span class="error-log-type">CE Broker</span>
+            <span class="error-log-provider">${escHtml(r.name)}</span>
+            <span class="error-log-msg">${escHtml(r.error)}</span>
+          </div>
+        `).join('')}
+        ${platformData.filter(p => p.error).map(p => `
+          <div class="error-log-item">
+            <span class="error-log-type">${escHtml(p.platform)}</span>
+            <span class="error-log-provider">${escHtml(p.providerName)}</span>
+            <span class="error-log-msg">${escHtml(p.error)}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+    ` : ''}
+
+    <!-- Scheduler Status -->
+    <div class="status-section">
+      <h2 class="status-section-title">
+        <span class="status-icon">⏰</span>
+        Scheduler
+      </h2>
+      <div class="scheduler-info">
+        <div class="scheduler-item">
+          <span class="scheduler-label">Schedule</span>
+          <span class="scheduler-value">Daily at 8:00 AM</span>
+        </div>
+        <div class="scheduler-item">
+          <span class="scheduler-label">Next Run</span>
+          <span class="scheduler-value" id="nextRunTime">Calculating...</span>
+        </div>
+        <div class="scheduler-item">
+          <span class="scheduler-label">Auto-publish</span>
+          <span class="scheduler-value scheduler-enabled">Enabled (Vercel)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scrape History Log -->
+    <div class="status-section">
+      <h2 class="status-section-title">
+        <span class="status-icon">📜</span>
+        Scrape History
+      </h2>
+      <div class="history-log">
+        ${buildHistoryLog(history)}
+      </div>
+      <div class="history-summary">
+        <span class="history-total">${history.length} total runs on record</span>
+      </div>
+    </div>
+  </div>
+</div>
+
 <footer>CEU Tracker &nbsp;·&nbsp; Last scraped: ${escHtml(runDate)}</footer>
 
 <script>
@@ -3658,10 +4104,102 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     }
   })();
 
+  // ── Calculate Next Scheduled Run ──
+  (function() {
+    const el = document.getElementById('nextRunTime');
+    if (!el) return;
+    const now = new Date();
+    const next = new Date(now);
+    next.setHours(8, 0, 0, 0);
+    if (now >= next) next.setDate(next.getDate() + 1);
+    const options = { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' };
+    el.textContent = next.toLocaleString('en-US', options);
+  })();
+
   // ── Sticky Header Shadow ──
   window.addEventListener('scroll', () => {
     const header = document.querySelector('header');
     if (header) header.classList.toggle('scrolled', window.scrollY > 10);
+  });
+
+  // ── Global Quick Search ──
+  const SEARCH_DATA = ${JSON.stringify(flat.map(p => ({
+    name: p.providerName,
+    type: p.providerType,
+    state: p.state,
+    status: p.status,
+    hours: p.hoursCompleted,
+    required: p.hoursRequired
+  })))};
+
+  function globalSearchHandler(e) {
+    const q = e.target.value.toLowerCase().trim();
+    const results = document.getElementById('globalSearchResults');
+
+    if (q.length < 2) {
+      results.classList.remove('active');
+      return;
+    }
+
+    const matches = SEARCH_DATA.filter(p =>
+      p.name.toLowerCase().includes(q) ||
+      (p.state && p.state.toLowerCase().includes(q)) ||
+      (p.type && p.type.toLowerCase().includes(q))
+    ).slice(0, 8);
+
+    if (matches.length === 0) {
+      results.innerHTML = '<div class="search-no-results">No providers found</div>';
+    } else {
+      results.innerHTML = matches.map(p => {
+        const badgeClass = p.status === 'Complete' ? 'ok' : p.status === 'At Risk' ? 'risk' : 'prog';
+        return \`
+          <div class="search-result-item" onclick="jumpToProvider('\${p.name.replace(/'/g, "\\\\'")}')">
+            <div>
+              <div class="search-result-name">\${p.name}</div>
+              <div class="search-result-meta">\${p.state || 'N/A'} · \${p.type || ''}</div>
+            </div>
+            <span class="search-result-badge \${badgeClass}">\${p.status || 'Unknown'}</span>
+          </div>
+        \`;
+      }).join('');
+    }
+    results.classList.add('active');
+
+    // Close on escape
+    if (e.key === 'Escape') {
+      results.classList.remove('active');
+      e.target.value = '';
+    }
+  }
+
+  function jumpToProvider(name) {
+    // Close search
+    document.getElementById('globalSearchResults').classList.remove('active');
+    document.getElementById('globalSearch').value = '';
+
+    // Switch to providers tab
+    showTab('providers');
+
+    // Search for the provider
+    setTimeout(() => {
+      const searchBox = document.getElementById('cardSearch');
+      if (searchBox) {
+        searchBox.value = name;
+        filterCards();
+
+        // Scroll to first match
+        const card = document.querySelector('.provider-card');
+        if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 100);
+  }
+
+  // Close search results when clicking outside
+  document.addEventListener('click', (e) => {
+    const wrap = document.querySelector('.global-search-wrap');
+    if (wrap && !wrap.contains(e.target)) {
+      document.getElementById('globalSearchResults')?.classList.remove('active');
+    }
   });
 
   // ── Tabs ──
@@ -3782,6 +4320,145 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     a.download = 'missing-credentials-' + new Date().toISOString().split('T')[0] + '.csv';
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  // ── Bulk Selection Functions ──
+  function updateBulkSelection() {
+    const checkboxes = document.querySelectorAll('.bulk-select-cb:checked');
+    const count = checkboxes.length;
+    const countEl = document.getElementById('bulkCount');
+    const csvBtn = document.getElementById('exportSelectedCSV');
+    const pdfBtn = document.getElementById('exportSelectedPDF');
+
+    countEl.textContent = count + ' selected';
+    countEl.classList.toggle('has-selection', count > 0);
+    csvBtn.disabled = count === 0;
+    pdfBtn.disabled = count === 0;
+
+    // Toggle selected class on cards
+    document.querySelectorAll('.provider-card').forEach(card => {
+      const cb = card.querySelector('.bulk-select-cb');
+      card.classList.toggle('selected', cb && cb.checked);
+    });
+  }
+
+  function selectAllVisible() {
+    const activeView = document.querySelector('.provider-view.active');
+    if (!activeView) return;
+    activeView.querySelectorAll('.provider-card').forEach(card => {
+      if (card.style.display !== 'none') {
+        const cb = card.querySelector('.bulk-select-cb');
+        if (cb) cb.checked = true;
+      }
+    });
+    updateBulkSelection();
+  }
+
+  function clearSelection() {
+    document.querySelectorAll('.bulk-select-cb').forEach(cb => cb.checked = false);
+    updateBulkSelection();
+  }
+
+  function getSelectedProviders() {
+    const selected = [];
+    document.querySelectorAll('.provider-card').forEach(card => {
+      const cb = card.querySelector('.bulk-select-cb');
+      if (cb && cb.checked) {
+        selected.push({
+          name: card.dataset.provider || '',
+          status: card.dataset.status || '',
+          state: card.dataset.states || '',
+          deadline: card.dataset.deadline || '',
+          type: card.dataset.type || '',
+          completed: card.dataset.completed || '0',
+          required: card.dataset.required || '0',
+          remaining: card.dataset.remaining || '0'
+        });
+      }
+    });
+    return selected;
+  }
+
+  function exportSelectedCSV() {
+    const data = getSelectedProviders();
+    if (data.length === 0) { alert('No providers selected'); return; }
+
+    const csv = 'Name,Type,State,Status,Completed Hours,Required Hours,Remaining Hours,Days Until Deadline\\n' + data.map(p =>
+      '"' + p.name.replace(/"/g, '""') + '","' + p.type + '","' + p.state + '","' + p.status + '","' + p.completed + '","' + p.required + '","' + p.remaining + '","' + p.deadline + '"'
+    ).join('\\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'selected-providers-' + new Date().toISOString().split('T')[0] + '.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function exportSelectedPDF() {
+    const data = getSelectedProviders();
+    if (data.length === 0) { alert('No providers selected'); return; }
+
+    // For PDF, we need to call a server endpoint or generate client-side
+    // Creating a print-friendly view and using browser print
+    const printContent = generatePrintHTML(data);
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    printWindow.onload = function() {
+      printWindow.print();
+    };
+  }
+
+  function generatePrintHTML(providers) {
+    const complete = providers.filter(p => p.status === 'Complete').length;
+    const inProgress = providers.filter(p => p.status === 'In Progress').length;
+    const atRisk = providers.filter(p => p.status === 'At Risk').length;
+
+    // Sort by risk first
+    const sorted = [...providers].sort((a, b) => {
+      const order = { 'At Risk': 0, 'In Progress': 1, 'Complete': 2 };
+      return (order[a.status] || 3) - (order[b.status] || 3);
+    });
+
+    return '<!DOCTYPE html><html><head><title>CEU Compliance Report</title><style>' +
+      'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; }' +
+      'h1 { color: #1e293b; text-align: center; margin-bottom: 10px; }' +
+      '.subtitle { text-align: center; color: #64748b; margin-bottom: 30px; }' +
+      '.summary { display: flex; justify-content: center; gap: 20px; margin-bottom: 30px; }' +
+      '.summary-box { padding: 15px 30px; border-radius: 8px; text-align: center; }' +
+      '.summary-box.complete { background: #d1fae5; color: #059669; }' +
+      '.summary-box.progress { background: #fef3c7; color: #d97706; }' +
+      '.summary-box.risk { background: #fecaca; color: #dc2626; }' +
+      '.summary-num { font-size: 28px; font-weight: 700; }' +
+      '.summary-label { font-size: 12px; margin-top: 5px; }' +
+      'table { width: 100%; border-collapse: collapse; margin-top: 20px; }' +
+      'th { background: #f1f5f9; padding: 12px; text-align: left; font-size: 12px; color: #64748b; border-bottom: 2px solid #e2e8f0; }' +
+      'td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; font-size: 13px; }' +
+      'tr:nth-child(even) { background: #fafafa; }' +
+      '.status { padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }' +
+      '.status-complete { background: #d1fae5; color: #059669; }' +
+      '.status-progress { background: #fef3c7; color: #d97706; }' +
+      '.status-risk { background: #fecaca; color: #dc2626; }' +
+      '.footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #e2e8f0; text-align: center; color: #94a3b8; font-size: 11px; }' +
+      '@media print { body { padding: 20px; } }' +
+      '</style></head><body>' +
+      '<h1>CEU Compliance Report</h1>' +
+      '<div class="subtitle">Generated: ' + new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) + '</div>' +
+      '<div class="summary">' +
+        '<div class="summary-box complete"><div class="summary-num">' + complete + '</div><div class="summary-label">Complete</div></div>' +
+        '<div class="summary-box progress"><div class="summary-num">' + inProgress + '</div><div class="summary-label">In Progress</div></div>' +
+        '<div class="summary-box risk"><div class="summary-num">' + atRisk + '</div><div class="summary-label">At Risk</div></div>' +
+      '</div>' +
+      '<table><thead><tr><th>Provider</th><th>State</th><th>Status</th><th>Completed</th><th>Required</th><th>Remaining</th></tr></thead><tbody>' +
+      sorted.map(p => {
+        const statusCls = p.status === 'Complete' ? 'status-complete' : p.status === 'At Risk' ? 'status-risk' : 'status-progress';
+        return '<tr><td>' + p.name + '</td><td>' + (p.state || 'N/A') + '</td><td><span class="status ' + statusCls + '">' + p.status + '</span></td><td>' + p.completed + 'h</td><td>' + p.required + 'h</td><td>' + p.remaining + 'h</td></tr>';
+      }).join('') +
+      '</tbody></table>' +
+      '<div class="footer">CEU Tracker - ' + providers.length + ' providers</div>' +
+      '</body></html>';
   }
 
   // ── Favorites Management ──
@@ -4669,6 +5346,63 @@ function buildLookbackComplianceSection(states, providerType, courses) {
   return `<div class="lookback-section">
     <div class="lookback-section-title">State CE Requirements</div>
     ${sections.join('')}
+  </div>`;
+}
+
+/**
+ * Build the "Spending Overview" section HTML for a provider drawer.
+ * Shows rolling 12-month spending, cost per hour, and platform breakdown.
+ * @param {string} providerName - Provider name
+ * @param {Object} spendingData - Spending data for this provider
+ * @param {Array} orders - Order data from platform scrapers
+ */
+function buildSpendingSection(providerName, spendingData, orders = []) {
+  if (!spendingData) return '';
+
+  const { courseCosts, subscriptionCosts, totalSpend, costPerHour, hoursCompleted } = spendingData;
+
+  // If no spending data, show a placeholder
+  if (!totalSpend && orders.length === 0) {
+    return `<div class="spending-section">
+      <div class="spending-section-title">Cost Tracking (Rolling 12 Months)</div>
+      <div class="spending-no-data">No cost data available. Add costs via costs.json or wait for order scraping.</div>
+    </div>`;
+  }
+
+  // Build order list if available
+  const orderListHtml = orders.length > 0
+    ? `<div class="spending-orders">
+        <div class="spending-orders-title">Recent Orders (${orders.length})</div>
+        ${orders.slice(0, 10).map(o => `
+          <div class="spending-order-item">
+            <span class="spending-order-date">${escHtml(o.date || '—')}</span>
+            <span class="spending-order-total">$${(o.total || 0).toFixed(2)}</span>
+          </div>`).join('')}
+        ${orders.length > 10 ? `<div class="spending-more">+${orders.length - 10} more orders</div>` : ''}
+      </div>`
+    : '';
+
+  return `<div class="spending-section">
+    <div class="spending-section-title">Cost Tracking (Rolling 12 Months)</div>
+    <div class="spending-summary">
+      <div class="spending-stat">
+        <span class="spending-stat-value">$${totalSpend.toFixed(2)}</span>
+        <span class="spending-stat-label">Total Spend</span>
+      </div>
+      <div class="spending-stat">
+        <span class="spending-stat-value">$${courseCosts.toFixed(2)}</span>
+        <span class="spending-stat-label">Course Costs</span>
+      </div>
+      <div class="spending-stat">
+        <span class="spending-stat-value">$${subscriptionCosts.toFixed(2)}</span>
+        <span class="spending-stat-label">Subscriptions</span>
+      </div>
+      <div class="spending-stat">
+        <span class="spending-stat-value">${costPerHour !== null ? '$' + costPerHour.toFixed(2) : '—'}</span>
+        <span class="spending-stat-label">Cost/CEU Hour</span>
+      </div>
+    </div>
+    ${orderListHtml}
   </div>`;
 }
 

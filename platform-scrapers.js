@@ -3,6 +3,7 @@
 'use strict';
 
 const { logger, sleep, screenshotOnError } = require('./utils');
+const { recordSuccess, recordFailure } = require('./credential-health');
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 
@@ -16,6 +17,7 @@ function emptyResult(platform, providerName, error) {
     certExpires:    null,
     certStatus:     null,
     courses:        [],
+    orders:         [],
     lastUpdated:    null,
     status:         'failed',
     error:          String(error || 'Unknown error'),
@@ -115,7 +117,57 @@ async function scrapeNetCE(browser, credentials, providerName) {
     });
     const totalHoursEarned = Math.round(courses.reduce(function(s, c) { return s + (c.hours || 0); }, 0) * 10) / 10;
 
-    logger.success(`[NetCE] ${providerName}: ${courses.length} courses, ${totalHoursEarned}h earned`);
+    // ── Try to extract order history ────────────────────────────────────────
+    let orders = [];
+    try {
+      // Try common billing/order URLs
+      const orderUrls = [
+        'https://www.netce.com/account.php',
+        'https://www.netce.com/orders.php',
+        'https://www.netce.com/order_history.php',
+      ];
+
+      for (const url of orderUrls) {
+        try {
+          await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 10000 });
+          await sleep(1500);
+
+          const pageOrders = await page.evaluate(() => {
+            const results = [];
+            // Look for order/receipt tables
+            const rows = document.querySelectorAll('table tbody tr, .order-row, .receipt-row');
+            for (const row of rows) {
+              const text = (row.innerText || '').trim();
+              // Look for price patterns
+              const priceMatch = text.match(/\$(\d+\.?\d*)/);
+              const dateMatch = text.match(/(\d{1,2}\/\d{1,2}\/\d{2,4})/);
+              if (priceMatch && parseFloat(priceMatch[1]) > 0) {
+                results.push({
+                  date: dateMatch ? dateMatch[0] : '',
+                  total: parseFloat(priceMatch[1]),
+                  status: 'completed',
+                });
+              }
+            }
+            return results;
+          });
+
+          if (pageOrders.length > 0) {
+            orders = pageOrders;
+            break;
+          }
+        } catch (e) {
+          // Try next URL
+        }
+      }
+    } catch (orderErr) {
+      // Order extraction is optional
+    }
+
+    const totalOrderCost = orders.reduce((sum, o) => sum + (o.total || 0), 0);
+    const coursesWithPlatform = courses.map(c => ({ ...c, platform: 'NetCE' }));
+
+    logger.success(`[NetCE] ${providerName}: ${courses.length} courses, ${totalHoursEarned}h earned${totalOrderCost > 0 ? `, $${totalOrderCost.toFixed(2)} in orders` : ''}`);
 
     return {
       platform:       'NetCE',
@@ -125,7 +177,9 @@ async function scrapeNetCE(browser, credentials, providerName) {
       hoursRemaining: null,
       certExpires:    null,
       certStatus:     null,
-      courses:        courses.slice(0, 100),
+      courses:        coursesWithPlatform.slice(0, 100),
+      orders:         orders,
+      totalSpent:     totalOrderCost > 0 ? totalOrderCost : null,
       lastUpdated:    new Date().toLocaleDateString('en-US'),
       status:         'success',
       error:          null,
@@ -179,7 +233,53 @@ async function scrapeCEUfast(browser, credentials, providerName) {
     const courses          = await extractCourseRows(page);
     const totalHoursEarned = Math.round(courses.reduce((s, c) => s + (c.hours || 0), 0) * 10) / 10;
 
-    logger.success(`[CEUfast] ${providerName}: ${courses.length} courses, ${totalHoursEarned}h earned`);
+    // ── Try to extract order costs ─────────────────────────────────────────
+    let orders = [];
+    try {
+      const orderUrls = [
+        'https://www.ceufast.com/myaccount/orders',
+        'https://www.ceufast.com/myaccount/billing',
+      ];
+
+      for (const url of orderUrls) {
+        try {
+          await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 10000 });
+          await sleep(1500);
+
+          const pageOrders = await page.evaluate(() => {
+            const results = [];
+            const rows = document.querySelectorAll('table tbody tr, .order-row');
+            for (const row of rows) {
+              const text = (row.innerText || '').trim();
+              const priceMatch = text.match(/\$(\d+\.?\d*)/);
+              const dateMatch = text.match(/(\d{1,2}\/\d{1,2}\/\d{2,4})/);
+              if (priceMatch && parseFloat(priceMatch[1]) > 0) {
+                results.push({
+                  date: dateMatch ? dateMatch[0] : '',
+                  total: parseFloat(priceMatch[1]),
+                  status: 'completed',
+                });
+              }
+            }
+            return results;
+          });
+
+          if (pageOrders.length > 0) {
+            orders = pageOrders;
+            break;
+          }
+        } catch (e) {
+          // Try next URL
+        }
+      }
+    } catch (orderErr) {
+      // Order extraction is optional
+    }
+
+    const totalOrderCost = orders.reduce((sum, o) => sum + (o.total || 0), 0);
+    const coursesWithPlatform = courses.map(c => ({ ...c, platform: 'CEUfast' }));
+
+    logger.success(`[CEUfast] ${providerName}: ${courses.length} courses, ${totalHoursEarned}h earned${totalOrderCost > 0 ? `, $${totalOrderCost.toFixed(2)} in orders` : ''}`);
 
     return {
       platform:       'CEUfast',
@@ -189,7 +289,9 @@ async function scrapeCEUfast(browser, credentials, providerName) {
       hoursRemaining: null,
       certExpires:    null,
       certStatus:     null,
-      courses:        courses.slice(0, 100),
+      courses:        coursesWithPlatform.slice(0, 100),
+      orders:         orders,
+      totalSpent:     totalOrderCost > 0 ? totalOrderCost : null,
       lastUpdated:    new Date().toLocaleDateString('en-US'),
       status:         'success',
       error:          null,
@@ -320,6 +422,8 @@ async function scrapeAANPCert(browser, credentials, providerName) {
 
     const courses = ceData.courses;
 
+    const coursesWithPlatform = courses.map(c => ({ ...c, platform: 'AANP Cert' }));
+
     logger.success(
       `[AANP Cert] ${providerName}: ${hoursCompleted ?? '?'}/${hoursRequired} credits, ` +
       `status ${certStatus || 'unknown'}, expires ${certExpires || '?'}`
@@ -333,7 +437,9 @@ async function scrapeAANPCert(browser, credentials, providerName) {
       hoursRemaining: hoursRemaining,
       certExpires,
       certStatus,
-      courses:        courses.slice(0, 100),
+      courses:        coursesWithPlatform.slice(0, 100),
+      orders:         [],
+      totalSpent:     null,
       lastUpdated:    new Date().toLocaleDateString('en-US'),
       status:         'success',
       error:          null,
@@ -402,6 +508,8 @@ async function scrapeExclamationCE(browser, credentials, providerName) {
 
     const totalHoursEarned = Math.round(courses.reduce((s, c) => s + (c.hours || 0), 0) * 10) / 10;
 
+    const coursesWithPlatform = courses.map(c => ({ ...c, platform: 'ExclamationCE' }));
+
     logger.success(`[ExclamationCE] ${providerName}: ${courses.length} courses, ${totalHoursEarned}h earned`);
 
     return {
@@ -412,7 +520,9 @@ async function scrapeExclamationCE(browser, credentials, providerName) {
       hoursRemaining: null,
       certExpires:    null,
       certStatus:     null,
-      courses:        courses.slice(0, 100),
+      courses:        coursesWithPlatform.slice(0, 100),
+      orders:         [],
+      totalSpent:     null,
       lastUpdated:    new Date().toLocaleDateString('en-US'),
       status:         'success',
       error:          null,
@@ -422,6 +532,378 @@ async function scrapeExclamationCE(browser, credentials, providerName) {
     await screenshotOnError(page, providerName, 'exclamationce_error');
     logger.error(`[ExclamationCE] ${providerName}: ${err.message}`);
     return emptyResult('ExclamationCE', providerName, err.message);
+  } finally {
+    await context.close();
+  }
+}
+
+// ─── NurseCE4Less ─────────────────────────────────────────────────────────────
+
+async function scrapeNurseCE4Less(browser, credentials, providerName) {
+  const { username, password } = credentials;
+  logger.info(`[NurseCE4Less] ${providerName} — logging in as ${username}`);
+
+  const context = await makeContext(browser);
+  const page    = await context.newPage();
+
+  try {
+    // ── Login ────────────────────────────────────────────────────────────────
+    await page.goto('https://nursece4less.com/my-account/', {
+      waitUntil: 'domcontentloaded', timeout: 30000,
+    });
+    await sleep(1500);
+
+    // WordPress/WooCommerce login form
+    const userSel = 'input[name="username"], input#username, input[name="log"]';
+    await page.waitForSelector(userSel, { timeout: 15000 });
+    await page.fill(userSel, username);
+    await sleep(300);
+    await page.fill('input[name="password"], input#password, input[name="pwd"]', password);
+    await sleep(300);
+    await page.click('button[type="submit"], input[type="submit"], button[name="login"]');
+    await sleep(3000);
+
+    // Wait for login to complete
+    await page.waitForURL(u => !u.toString().includes('login'), { timeout: 20000 }).catch(() => {});
+    await sleep(1500);
+
+    // ── Navigate to courses/transcript ──────────────────────────────────────
+    // Try common course history URLs for WooCommerce/LearnDash sites
+    const transcriptUrls = [
+      'https://nursece4less.com/my-account/courses/',
+      'https://nursece4less.com/my-courses/',
+      'https://nursece4less.com/courses/',
+      'https://nursece4less.com/my-account/orders/',
+      'https://nursece4less.com/transcript/',
+    ];
+
+    let courses = [];
+    for (const url of transcriptUrls) {
+      try {
+        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 });
+        await sleep(2000);
+
+        // Try to extract courses from various page structures
+        courses = await page.evaluate(() => {
+          const results = [];
+
+          // Try LearnDash course list
+          const ldCourses = document.querySelectorAll('.ld-item-list-item, .learndash-course-item, .course-item');
+          for (const item of ldCourses) {
+            const name = (item.querySelector('.ld-item-name, .course-title, a')?.textContent || '').trim();
+            const status = item.querySelector('.ld-status, .course-status')?.textContent || '';
+            if (name && status.toLowerCase().includes('complete')) {
+              const hoursMatch = name.match(/(\d+\.?\d*)\s*(?:hour|hr|credit|ceu|ce)/i);
+              results.push({
+                name: name.substring(0, 200),
+                hours: hoursMatch ? parseFloat(hoursMatch[1]) : 1,
+                date: '',
+              });
+            }
+          }
+
+          // Try WooCommerce orders table
+          const orderRows = document.querySelectorAll('.woocommerce-orders-table tbody tr, .order-item');
+          for (const row of orderRows) {
+            const name = (row.querySelector('.order-name, .product-name, td:first-child')?.textContent || '').trim();
+            const status = row.querySelector('.order-status, .woocommerce-orders-table__cell-order-status')?.textContent || '';
+            if (name && status.toLowerCase().includes('complete')) {
+              const hoursMatch = name.match(/(\d+\.?\d*)\s*(?:hour|hr|credit|ceu|ce)/i);
+              results.push({
+                name: name.substring(0, 200),
+                hours: hoursMatch ? parseFloat(hoursMatch[1]) : 1,
+                date: '',
+              });
+            }
+          }
+
+          // Generic table extraction
+          if (results.length === 0) {
+            const rows = document.querySelectorAll('table tbody tr, .course-row, .completed-course');
+            for (const row of rows) {
+              const text = (row.innerText || '').trim();
+              const hoursMatch = text.match(/(\d+\.?\d*)\s*(?:hour|hr|credit|ceu|ce)/i);
+              if (hoursMatch && text.length > 5) {
+                results.push({
+                  name: text.substring(0, 200),
+                  hours: parseFloat(hoursMatch[1]),
+                  date: '',
+                });
+              }
+            }
+          }
+
+          return results;
+        });
+
+        if (courses.length > 0) break;
+      } catch (e) {
+        // Try next URL
+      }
+    }
+
+    const totalHoursEarned = Math.round(courses.reduce((s, c) => s + (c.hours || 0), 0) * 10) / 10;
+
+    // ── Extract order costs from /my-account/orders/ ──────────────────────────
+    let orders = [];
+    try {
+      await page.goto('https://nursece4less.com/my-account/orders/', {
+        waitUntil: 'domcontentloaded', timeout: 15000,
+      });
+      await sleep(2000);
+
+      orders = await page.evaluate(() => {
+        const results = [];
+        // WooCommerce orders table structure
+        const rows = document.querySelectorAll('.woocommerce-orders-table tbody tr, .woocommerce-MyAccount-orders tbody tr');
+        for (const row of rows) {
+          const orderNum = (row.querySelector('.woocommerce-orders-table__cell-order-number, td:first-child')?.textContent || '').trim();
+          const dateCell = row.querySelector('.woocommerce-orders-table__cell-order-date, td:nth-child(2)');
+          const totalCell = row.querySelector('.woocommerce-orders-table__cell-order-total, td:nth-child(4)');
+          const statusCell = row.querySelector('.woocommerce-orders-table__cell-order-status, td:nth-child(3)');
+
+          const dateText = (dateCell?.textContent || '').trim();
+          const totalText = (totalCell?.textContent || '').trim();
+          const status = (statusCell?.textContent || '').trim().toLowerCase();
+
+          // Parse price (handle $XX.XX format)
+          const priceMatch = totalText.match(/\$?([\d,]+\.?\d*)/);
+          const price = priceMatch ? parseFloat(priceMatch[1].replace(',', '')) : null;
+
+          // Parse date (various formats)
+          const dateMatch = dateText.match(/(\w+\s+\d+,?\s+\d{4}|\d{1,2}\/\d{1,2}\/\d{2,4})/);
+          const orderDate = dateMatch ? dateMatch[1] : dateText;
+
+          if (price !== null && status.includes('complete')) {
+            results.push({
+              orderNumber: orderNum.replace('#', ''),
+              date: orderDate,
+              total: price,
+              status: 'completed',
+            });
+          }
+        }
+        return results;
+      });
+
+      logger.info(`[NurseCE4Less] ${providerName}: Found ${orders.length} completed orders`);
+    } catch (orderErr) {
+      logger.warn(`[NurseCE4Less] ${providerName}: Could not extract orders: ${orderErr.message}`);
+    }
+
+    // Attach costs to courses if we can match them
+    const totalOrderCost = orders.reduce((sum, o) => sum + (o.total || 0), 0);
+    const coursesWithCosts = courses.map(c => ({
+      ...c,
+      platform: 'Nursece4less',
+      cost: null, // Individual course costs not available from orders
+    }));
+
+    logger.success(`[NurseCE4Less] ${providerName}: ${courses.length} courses, ${totalHoursEarned}h earned, $${totalOrderCost.toFixed(2)} in orders`);
+
+    return {
+      platform:       'Nursece4less',
+      providerName,
+      hoursEarned:    totalHoursEarned || null,
+      hoursRequired:  null,
+      hoursRemaining: null,
+      certExpires:    null,
+      certStatus:     null,
+      courses:        coursesWithCosts.slice(0, 100),
+      orders:         orders,
+      totalSpent:     totalOrderCost > 0 ? totalOrderCost : null,
+      lastUpdated:    new Date().toLocaleDateString('en-US'),
+      status:         'success',
+      error:          null,
+    };
+
+  } catch (err) {
+    await screenshotOnError(page, providerName, 'nursece4less_error');
+    logger.error(`[NurseCE4Less] ${providerName}: ${err.message}`);
+    return emptyResult('Nursece4less', providerName, err.message);
+  } finally {
+    await context.close();
+  }
+}
+
+// ─── Nursing CE Central ───────────────────────────────────────────────────────
+
+async function scrapeNursingCECentral(browser, credentials, providerName) {
+  const { username, password } = credentials;
+  logger.info(`[Nursing CE Central] ${providerName} — logging in as ${username}`);
+
+  const context = await makeContext(browser);
+  const page    = await context.newPage();
+
+  try {
+    // ── Login ────────────────────────────────────────────────────────────────
+    await page.goto('https://nursingcecentral.com/my-account/', {
+      waitUntil: 'domcontentloaded', timeout: 30000,
+    });
+    await sleep(1500);
+
+    // WordPress/WooCommerce login form
+    const userSel = 'input[name="username"], input#username, input[name="log"], input[name="email"]';
+    await page.waitForSelector(userSel, { timeout: 15000 });
+    await page.fill(userSel, username);
+    await sleep(300);
+    await page.fill('input[name="password"], input#password, input[name="pwd"]', password);
+    await sleep(300);
+    await page.click('button[type="submit"], input[type="submit"], button[name="login"]');
+    await sleep(3000);
+
+    // Wait for login to complete
+    await page.waitForURL(u => !u.toString().includes('login'), { timeout: 20000 }).catch(() => {});
+    await sleep(1500);
+
+    // ── Navigate to courses/transcript ──────────────────────────────────────
+    const transcriptUrls = [
+      'https://nursingcecentral.com/my-account/courses/',
+      'https://nursingcecentral.com/my-courses/',
+      'https://nursingcecentral.com/my-account/',
+      'https://nursingcecentral.com/transcript/',
+      'https://nursingcecentral.com/completed-courses/',
+    ];
+
+    let courses = [];
+    for (const url of transcriptUrls) {
+      try {
+        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 });
+        await sleep(2000);
+
+        // Extract courses
+        courses = await page.evaluate(() => {
+          const results = [];
+
+          // Try LearnDash/course list structures
+          const courseItems = document.querySelectorAll(
+            '.ld-item-list-item, .learndash-course-item, .course-item, ' +
+            '.my-course-item, .completed-course, .course-card'
+          );
+          for (const item of courseItems) {
+            const name = (item.querySelector('.ld-item-name, .course-title, .entry-title, h3, h4, a')?.textContent || '').trim();
+            const statusEl = item.querySelector('.ld-status, .course-status, .status');
+            const status = statusEl?.textContent || item.className || '';
+            const isComplete = status.toLowerCase().includes('complete') ||
+                              item.classList.contains('completed') ||
+                              item.querySelector('.complete, .completed, [class*="complete"]');
+
+            if (name && (isComplete || !statusEl)) {
+              const hoursMatch = name.match(/(\d+\.?\d*)\s*(?:hour|hr|credit|ceu|ce)/i);
+              results.push({
+                name: name.substring(0, 200),
+                hours: hoursMatch ? parseFloat(hoursMatch[1]) : 1,
+                date: '',
+              });
+            }
+          }
+
+          // Try table-based transcript
+          if (results.length === 0) {
+            const rows = document.querySelectorAll('table tbody tr');
+            for (const row of rows) {
+              const cells = Array.from(row.querySelectorAll('td'));
+              const text = (row.innerText || '').trim();
+              const hoursMatch = text.match(/(\d+\.?\d*)\s*(?:hour|hr|credit|ceu|ce)/i);
+              if (hoursMatch && cells.length >= 2) {
+                const name = (cells[0]?.textContent || text).trim();
+                results.push({
+                  name: name.substring(0, 200),
+                  hours: parseFloat(hoursMatch[1]),
+                  date: '',
+                });
+              }
+            }
+          }
+
+          return results;
+        });
+
+        if (courses.length > 0) break;
+      } catch (e) {
+        // Try next URL
+      }
+    }
+
+    const totalHoursEarned = Math.round(courses.reduce((s, c) => s + (c.hours || 0), 0) * 10) / 10;
+
+    // ── Extract order costs from /my-account/orders/ ──────────────────────────
+    let orders = [];
+    try {
+      await page.goto('https://nursingcecentral.com/my-account/orders/', {
+        waitUntil: 'domcontentloaded', timeout: 15000,
+      });
+      await sleep(2000);
+
+      orders = await page.evaluate(() => {
+        const results = [];
+        // WooCommerce orders table structure
+        const rows = document.querySelectorAll('.woocommerce-orders-table tbody tr, .woocommerce-MyAccount-orders tbody tr');
+        for (const row of rows) {
+          const orderNum = (row.querySelector('.woocommerce-orders-table__cell-order-number, td:first-child')?.textContent || '').trim();
+          const dateCell = row.querySelector('.woocommerce-orders-table__cell-order-date, td:nth-child(2)');
+          const totalCell = row.querySelector('.woocommerce-orders-table__cell-order-total, td:nth-child(4)');
+          const statusCell = row.querySelector('.woocommerce-orders-table__cell-order-status, td:nth-child(3)');
+
+          const dateText = (dateCell?.textContent || '').trim();
+          const totalText = (totalCell?.textContent || '').trim();
+          const status = (statusCell?.textContent || '').trim().toLowerCase();
+
+          // Parse price (handle $XX.XX format)
+          const priceMatch = totalText.match(/\$?([\d,]+\.?\d*)/);
+          const price = priceMatch ? parseFloat(priceMatch[1].replace(',', '')) : null;
+
+          // Parse date (various formats)
+          const dateMatch = dateText.match(/(\w+\s+\d+,?\s+\d{4}|\d{1,2}\/\d{1,2}\/\d{2,4})/);
+          const orderDate = dateMatch ? dateMatch[1] : dateText;
+
+          if (price !== null && status.includes('complete')) {
+            results.push({
+              orderNumber: orderNum.replace('#', ''),
+              date: orderDate,
+              total: price,
+              status: 'completed',
+            });
+          }
+        }
+        return results;
+      });
+
+      logger.info(`[Nursing CE Central] ${providerName}: Found ${orders.length} completed orders`);
+    } catch (orderErr) {
+      logger.warn(`[Nursing CE Central] ${providerName}: Could not extract orders: ${orderErr.message}`);
+    }
+
+    // Attach platform to courses
+    const totalOrderCost = orders.reduce((sum, o) => sum + (o.total || 0), 0);
+    const coursesWithCosts = courses.map(c => ({
+      ...c,
+      platform: 'Nursing CE Central',
+      cost: null, // Individual course costs not available from orders
+    }));
+
+    logger.success(`[Nursing CE Central] ${providerName}: ${courses.length} courses, ${totalHoursEarned}h earned, $${totalOrderCost.toFixed(2)} in orders`);
+
+    return {
+      platform:       'Nursing CE Central',
+      providerName,
+      hoursEarned:    totalHoursEarned || null,
+      hoursRequired:  null,
+      hoursRemaining: null,
+      certExpires:    null,
+      certStatus:     null,
+      courses:        coursesWithCosts.slice(0, 100),
+      orders:         orders,
+      totalSpent:     totalOrderCost > 0 ? totalOrderCost : null,
+      lastUpdated:    new Date().toLocaleDateString('en-US'),
+      status:         'success',
+      error:          null,
+    };
+
+  } catch (err) {
+    await screenshotOnError(page, providerName, 'nursingcecentral_error');
+    logger.error(`[Nursing CE Central] ${providerName}: ${err.message}`);
+    return emptyResult('Nursing CE Central', providerName, err.message);
   } finally {
     await context.close();
   }
@@ -459,6 +941,12 @@ async function runPlatformScrapers(browser, providers) {
           case 'ExclamationCE':
             result = await scrapeExclamationCE(browser, creds, provider.name);
             break;
+          case 'Nursece4less':
+            result = await scrapeNurseCE4Less(browser, creds, provider.name);
+            break;
+          case 'Nursing CE Central':
+            result = await scrapeNursingCECentral(browser, creds, provider.name);
+            break;
           default:
             logger.warn(`[Platform] Unknown platform "${creds.platform}" for ${provider.name}`);
             continue;
@@ -466,6 +954,14 @@ async function runPlatformScrapers(browser, providers) {
       } catch (err) {
         result = emptyResult(creds.platform, provider.name, err.message);
       }
+
+      // Track credential health
+      if (result.status === 'success') {
+        recordSuccess(provider.name, creds.platform);
+      } else {
+        recordFailure(provider.name, creds.platform, result.error || 'Unknown error');
+      }
+
       results.push(result);
       await sleep(2000);
     }

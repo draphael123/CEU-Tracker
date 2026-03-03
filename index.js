@@ -127,7 +127,7 @@ async function main() {
 
   // ── Export to Excel ────────────────────────────────────────────────────────
   try {
-    const outputPath = await buildReport(allRecords);
+    const outputPath = await buildReport(allRecords, platformData);
     logger.success(`Excel report saved: ${outputPath}`);
   } catch (exportErr) {
     logger.error(`Excel export failed: ${exportErr.message}`);
