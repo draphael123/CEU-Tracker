@@ -5,6 +5,7 @@ const path = require('path');
 const { daysUntil, parseDate, getStatus, courseSearchUrl, calculateSubjectHoursWithLookback, formatLookbackCutoff } = require('./utils');
 const { getHealthSummary } = require('./credential-health');
 const { loadCosts, calculateAllProviderSpending, calculateRolling12MonthSpending } = require('./cost-utils');
+const { getAllUpdates } = require('./change-detector');
 
 const OUTPUT_HTML    = path.join(__dirname, 'dashboard.html');
 
@@ -280,7 +281,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
   for (const rec of flat) {
     const sameProvider = flat.filter(r => r.providerName === rec.providerName);
     const label = sameProvider.length > 1
-      ? `${rec.providerName} (${rec.state || '?'})` : (rec.providerName || 'Unknown');
+      ? `${rec.providerName} (${rec.state || 'N/A'})` : (rec.providerName || 'Unknown');
     chartData.labels.push(label);
     chartData.completed.push(rec.hoursCompleted ?? 0);
     chartData.required.push(rec.hoursRequired ?? 0);
@@ -482,9 +483,9 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       const pct     = lic.hoursRequired > 0 ? Math.min(100, Math.round(((lic.hoursCompleted || 0) / lic.hoursRequired) * 100)) : 0;
       const barCls  = pct >= 100 ? '' : pct >= 50 ? 'partial' : 'low';
       const dlCls   = { Complete:'dl-complete','In Progress':'dl-progress','At Risk':'dl-risk',Unknown:'' }[st] || '';
-      const stCls   = { Complete:'status-complete','In Progress':'status-progress','At Risk':'status-risk',Unknown:'status-unknown' }[st] || 'status-unknown';
-      const stLabel = { Complete:'✓ Complete','In Progress':'◷ In Progress','At Risk':'⚠ At Risk',Unknown:'— Unknown' }[st] || st;
-      const licState = lic.state || '??';
+      const stCls   = { Complete:'status-complete','In Progress':'status-progress','At Risk':'status-risk',Unknown:'status-creds-needed' }[st] || 'status-unknown';
+      const stLabel = { Complete:'✓ Complete','In Progress':'◷ In Progress','At Risk':'⚠ At Risk',Unknown:'○ Credentials Needed' }[st] || st;
+      const licState = lic.state || 'Credentials Needed';
       const days    = daysUntil(parseDate(lic.renewalDeadline));
       const daysStr = days === null ? ''
         : days < 0   ? `<span class="overdue">${Math.abs(days)}d overdue</span>`
@@ -710,11 +711,11 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     if (noCEBrokerList.includes(providerName)) {
       const hasPlatform = withPlatforms.has(providerName);
       if (hasPlatform) {
-        return { reason: 'No CE Broker', detail: 'Platform data only', icon: '○', cls: 'unknown-partial' };
+        return { reason: 'Credentials Needed', detail: 'CE Broker login required - Platform data available', icon: '○', cls: 'unknown-partial' };
       }
-      return { reason: 'No Credentials', detail: 'No CE Broker or platform logins', icon: '○', cls: 'unknown-none' };
+      return { reason: 'Credentials Needed', detail: 'Submit CE Broker login for tracking', icon: '○', cls: 'unknown-none' };
     }
-    return { reason: 'Unknown', detail: 'Data unavailable', icon: '—', cls: 'unknown-default' };
+    return { reason: 'Credentials Needed', detail: 'Contact provider for login info', icon: '—', cls: 'unknown-default' };
   };
 
   // ── Helper to build a single provider card ───────────────────────────────
@@ -749,11 +750,15 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
           <span>Platform CEU Data (${platformTotals.totalHours} total hours)</span>
         </div>
         ${platformBlocks}
+        <div class="platform-creds-notice">
+          <span class="creds-notice-icon">○</span>
+          <span>Submit CE Broker credentials for license compliance tracking</span>
+        </div>
       `;
     } else {
       licBadges = info.licenses.map(lic => {
       const status    = getS(lic);
-      const state     = lic.state || '??';
+      const state     = lic.state || 'Creds Needed';
       const deadline  = lic.renewalDeadline || '—';
       const days      = daysUntil(parseDate(lic.renewalDeadline));
 
@@ -860,8 +865,9 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     } else {
       stateChips = info.licenses.map(lic => {
         const st  = getS(lic);
-        const cls = { Complete: 'sc-green', 'In Progress': 'sc-yellow', 'At Risk': 'sc-red', Unknown: 'sc-gray' }[st] || 'sc-gray';
-        return `<span class="card-state-chip ${cls}">${escHtml(lic.state || '?')} ${escHtml(lic.licenseType || info.type || '')}</span>`;
+        const cls = { Complete: 'sc-green', 'In Progress': 'sc-yellow', 'At Risk': 'sc-red', Unknown: 'sc-orange' }[st] || 'sc-gray';
+        const stateLabel = lic.state || 'Creds Needed';
+        return `<span class="card-state-chip ${cls}">${escHtml(stateLabel)} ${escHtml(lic.licenseType || info.type || '')}</span>`;
       }).join('');
     }
 
@@ -1093,111 +1099,107 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CEU Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    /* ─ CSS Variables (Theme System) ─ */
+    /* ─ CSS Variables (Theme System) - Fountain.net Branding ─ */
     :root {
-      --bg-body: #f0f4f2;
+      --bg-body: #f8fafb;
       --bg-primary: #ffffff;
-      --bg-secondary: #f8fafc;
-      --bg-tertiary: #f1f5f9;
-      --bg-header: #0f172a;
-      --text-primary: #0f172a;
-      --text-secondary: #64748b;
+      --bg-secondary: #f4f7f9;
+      --bg-tertiary: #e8eef2;
+      --bg-header: #0d1f2d;
+      --text-primary: #1a2b3c;
+      --text-secondary: #5f7285;
       --text-on-dark: #ffffff;
-      --text-accent: #5eead4;
-      --border-color: #e2e8f0;
+      --text-accent: #0891b2;
+      --border-color: #dce4eb;
       --border-dark: #475569;
-      --accent-blue: #1d4ed8;
-      --accent-blue-hover: #1e40af;
-      --status-green: #10b981;
-      --status-green-bg: #a7f3d0;
-      --status-amber: #f59e0b;
-      --status-amber-bg: #fde68a;
-      --status-red: #ef4444;
-      --status-red-bg: #fecaca;
-      --shadow-sm: 0 2px 8px rgba(0,0,0,.06);
-      --shadow-md: 0 4px 12px rgba(0,0,0,.1);
-      --shadow-header: 0 4px 20px rgba(0,0,0,.5);
+      --accent-primary: #0891b2;
+      --accent-primary-hover: #0e7490;
+      --accent-blue: #0891b2;
+      --accent-blue-hover: #0e7490;
+      --status-green: #059669;
+      --status-green-bg: #d1fae5;
+      --status-amber: #d97706;
+      --status-amber-bg: #fef3c7;
+      --status-red: #dc2626;
+      --status-red-bg: #fee2e2;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,.04);
+      --shadow-md: 0 2px 8px rgba(0,0,0,.06);
+      --shadow-header: 0 1px 2px rgba(0,0,0,.05);
     }
 
     [data-theme="dark"] {
-      --bg-body: #0f172a;
-      --bg-primary: #1e293b;
-      --bg-secondary: #334155;
-      --bg-tertiary: #475569;
-      --bg-header: #020617;
-      --text-primary: #f1f5f9;
+      --bg-body: #0d1f2d;
+      --bg-primary: #162736;
+      --bg-secondary: #1e3344;
+      --bg-tertiary: #2a4055;
+      --bg-header: #081620;
+      --text-primary: #e8f1f8;
       --text-secondary: #94a3b8;
       --text-on-dark: #ffffff;
-      --border-color: #475569;
-      --border-dark: #64748b;
+      --border-color: #2a4055;
+      --border-dark: #3d5468;
       --status-green-bg: #065f46;
       --status-amber-bg: #92400e;
       --status-red-bg: #991b1b;
-      --shadow-sm: 0 2px 8px rgba(0,0,0,.3);
-      --shadow-md: 0 4px 12px rgba(0,0,0,.4);
-      --shadow-header: 0 4px 20px rgba(0,0,0,.7);
+      --shadow-sm: 0 1px 3px rgba(0,0,0,.2);
+      --shadow-md: 0 2px 8px rgba(0,0,0,.3);
+      --shadow-header: 0 1px 2px rgba(0,0,0,.3);
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg-body); color: var(--text-primary); min-height: 100vh; transition: background-color 0.3s, color 0.3s; }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg-body); color: var(--text-primary); min-height: 100vh; transition: background-color 0.3s, color 0.3s; font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
 
     /* ─ Header ─ */
     header {
       background-color: var(--bg-header);
-      background-image: repeating-linear-gradient(
-        -45deg,
-        transparent,
-        transparent 18px,
-        rgba(255,255,255,0.03) 18px,
-        rgba(255,255,255,0.03) 36px
-      );
       color: var(--text-on-dark);
-      padding: 20px 40px;
+      padding: 10px 24px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       flex-wrap: wrap;
-      gap: 12px;
-      box-shadow: var(--shadow-header);
+      gap: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
       position: sticky;
       top: 0;
       z-index: 100;
     }
-    header.scrolled { box-shadow: 0 4px 24px rgba(0,0,0,.6); }
-    .header-brand { display: flex; align-items: center; gap: 16px; }
-    .header-logo  { height: 38px; width: auto; display: block; }
+    header.scrolled { box-shadow: 0 2px 8px rgba(0,0,0,.15); }
+    .header-brand { display: flex; align-items: center; gap: 12px; }
+    .header-logo  { height: 28px; width: auto; display: block; }
     .header-divider {
-      width: 1px; height: 32px; background: rgba(255,255,255,0.3); flex-shrink: 0;
+      width: 1px; height: 24px; background: rgba(255,255,255,0.3); flex-shrink: 0;
     }
-    header h1 { font-size: 1.4rem; font-weight: 700; }
+    header h1 { font-size: 1.1rem; font-weight: 700; }
     header h1 span { color: var(--text-accent); }
-    .header-meta { text-align: right; display: flex; align-items: center; gap: 16px; }
-    .last-scraped-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); }
-    .last-scraped-value { font-size: 0.95rem; color: #e2e8f0; font-weight: 700; margin-top: 2px; }
-    .last-scraped-ago { font-size: 0.72rem; color: var(--text-accent); margin-top: 1px; }
+    .header-meta { text-align: right; display: flex; align-items: center; gap: 12px; }
+    .last-scraped-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); }
+    .last-scraped-value { font-size: 0.8rem; color: #e2e8f0; font-weight: 700; margin-top: 1px; }
+    .last-scraped-ago { font-size: 0.65rem; color: var(--text-accent); margin-top: 1px; }
     .theme-toggle {
-      background: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05));
+      background: rgba(255,255,255,0.1);
       border: 1px solid rgba(255,255,255,0.2);
-      padding: 10px 16px;
-      border-radius: 12px;
+      padding: 6px 10px;
+      border-radius: 6px;
       color: var(--text-on-dark);
       cursor: pointer;
-      font-size: 1.4rem;
-      transition: all 0.3s ease;
+      font-size: 1rem;
+      transition: background 0.2s;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
     }
     .theme-toggle:hover {
-      background: linear-gradient(135deg, rgba(255,255,255,0.25), rgba(255,255,255,0.1));
-      transform: scale(1.05);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      background: rgba(255,255,255,0.15);
     }
-    .theme-toggle:active { transform: scale(0.95); }
-    .theme-toggle-label { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-    .run-badge { margin-top: 6px; display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
-    .run-pill { padding: 3px 10px; border-radius: 99px; font-size: 0.75rem; font-weight: 600; }
+    .theme-toggle:active { }
+    .theme-toggle-label { font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    .run-badge { margin-top: 4px; display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
+    .run-pill { padding: 2px 8px; border-radius: 99px; font-size: 0.68rem; font-weight: 600; }
     .run-pill.ok   { background: #166534; color: #dcfce7; }
     .run-pill.notconfig { background: #475569; color: #e2e8f0; }
     .run-pill.fail { background: #7f1d1d; color: #fee2e2; }
@@ -1242,42 +1244,34 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .search-no-results { padding: 16px; text-align: center; color: var(--text-secondary); font-size: 0.85rem; }
 
     /* ─ Stat cards ─ */
-    .stats { display: flex; gap: 14px; padding: 28px 40px 0; flex-wrap: wrap; }
-    .stat-card { background: var(--bg-primary); border-radius: 12px; padding: 18px 22px; min-width: 130px; box-shadow: var(--shadow-sm); border-top: 4px solid var(--border-color); }
-    .stat-card .num { font-size: 2.4rem; font-weight: 800; line-height: 1; }
-    .stat-card .lbl { font-size: 0.72rem; text-transform: uppercase; letter-spacing: .8px; color: var(--text-secondary); margin-top: 6px; }
-    .stat-card.total { border-top-color: #6366f1; }
-    .stat-card.total .num { color: #4f46e5; }
-    .stat-card.ok    { border-top-color: var(--status-green); }
-    .stat-card.ok    .num { color: #059669; }
-    .stat-card.prog  { border-top-color: #f59e0b; }
-    .stat-card.prog  .num { color: #d97706; }
-    .stat-card.risk  { border-top-color: #ef4444; }
-    .stat-card.risk  .num { color: #dc2626; }
+    .stats { display: flex; gap: 12px; padding: 20px 40px 0; flex-wrap: wrap; }
+    .stat-card { background: var(--bg-primary); border-radius: 8px; padding: 14px 18px; min-width: 100px; border: 1px solid var(--border-color); }
+    .stat-card .num { font-size: 1.6rem; font-weight: 700; line-height: 1; color: var(--text-primary); }
+    .stat-card .lbl { font-size: 0.72rem; text-transform: uppercase; letter-spacing: .5px; color: var(--text-secondary); margin-top: 6px; }
+    .stat-card.total { }
+    .stat-card.total .num { }
+    .stat-card.ok    { }
+    .stat-card.ok    .num { }
+    .stat-card.prog  { }
+    .stat-card.prog  .num { }
+    .stat-card.risk  { border-color: var(--status-red); }
+    .stat-card.risk  .num { color: var(--status-red); }
 
     /* ─ Section titles ─ */
     .section-title {
-      padding: 28px 40px 12px;
-      font-size: 1.1rem;
-      font-weight: 800;
-      color: #0f172a;
+      padding: 24px 40px 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-primary);
       display: flex;
       align-items: center;
       gap: 10px;
-    }
-    .section-title::before {
-      content: '';
-      width: 4px;
-      height: 1.1em;
-      background: #10b981;
-      border-radius: 2px;
-      flex-shrink: 0;
     }
     .section-title::after {
       content: '';
       flex: 1;
       height: 1px;
-      background: #e2e8f0;
+      background: var(--border-color);
     }
 
     /* ─ Provider cards ─ */
@@ -1289,56 +1283,31 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     }
     .provider-card {
       background: var(--bg-primary);
-      border-radius: 14px;
+      border-radius: 12px;
       padding: 20px;
       box-shadow: var(--shadow-sm);
-      border-left: 6px solid var(--border-color);
-      transition: box-shadow .2s, transform .2s, background .3s;
+      border: 1px solid var(--border-color);
+      transition: box-shadow .2s, transform .2s;
       position: relative;
     }
-    .provider-card:hover { box-shadow: var(--shadow-md); transform: translateY(-3px); }
-    .provider-card.card-ok   {
-      border-left-color: var(--status-green);
-      background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, var(--bg-primary) 60%);
-    }
-    .provider-card.card-prog {
-      border-left-color: var(--status-amber);
-      background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, var(--bg-primary) 60%);
-    }
+    .provider-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+    .provider-card.card-ok   { /* Complete - no special styling, just clean */ }
+    .provider-card.card-prog { /* In Progress - subtle indicator */ }
     .provider-card.card-risk {
-      border-left-color: var(--status-red);
-      background: linear-gradient(135deg, rgba(239, 68, 68, 0.18) 0%, var(--bg-primary) 60%);
+      border-color: var(--status-red);
+      border-width: 2px;
     }
     .provider-card.card-risk.critical-deadline {
-      animation: card-pulse 2s ease-in-out infinite;
+      border-color: var(--status-red);
+      box-shadow: 0 0 0 1px var(--status-red);
     }
-    .provider-card.card-unk  { border-left-color: #93c5fd; }
-    .provider-card.card-platform {
-      border-left-color: #3b82f6;
-      background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, var(--bg-primary) 60%);
-    }
+    .provider-card.card-unk  { }
+    .provider-card.card-platform { }
     .provider-card.card-error {
-      border-left-color: #f87171;
-      background: linear-gradient(135deg, rgba(248, 113, 113, 0.1) 0%, var(--bg-primary) 50%);
-    }
-    [data-theme="dark"] .provider-card.card-ok {
-      background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, var(--bg-primary) 60%);
-    }
-    [data-theme="dark"] .provider-card.card-prog {
-      background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, var(--bg-primary) 60%);
+      border-color: #f87171;
     }
     [data-theme="dark"] .provider-card.card-risk {
-      background: linear-gradient(135deg, rgba(239, 68, 68, 0.22) 0%, var(--bg-primary) 60%);
-    }
-    [data-theme="dark"] .provider-card.card-prog {
-      background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, var(--bg-primary) 50%);
-    }
-    [data-theme="dark"] .provider-card.card-risk {
-      background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, var(--bg-primary) 50%);
-    }
-    @keyframes card-pulse {
-      0%, 100% { box-shadow: var(--shadow-sm); }
-      50% { box-shadow: 0 0 20px rgba(239, 68, 68, 0.3); }
+      border-color: var(--status-red);
     }
 
     /* Unknown reason banner */
@@ -1396,22 +1365,19 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .card-lic-count { font-size: 0.75rem; color: #94a3b8; white-space: nowrap; }
 
     /* ─ License blocks inside a card ─ */
-    .lic-blocks { display: flex; flex-direction: column; gap: 10px; }
+    .lic-blocks { display: flex; flex-direction: column; gap: 8px; }
     .lic-block {
-      border-radius: 10px;
-      padding: 12px 14px;
-      border: 1.5px solid #e2e8f0;
-      background: #f8fafc;
+      border-radius: 8px;
+      padding: 10px 12px;
+      border: 1px solid var(--border-color);
+      background: var(--bg-secondary);
     }
-    .lic-block.lic-complete  { border-color: #bbf7d0; background: #f0fdf4; }
-    .lic-block.lic-progress  { border-color: #fde68a; background: #fffbeb; }
-    .lic-block.lic-risk      { border-color: #fecaca; background: #fff5f5; }
-    .lic-block.lic-platform  { border-color: #93c5fd; background: #eff6ff; }
-    [data-theme="dark"] .lic-block { border-color: #475569; background: #334155; }
-    [data-theme="dark"] .lic-block.lic-complete { border-color: #166534; background: rgba(22, 163, 74, 0.15); }
-    [data-theme="dark"] .lic-block.lic-progress { border-color: #92400e; background: rgba(217, 119, 6, 0.15); }
-    [data-theme="dark"] .lic-block.lic-risk { border-color: #991b1b; background: rgba(220, 38, 38, 0.15); }
-    [data-theme="dark"] .lic-block.lic-platform { border-color: #1d4ed8; background: rgba(59, 130, 246, 0.15); }
+    .lic-block.lic-complete  { }
+    .lic-block.lic-progress  { }
+    .lic-block.lic-risk      { border-color: #fca5a5; }
+    .lic-block.lic-platform  { }
+    [data-theme="dark"] .lic-block { border-color: #475569; background: var(--bg-secondary); }
+    [data-theme="dark"] .lic-block.lic-risk { border-color: #991b1b; }
 
     /* ─ Platform summary for platform-only providers ─ */
     .platform-summary-header {
@@ -1452,6 +1418,19 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     }
     [data-theme="dark"] .platform-summary-header { color: #60a5fa; border-bottom-color: #1d4ed8; }
     [data-theme="dark"] .platform-hours-big { color: #60a5fa; }
+    .platform-creds-notice {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.75rem;
+      color: #9a3412;
+      background: #fed7aa;
+      padding: 8px 12px;
+      border-radius: 6px;
+      margin-top: 10px;
+    }
+    .creds-notice-icon { font-weight: 700; }
+    [data-theme="dark"] .platform-creds-notice { background: rgba(249, 115, 22, 0.2); color: #fdba74; }
 
     .lic-header { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
     .lic-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
@@ -1472,38 +1451,33 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .lic-deadline { font-size: 0.78rem; color: #475569; margin-bottom: 7px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .deadline-label { color: #64748b; }
 
-    /* Countdown badges with color coding */
+    /* Countdown badges - minimal styling */
     .countdown-badge {
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      font-weight: 600;
-      padding: 3px 10px;
-      border-radius: 12px;
+      font-weight: 500;
+      padding: 2px 8px;
+      border-radius: 4px;
       font-size: 0.72rem;
       cursor: help;
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
     }
-    .countdown-badge.safe { background: #dcfce7; color: #166534; }
-    .countdown-badge.warning { background: #fef3c7; color: #92400e; }
+    .countdown-badge.safe { }
+    .countdown-badge.warning { color: var(--text-primary); }
     .countdown-badge.danger { background: #fee2e2; color: #991b1b; }
     .countdown-badge.overdue { background: #991b1b; color: white; }
-    .countdown-badge.critical { animation: pulse 1.5s ease-in-out infinite; }
-    [data-theme="dark"] .countdown-badge.safe { background: #14532d; color: #86efac; }
-    [data-theme="dark"] .countdown-badge.warning { background: #78350f; color: #fde68a; }
+    .countdown-badge.critical { }
+    [data-theme="dark"] .countdown-badge { background: var(--bg-tertiary); }
     [data-theme="dark"] .countdown-badge.danger { background: #7f1d1d; color: #fecaca; }
     [data-theme="dark"] .countdown-badge.overdue { background: #ef4444; color: white; }
 
-    @keyframes pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.7; transform: scale(1.02); }
-    }
-
     .lic-bar-row { display: flex; align-items: center; gap: 10px; }
-    .bar-track { flex: 1; height: 10px; background: #e2e8f0; border-radius: 99px; overflow: hidden; box-shadow: inset 0 1px 2px rgba(0,0,0,0.1); }
-    .bar-fill  { height: 100%; border-radius: 99px; background: linear-gradient(90deg, #16a34a, #22c55e); transition: width .5s ease-out; }
-    .bar-fill.partial { background: linear-gradient(90deg, #f59e0b, #f59e0b); }
-    .bar-fill.low     { background: linear-gradient(90deg, #ef4444, #ef4444); }
-    .bar-fill.critical { animation: pulse 1.5s ease-in-out infinite; }
+    .bar-track { flex: 1; height: 6px; background: var(--bg-tertiary); border-radius: 99px; overflow: hidden; }
+    .bar-fill  { height: 100%; border-radius: 99px; background: #64748b; transition: width .3s ease-out; }
+    .bar-fill.partial { background: #94a3b8; }
+    .bar-fill.low     { background: var(--status-red); }
     .bar-label { font-size: 0.78rem; color: #475569; white-space: nowrap; font-weight: 600; min-width: 70px; }
     .bar-pct { font-size: 0.68rem; color: #94a3b8; margin-left: 2px; }
     [data-theme="dark"] .bar-track { background: #475569; }
@@ -1613,27 +1587,28 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .hours-wrap { display: flex; flex-direction: column; align-items: center; gap: 3px; }
     .hours-text { font-size: .78rem; color: #475569; white-space: nowrap; }
 
-    .status-badge { display: inline-block; padding: 4px 12px; border-radius: 99px; font-size: .75rem; font-weight: 700; white-space: nowrap; }
-    .status-complete { background: #bbf7d0; color: #14532d; }
-    .status-progress { background: #fde68a; color: #92400e; }
-    .status-risk     { background: #fca5a5; color: #7f1d1d; }
-    .status-pending  { background: #cbd5e1; color: #334155; }
-    .status-unknown  { background: #e2e8f0; color: #475569; }
+    .status-badge { display: inline-block; padding: 3px 10px; border-radius: 4px; font-size: .75rem; font-weight: 500; white-space: nowrap; background: var(--bg-tertiary); color: var(--text-secondary); }
+    .status-complete { }
+    .status-progress { }
+    .status-risk     { background: #fee2e2; color: #991b1b; }
+    .status-pending  { }
+    .status-unknown  { }
+    .status-creds-needed { color: var(--text-primary); }
 
     .data-table { width: 100%; border-collapse: collapse; margin: 0 40px 40px; max-width: calc(100% - 80px); font-size: 0.84rem; }
-    .data-table th, .data-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
-    .data-table th { background: #f8fafc; color: #475569; font-weight: 600; cursor: pointer; white-space: nowrap; }
-    .data-table th:hover { background: #f1f5f9; }
-    .data-table tbody tr:hover { background: #f8fafc; }
-    .data-table code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 0.82rem; }
-    .notes-cell { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #64748b; font-size: 0.8rem; }
+    .data-table th, .data-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border-color); }
+    .data-table th { background: var(--bg-secondary); color: var(--text-secondary); font-weight: 600; cursor: pointer; white-space: nowrap; }
+    .data-table th:hover { background: var(--bg-tertiary); }
+    .data-table tbody tr:hover { background: var(--bg-secondary); }
+    .data-table code { background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px; font-size: 0.82rem; }
+    .notes-cell { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); font-size: 0.8rem; }
 
-    .status-pill { display: inline-block; padding: 3px 10px; border-radius: 99px; font-size: .72rem; font-weight: 600; }
-    .status-pill.complete { background: #dcfce7; color: #059669; }
-    .status-pill.warning { background: #fef3c7; color: #d97706; }
+    .status-pill { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: .72rem; font-weight: 500; background: var(--bg-tertiary); color: var(--text-secondary); }
+    .status-pill.complete { }
+    .status-pill.warning { }
     .status-pill.at-risk { background: #fee2e2; color: #dc2626; }
-    .status-pill.expired { background: #e5e7eb; color: #374151; }
-    .status-pill.in-progress { background: #dbeafe; color: #1d4ed8; }
+    .status-pill.expired { }
+    .status-pill.in-progress { }
 
     .section-subtitle { font-size: 1.1rem; font-weight: 600; color: #1e293b; padding: 0 40px 16px; }
 
@@ -1659,6 +1634,11 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
 
     /* ─ Footer ─ */
     footer { text-align: center; padding: 16px; font-size: .76rem; color: var(--text-secondary); border-top: 1px solid var(--border-color); margin-top: 8px; background: var(--bg-primary); }
+    .footer-updates { margin-bottom: 8px; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 16px; align-items: center; }
+    .footer-updates-title { font-weight: 700; color: var(--text-primary); }
+    .footer-update-item { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; background: var(--bg-secondary); border-radius: 6px; border: 1px solid var(--border-color); }
+    .footer-update-date { font-weight: 600; color: var(--accent-blue); font-size: 0.7rem; }
+    .footer-meta { opacity: 0.8; }
 
     /* ─ Updates Section ─ */
     .updates-section {
@@ -1728,13 +1708,13 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .update-badge.changed { background: var(--status-amber-bg); color: var(--status-amber); }
 
     /* ─ Sidebar Navigation ─ */
-    .app-layout { display: flex; min-height: calc(100vh - 82px); }
+    .app-layout { display: flex; min-height: calc(100vh - 52px); }
     .sidebar {
       position: fixed;
-      top: 82px;
+      top: 52px;
       left: 0;
-      width: 220px;
-      height: calc(100vh - 82px);
+      width: 180px;
+      height: calc(100vh - 52px);
       background: var(--bg-primary);
       border-right: 1px solid var(--border-color);
       display: flex;
@@ -1742,39 +1722,108 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       z-index: 90;
       transition: transform 0.3s ease;
     }
-    .sidebar-nav { flex: 1; padding: 16px 8px; overflow-y: auto; }
+    .sidebar-nav { flex: 1; padding: 10px 6px; overflow-y: auto; }
     .nav-item {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
       width: 100%;
-      padding: 12px 16px;
+      padding: 8px 12px;
       border: none;
-      border-radius: 8px;
+      border-radius: 6px;
       background: none;
       cursor: pointer;
-      font-size: 0.9rem;
+      font-size: 0.82rem;
       font-weight: 500;
       color: var(--text-secondary);
       text-align: left;
       transition: all 0.15s;
-      margin-bottom: 4px;
+      margin-bottom: 2px;
     }
     .nav-item:hover { background: var(--bg-tertiary); color: var(--text-primary); }
     .nav-item.active { background: var(--accent-blue); color: #fff; }
-    .nav-icon { font-size: 1.1rem; width: 24px; text-align: center; }
+    .nav-icon { font-size: 0.95rem; width: 20px; text-align: center; }
     .nav-label { flex: 1; }
-    .nav-badge { font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; background: rgba(0,0,0,.1); }
+    .nav-badge { font-size: 0.65rem; padding: 2px 6px; border-radius: 8px; background: rgba(0,0,0,.1); }
     .nav-item.active .nav-badge { background: rgba(255,255,255,.2); }
     .nav-badge.warn { background: var(--status-red); color: #fff; }
-    .sidebar-footer { padding: 16px; border-top: 1px solid var(--border-color); }
-    .sidebar-stats { display: flex; gap: 12px; }
-    .sidebar-stat { flex: 1; text-align: center; padding: 8px; background: var(--bg-secondary); border-radius: 8px; }
+    .sidebar-footer { padding: 10px; border-top: 1px solid var(--border-color); }
+    .sidebar-stats { display: flex; gap: 8px; }
+    .sidebar-stat { flex: 1; text-align: center; padding: 6px; background: var(--bg-secondary); border-radius: 6px; }
     .sidebar-stat.warn { background: var(--status-red-bg); }
-    .sidebar-stat-num { display: block; font-size: 1.2rem; font-weight: 700; color: var(--text-primary); }
+    .sidebar-stat-num { display: block; font-size: 1rem; font-weight: 700; color: var(--text-primary); }
     .sidebar-stat.warn .sidebar-stat-num { color: var(--status-red); }
-    .sidebar-stat-label { font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; }
-    .main-content { flex: 1; margin-left: 220px; min-width: 0; }
+    .sidebar-stat-label { font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; }
+    .main-content { flex: 1; margin-left: 180px; min-width: 0; transition: margin-left 0.3s ease; }
+
+    /* ─ Sidebar Collapse Toggle ─ */
+    .sidebar-collapse-btn {
+      position: absolute;
+      top: 8px;
+      right: -12px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      color: var(--text-secondary);
+      z-index: 100;
+      transition: all 0.2s;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .sidebar-collapse-btn:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+
+    /* Collapsed Sidebar State */
+    .sidebar.collapsed { width: 50px; }
+    .sidebar.collapsed .nav-label,
+    .sidebar.collapsed .nav-badge,
+    .sidebar.collapsed .sidebar-footer { display: none; }
+    .sidebar.collapsed .nav-item { justify-content: center; padding: 10px; }
+    .sidebar.collapsed .nav-icon { width: auto; font-size: 1.1rem; }
+    .sidebar.collapsed .sidebar-nav { padding: 10px 4px; }
+    .sidebar.collapsed .sidebar-collapse-btn { right: -12px; }
+    .sidebar.collapsed + .main-content,
+    body.sidebar-collapsed .main-content { margin-left: 50px; }
+
+    /* ─ Header Collapse Toggle ─ */
+    .header-collapse-btn {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      padding: 4px 8px;
+      border-radius: 6px;
+      color: var(--text-on-dark);
+      cursor: pointer;
+      font-size: 0.65rem;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .header-collapse-btn:hover { background: rgba(255,255,255,0.2); }
+
+    /* Collapsed Header State */
+    header.collapsed { padding: 4px 24px; }
+    header.collapsed .header-logo { height: 20px; }
+    header.collapsed .header-divider { height: 16px; }
+    header.collapsed h1 { font-size: 0.9rem; }
+    header.collapsed .last-scraped-label,
+    header.collapsed .last-scraped-ago,
+    header.collapsed .run-badge { display: none; }
+    header.collapsed .last-scraped-value { font-size: 0.7rem; margin: 0; }
+    header.collapsed .theme-toggle { padding: 4px 8px; font-size: 0.9rem; }
+    header.collapsed .theme-toggle-label { display: none; }
+    header.collapsed .global-search { width: 140px; padding: 6px 10px; font-size: 0.75rem; }
+
+    /* Adjust layout when header is collapsed */
+    body.header-collapsed .app-layout { min-height: calc(100vh - 32px); }
+    body.header-collapsed .sidebar { top: 32px; height: calc(100vh - 32px); }
+    body.header-collapsed .providers-filter-bar { top: 32px; }
+
     .sidebar-toggle {
       display: none;
       position: fixed;
@@ -1794,8 +1843,9 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     @media (max-width: 768px) {
       .sidebar { transform: translateX(-100%); }
       .sidebar.open { transform: translateX(0); box-shadow: 4px 0 20px rgba(0,0,0,.2); }
-      .main-content { margin-left: 0; }
+      .main-content { margin-left: 0 !important; }
       .sidebar-toggle { display: flex; align-items: center; justify-content: center; }
+      .sidebar-collapse-btn { display: none; }
     }
 
     /* ─ Tabs (hidden, using sidebar now) ─ */
@@ -1861,42 +1911,42 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
 
     /* ─ New Dashboard Tab ─ */
     .dashboard-stats-row { display: flex; gap: 16px; padding: 24px 40px 16px; flex-wrap: wrap; }
-    .dash-stat-card { display: flex; align-items: center; gap: 12px; background: #fff; border-radius: 12px; padding: 14px 20px; box-shadow: 0 2px 8px rgba(0,0,0,.06); flex: 1; min-width: 140px; }
-    .dash-stat-icon { font-size: 1.5rem; opacity: 0.9; }
+    .dash-stat-card { display: flex; align-items: center; gap: 12px; background: var(--bg-primary); border-radius: 8px; padding: 14px 20px; border: 1px solid var(--border-color); flex: 1; min-width: 140px; }
+    .dash-stat-icon { font-size: 1.3rem; opacity: 0.6; }
     .dash-stat-content { display: flex; flex-direction: column; }
-    .dash-stat-num { font-size: 1.8rem; font-weight: 800; line-height: 1; }
-    .dash-stat-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.8; }
-    .dash-stat-risk { background: linear-gradient(135deg, #fef2f2, #fff); border-left: 4px solid #ef4444; }
-    .dash-stat-risk .dash-stat-num, .dash-stat-risk .dash-stat-label { color: #ef4444; }
-    .dash-stat-warning { background: linear-gradient(135deg, #fffbeb, #fff); border-left: 4px solid #f59e0b; }
-    .dash-stat-warning .dash-stat-num, .dash-stat-warning .dash-stat-label { color: #f59e0b; }
-    .dash-stat-complete { background: linear-gradient(135deg, #f0fdf4, #fff); border-left: 4px solid #16a34a; }
-    .dash-stat-complete .dash-stat-num, .dash-stat-complete .dash-stat-label { color: #16a34a; }
-    .dash-stat-unknown { background: linear-gradient(135deg, #f8fafc, #fff); border-left: 4px solid #64748b; }
-    .dash-stat-unknown .dash-stat-num, .dash-stat-unknown .dash-stat-label { color: #64748b; }
+    .dash-stat-num { font-size: 1.6rem; font-weight: 700; line-height: 1; color: var(--text-primary); }
+    .dash-stat-label { font-size: 0.72rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); }
+    .dash-stat-risk { border-color: var(--status-red); }
+    .dash-stat-risk .dash-stat-num { color: var(--status-red); }
+    .dash-stat-warning { }
+    .dash-stat-warning .dash-stat-num, .dash-stat-warning .dash-stat-label { }
+    .dash-stat-complete { }
+    .dash-stat-complete .dash-stat-num, .dash-stat-complete .dash-stat-label { }
+    .dash-stat-unknown { }
+    .dash-stat-unknown .dash-stat-num, .dash-stat-unknown .dash-stat-label { }
 
     .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding: 0 40px 24px; }
     @media (max-width: 900px) { .dashboard-grid { grid-template-columns: 1fr; } }
-    .dashboard-actions, .dashboard-deadlines { background: #fff; border-radius: 14px; padding: 20px 24px; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
-    .dash-section-header { font-size: 0.9rem; font-weight: 700; color: #1e293b; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .dash-action-list { display: flex; flex-direction: column; gap: 10px; }
-    .dash-action-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 10px; cursor: pointer; transition: all .15s; }
-    .dash-action-item:hover { transform: translateX(4px); }
-    .dash-action-icon { font-size: 1.1rem; width: 24px; text-align: center; }
-    .dash-action-text { flex: 1; font-size: 0.88rem; color: #334155; }
-    .dash-action-text strong { font-weight: 700; }
-    .dash-action-arrow { color: #94a3b8; font-size: 0.9rem; }
-    .dash-action-critical { background: #fef2f2; border-left: 3px solid #ef4444; }
+    .dashboard-actions, .dashboard-deadlines { background: var(--bg-primary); border-radius: 10px; padding: 20px 24px; border: 1px solid var(--border-color); }
+    .dash-section-header { font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .dash-action-list { display: flex; flex-direction: column; gap: 8px; }
+    .dash-action-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 6px; cursor: pointer; transition: background .15s; background: var(--bg-secondary); }
+    .dash-action-item:hover { background: var(--bg-tertiary); }
+    .dash-action-icon { font-size: 1rem; width: 20px; text-align: center; opacity: 0.7; }
+    .dash-action-text { flex: 1; font-size: 0.85rem; color: var(--text-primary); }
+    .dash-action-text strong { font-weight: 600; }
+    .dash-action-arrow { color: var(--text-secondary); font-size: 0.85rem; }
+    .dash-action-critical { background: #fef2f2; border-left: 2px solid var(--status-red); }
     .dash-action-critical:hover { background: #fee2e2; }
-    .dash-action-warning { background: #fffbeb; border-left: 3px solid #f59e0b; }
-    .dash-action-warning:hover { background: #fef3c7; }
-    .dash-action-info { background: #f8fafc; border-left: 3px solid #64748b; }
-    .dash-action-info:hover { background: #f1f5f9; }
-    .dash-action-pending { background: #eff6ff; border-left: 3px solid #3b82f6; }
-    .dash-action-pending:hover { background: #dbeafe; }
-    .dash-action-error { background: #fef2f2; border-left: 3px solid #ef4444; }
+    .dash-action-warning { }
+    .dash-action-warning:hover { }
+    .dash-action-info { }
+    .dash-action-info:hover { }
+    .dash-action-pending { }
+    .dash-action-pending:hover { }
+    .dash-action-error { background: #fef2f2; border-left: 2px solid var(--status-red); }
     .dash-action-error:hover { background: #fee2e2; }
-    .dash-action-empty { display: flex; align-items: center; gap: 12px; padding: 16px; color: #16a34a; font-size: 0.9rem; }
+    .dash-action-empty { display: flex; align-items: center; gap: 12px; padding: 16px; color: var(--text-secondary); font-size: 0.9rem; }
 
     .dash-deadline-summary { display: flex; gap: 12px; margin-bottom: 16px; }
     .dash-deadline-row { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: #f8fafc; border-radius: 8px; cursor: pointer; transition: all .15s; flex: 1; }
@@ -1932,7 +1982,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .run-fail { color: #ef4444; }
 
     /* ─ Providers Filter Bar ─ */
-    .providers-filter-bar { display: flex; gap: 12px; padding: 20px 40px 12px; flex-wrap: wrap; align-items: center; position: sticky; top: 82px; z-index: 50; background: var(--bg-body); border-bottom: 1px solid var(--border-color); }
+    .providers-filter-bar { display: flex; gap: 12px; padding: 16px 40px 10px; flex-wrap: wrap; align-items: center; position: sticky; top: 52px; z-index: 50; background: var(--bg-body); border-bottom: 1px solid var(--border-color); }
     .providers-filter-bar .search-box { flex: 1; min-width: 200px; background: var(--bg-primary); color: var(--text-primary); border-color: var(--border-color); }
     .providers-filter-bar .filter-select { min-width: 120px; background: var(--bg-primary); color: var(--text-primary); border-color: var(--border-color); }
     .advanced-filter-toggle { padding: 8px 14px; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-primary); cursor: pointer; font-size: 0.82rem; font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; transition: all .15s; }
@@ -2098,6 +2148,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .sc-red    { background: #fee2e2; color: #7f1d1d; }
     .sc-gray   { background: #f1f5f9; color: #475569; }
     .sc-blue   { background: #dbeafe; color: #1e40af; }
+    .sc-orange { background: #fed7aa; color: #9a3412; }
     .card-plat-tags { display: flex; flex-wrap: wrap; gap: 5px; padding: 8px 12px 4px; border-top: 1px solid #f1f5f9; }
     .card-plat-tag { font-size: 0.68rem; font-weight: 600; padding: 2px 7px; border-radius: 10px; }
     .plat-tag-netce   { background: #ccfbf1; color: #0f766e; }
@@ -2382,6 +2433,96 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     [data-theme="dark"] .health-critical { background: rgba(220, 38, 38, 0.2); }
     [data-theme="dark"] .health-all-good { background: rgba(5, 150, 105, 0.2); }
     [data-theme="dark"] .health-all-good-text { color: #34d399; }
+
+    /* ─ Help Page ─ */
+    .help-page { padding: 24px 40px; max-width: 1000px; }
+    .help-header { margin-bottom: 32px; }
+    .help-header h1 { font-size: 2rem; font-weight: 800; color: var(--text-primary); margin: 0 0 8px; }
+    .help-subtitle { font-size: 1rem; color: var(--text-secondary); margin: 0; }
+    .help-section { background: var(--bg-primary); border-radius: 16px; padding: 24px; margin-bottom: 24px; box-shadow: var(--shadow-sm); }
+    .help-section-title { display: flex; align-items: center; gap: 10px; font-size: 1.2rem; font-weight: 700; color: var(--text-primary); margin: 0 0 20px; padding-bottom: 12px; border-bottom: 2px solid var(--border-color); }
+    .help-icon { font-size: 1.3rem; }
+    .help-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+    .help-card { padding: 16px; border-radius: 12px; border: 1px solid var(--border-color); }
+    .help-card-complete { background: #f0fdf4; border-color: #bbf7d0; }
+    .help-card-progress { background: #fffbeb; border-color: #fde68a; }
+    .help-card-risk { background: #fef2f2; border-color: #fecaca; }
+    .help-card-unknown { background: #fff7ed; border-color: #fed7aa; }
+    .help-card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .help-card p { font-size: 0.85rem; color: var(--text-secondary); margin: 0; line-height: 1.5; }
+    .help-status-dot { width: 12px; height: 12px; border-radius: 50%; }
+    .help-status-dot.complete { background: #10b981; }
+    .help-status-dot.progress { background: #f59e0b; }
+    .help-status-dot.risk { background: #ef4444; }
+    .help-status-dot.unknown { background: #f97316; }
+    .help-content { font-size: 0.9rem; color: var(--text-secondary); line-height: 1.7; }
+    .help-content h3 { font-size: 1rem; font-weight: 700; color: var(--text-primary); margin: 0 0 8px; }
+    .help-content ul { margin: 8px 0 16px; padding-left: 20px; }
+    .help-content li { margin: 6px 0; }
+    .help-note { font-size: 0.8rem; background: #eff6ff; padding: 10px 14px; border-radius: 8px; border-left: 3px solid #3b82f6; margin-top: 12px; }
+    .help-source { margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px dashed var(--border-color); }
+    .help-source:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+    .help-type-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+    .help-type-card { padding: 20px; border-radius: 12px; border: 2px solid var(--border-color); }
+    .help-type-card.clinical { border-left: 4px solid #3b82f6; background: #eff6ff; }
+    .help-type-card.support { border-left: 4px solid #f59e0b; background: #fffbeb; }
+    .help-type-header { margin-bottom: 8px; }
+    .help-type-badge { font-size: 0.7rem; font-weight: 700; padding: 3px 10px; border-radius: 99px; text-transform: uppercase; }
+    .help-type-badge.clinical { background: #dbeafe; color: #1d4ed8; }
+    .help-type-badge.support { background: #fef3c7; color: #d97706; }
+    .help-type-card h3 { margin: 8px 0; font-size: 1.1rem; color: var(--text-primary); }
+    .help-type-card p { font-size: 0.85rem; color: var(--text-secondary); margin: 0 0 12px; }
+    .help-type-card ul { margin: 0; padding-left: 18px; font-size: 0.85rem; }
+    .help-email-info { margin-bottom: 20px; padding: 16px; background: var(--bg-secondary); border-radius: 12px; }
+    .help-email-info:last-child { margin-bottom: 0; }
+    .help-email-info h3 { margin: 0 0 10px; }
+    .help-email-info ul { margin: 8px 0; }
+    .help-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .help-table th { text-align: left; padding: 12px; background: var(--bg-secondary); font-weight: 600; color: var(--text-secondary); border-bottom: 2px solid var(--border-color); }
+    .help-table td { padding: 12px; border-bottom: 1px solid var(--border-color); }
+    .help-badge { display: inline-block; font-size: 0.75rem; font-weight: 600; padding: 3px 10px; border-radius: 6px; }
+    .help-badge-green { background: #d1fae5; color: #059669; }
+    .help-badge-yellow { background: #fef3c7; color: #d97706; }
+    .help-badge-orange { background: #fed7aa; color: #ea580c; }
+    .help-badge-red { background: #fecaca; color: #dc2626; }
+    .help-badge-gray { background: #e2e8f0; color: #64748b; }
+    .help-formula { display: flex; flex-direction: column; gap: 16px; }
+    .help-formula-step { display: flex; align-items: flex-start; gap: 16px; padding: 16px; background: var(--bg-secondary); border-radius: 12px; }
+    .help-step-num { width: 32px; height: 32px; background: #3b82f6; color: #fff; font-weight: 700; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .help-step-content { flex: 1; }
+    .help-step-content strong { display: block; margin-bottom: 4px; color: var(--text-primary); }
+    .help-step-content p { margin: 0; font-size: 0.85rem; }
+    .help-step-content ul { margin: 8px 0 0; padding-left: 18px; font-size: 0.85rem; }
+    .help-status { font-weight: 600; padding: 2px 8px; border-radius: 4px; }
+    .help-status.complete { background: #d1fae5; color: #059669; }
+    .help-status.progress { background: #fef3c7; color: #d97706; }
+    .help-status.risk { background: #fecaca; color: #dc2626; }
+    .help-schedule { display: flex; flex-direction: column; gap: 12px; }
+    .help-schedule-item { display: flex; align-items: center; gap: 16px; padding: 14px 18px; background: var(--bg-secondary); border-radius: 10px; }
+    .help-schedule-time { font-weight: 700; color: #3b82f6; min-width: 180px; }
+    .help-schedule-desc { color: var(--text-secondary); }
+    .help-faq { display: flex; flex-direction: column; gap: 16px; }
+    .help-faq-item { padding: 16px; background: var(--bg-secondary); border-radius: 12px; }
+    .help-faq-item h4 { margin: 0 0 8px; font-size: 0.95rem; color: var(--text-primary); }
+    .help-faq-item p { margin: 0; font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6; }
+    [data-theme="dark"] .help-card-complete { background: rgba(16, 185, 129, 0.15); border-color: #166534; }
+    [data-theme="dark"] .help-card-progress { background: rgba(245, 158, 11, 0.15); border-color: #92400e; }
+    [data-theme="dark"] .help-card-risk { background: rgba(239, 68, 68, 0.15); border-color: #991b1b; }
+    [data-theme="dark"] .help-card-unknown { background: rgba(249, 115, 22, 0.15); border-color: #9a3412; }
+    [data-theme="dark"] .help-note { background: rgba(59, 130, 246, 0.15); border-color: #3b82f6; }
+    [data-theme="dark"] .help-type-card.clinical { background: rgba(59, 130, 246, 0.1); }
+    [data-theme="dark"] .help-type-card.support { background: rgba(245, 158, 11, 0.1); }
+    @media (max-width: 768px) {
+      .help-page { padding: 16px; }
+      .help-section { padding: 16px; }
+      .help-header h1 { font-size: 1.5rem; }
+      .help-cards { grid-template-columns: 1fr; }
+      .help-type-grid { grid-template-columns: 1fr; }
+      .help-table { font-size: 0.75rem; }
+      .help-table th, .help-table td { padding: 8px; }
+      .help-schedule-item { flex-direction: column; align-items: flex-start; gap: 4px; }
+      .help-schedule-time { min-width: auto; }
+    }
     [data-theme="dark"] .error-log-item { background: rgba(254, 242, 242, 0.1); }
 
     /* ─ Mobile (768px and below) ─ */
@@ -2768,9 +2909,22 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .type-groups { display: flex; flex-direction: column; gap: 24px; }
     .type-group { background: var(--bg-primary); border-radius: 12px; box-shadow: var(--shadow-sm); overflow: hidden; }
     .type-group-header { display: flex; align-items: center; gap: 12px; padding: 16px 20px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); }
-    .type-name { font-weight: 800; font-size: 1.1rem; color: var(--text-primary); flex: 1; }
-    .type-provider-count { font-size: 0.85rem; color: var(--text-secondary); white-space: nowrap; }
+    .type-name { font-weight: 800; font-size: 1.1rem; color: var(--text-primary); }
+    .type-icon { font-size: 1.2rem; }
+    .type-role-badge { font-size: 0.72rem; font-weight: 600; padding: 3px 10px; border-radius: 99px; text-transform: uppercase; letter-spacing: 0.3px; }
+    .type-role-badge.role-clinical { background: #dbeafe; color: #1d4ed8; }
+    .type-role-badge.role-support { background: #fef3c7; color: #d97706; }
+    .type-provider-count { font-size: 0.85rem; color: var(--text-secondary); white-space: nowrap; margin-left: auto; }
     .type-cards { padding: 16px; }
+    .type-group-clinical { border-left: 4px solid #3b82f6; }
+    .type-group-support { border-left: 4px solid #f59e0b; }
+    .type-view-legend { display: flex; gap: 24px; padding: 16px 20px; background: var(--bg-secondary); border-radius: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+    .type-legend-item { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; color: var(--text-secondary); }
+    .type-legend-dot { width: 12px; height: 12px; border-radius: 4px; }
+    .type-legend-dot.clinical { background: #3b82f6; }
+    .type-legend-dot.support { background: #f59e0b; }
+    [data-theme="dark"] .type-role-badge.role-clinical { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+    [data-theme="dark"] .type-role-badge.role-support { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
 
     /* ─ Favorites View ─ */
     .favorites-header { padding: 16px 20px; background: var(--status-amber-bg); border-radius: 12px; margin-bottom: 20px; display: flex; align-items: center; gap: 16px; }
@@ -2964,9 +3118,9 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       <div class="last-scraped-value" id="lastScrapedValue" data-iso="${escHtml(runIso)}">${escHtml(runDate)}</div>
       <div class="last-scraped-ago" id="lastScrapedAgo"></div>
       <div class="run-badge">
-        <span class="run-pill ok">✓ ${runResults.filter(r => r.status === 'success').length} succeeded</span>
+        <span class="run-pill ok">✓ ${runResults.filter(r => r.status === 'success').length} CE Broker logins</span>
         ${runResults.filter(r => r.status === 'not_configured').length > 0
-          ? `<span class="run-pill notconfig">○ ${runResults.filter(r => r.status === 'not_configured').length} not configured</span>`
+          ? `<span class="run-pill notconfig">○ ${runResults.filter(r => r.status === 'not_configured').length} no CE Broker creds</span>`
           : ''}
         ${runResults.filter(r => r.status === 'login_error' || r.status === 'failed').length > 0
           ? `<span class="run-pill fail">✗ ${runResults.filter(r => r.status === 'login_error' || r.status === 'failed').length} login errors</span>`
@@ -2981,6 +3135,9 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       <span class="theme-icon">🌙</span>
       <span class="theme-toggle-label">Dark</span>
     </button>
+    <button class="header-collapse-btn" onclick="toggleHeaderCollapse()" title="Collapse header" id="headerCollapseBtn">
+      <span id="headerCollapseIcon">▲</span>
+    </button>
   </div>
 </header>
 
@@ -2988,6 +3145,9 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
 <div class="app-layout">
   <!-- Sidebar Navigation -->
   <aside class="sidebar" id="sidebar">
+    <button class="sidebar-collapse-btn" onclick="toggleSidebarCollapse()" title="Collapse sidebar" id="sidebarCollapseBtn">
+      <span id="sidebarCollapseIcon">◀</span>
+    </button>
     <nav class="sidebar-nav">
       <button class="nav-item active" onclick="showTab('providers')" data-tab="providers">
         <span class="nav-icon">👥</span>
@@ -3006,15 +3166,13 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
         <span class="nav-icon">📊</span>
         <span class="nav-label">Reports</span>
       </button>
-      <button class="nav-item" onclick="showTab('dashboard')" data-tab="dashboard">
-        <span class="nav-icon">📋</span>
-        <span class="nav-label">Dashboard</span>
-        ${(atRisk + noCredentialsProviders.length) > 0 ? `<span class="nav-badge warn">${atRisk + noCredentialsProviders.length}</span>` : ''}
+      <button class="nav-item" onclick="showTab('help')" data-tab="help">
+        <span class="nav-icon">❓</span>
+        <span class="nav-label">How It Works</span>
       </button>
-      <button class="nav-item" onclick="showTab('status')" data-tab="status">
-        <span class="nav-icon">⚙️</span>
-        <span class="nav-label">Status</span>
-        ${healthSummary.critical > 0 ? `<span class="nav-badge warn">${healthSummary.critical}</span>` : ''}
+      <button class="nav-item" onclick="showTab('summary')" data-tab="summary">
+        <span class="nav-icon">📋</span>
+        <span class="nav-label">Weekly Summary</span>
       </button>
     </nav>
     <div class="sidebar-footer">
@@ -3065,10 +3223,10 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       </div>
     </div>
     <div class="dash-stat-card dash-stat-unknown">
-      <div class="dash-stat-icon">✗</div>
+      <div class="dash-stat-icon">○</div>
       <div class="dash-stat-content">
         <div class="dash-stat-num">${noCredentialsProviders.length}</div>
-        <div class="dash-stat-label">No Creds</div>
+        <div class="dash-stat-label">Missing Creds</div>
       </div>
     </div>
   </div>
@@ -3088,7 +3246,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
         ${noCredentialsProviders.length > 0 ? `
         <div class="dash-action-item dash-action-info" onclick="showTab('providers'); document.getElementById('noCredsFilter').checked = true; filterCards();">
           <span class="dash-action-icon">○</span>
-          <span class="dash-action-text"><strong>${noCredentialsProviders.length}</strong> missing CE credentials</span>
+          <span class="dash-action-text"><strong>${noCredentialsProviders.length}</strong> providers need CE Broker credentials</span>
           <span class="dash-action-arrow">→</span>
         </div>` : ''}
         ${loginErrors.length > 0 ? `
@@ -3130,8 +3288,8 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
         <div class="dash-preview-title">Next 30 Days</div>
         ${deadlines30.slice(0, 5).map(r => `
         <div class="dash-preview-item ${r.status === 'At Risk' ? 'di-risk' : r.status === 'Complete' ? 'di-complete' : 'di-progress'}">
-          <span class="dash-preview-name">${escHtml(r.providerName?.split(',')[0] || '?')}</span>
-          <span class="dash-preview-state">${escHtml(r.state || '?')}</span>
+          <span class="dash-preview-name">${escHtml(r.providerName?.split(',')[0] || 'N/A')}</span>
+          <span class="dash-preview-state">${escHtml(r.state || 'N/A')}</span>
           <span class="dash-preview-days">${r.days}d</span>
         </div>`).join('')}
         ${deadlines30.length > 5 ? `<div class="dash-preview-more">+${deadlines30.length - 5} more</div>` : ''}
@@ -3217,7 +3375,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       </select>
       <label class="creds-toggle">
         <input type="checkbox" id="noCredsFilter" onchange="filterCards()">
-        <span>No Creds Only</span>
+        <span>Missing Credentials</span>
       </label>
       <button class="advanced-filter-toggle" onclick="toggleAdvancedFilters()">
         <span>Advanced</span>
@@ -3342,13 +3500,28 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
 
   <!-- By Type View -->
   <div class="provider-view" id="provider-type">
+    <div class="type-view-legend">
+      <div class="type-legend-item type-clinical">
+        <span class="type-legend-dot clinical"></span>
+        <span><strong>Clinical Providers</strong> — NP, MD, DO (prescriptive authority, APRN requirements)</span>
+      </div>
+      <div class="type-legend-item type-support">
+        <span class="type-legend-dot support"></span>
+        <span><strong>Support Staff</strong> — RN (standard nursing CE requirements)</span>
+      </div>
+    </div>
     <div class="type-groups">
       ${Object.entries(providersByType).filter(([type, providers]) => providers.length > 0).map(([type, typeProviders]) => {
         const typeLabel = { NP: 'Nurse Practitioners', MD: 'Physicians (MD)', DO: 'Physicians (DO)', RN: 'Registered Nurses', Other: 'Other' }[type] || type;
-        return `<div class="type-group collapsible">
+        const typeRole = ['NP', 'MD', 'DO'].includes(type) ? 'Clinical Provider' : (type === 'RN' ? 'Support Staff' : 'Other');
+        const typeIcon = ['NP', 'MD', 'DO'].includes(type) ? '👨‍⚕️' : (type === 'RN' ? '💉' : '👤');
+        const groupClass = ['NP', 'MD', 'DO'].includes(type) ? 'type-group-clinical' : (type === 'RN' ? 'type-group-support' : '');
+        return `<div class="type-group collapsible ${groupClass}">
           <div class="type-group-header" onclick="toggleStateGroup(this)">
             <span class="collapse-icon">▼</span>
+            <span class="type-icon">${typeIcon}</span>
             <span class="type-name">${typeLabel}</span>
+            <span class="type-role-badge ${typeRole === 'Clinical Provider' ? 'role-clinical' : 'role-support'}">${typeRole}</span>
             <span class="type-provider-count">${typeProviders.length} provider${typeProviders.length !== 1 ? 's' : ''}</span>
           </div>
           <div class="cards-grid type-cards collapsible-content">
@@ -3876,50 +4049,6 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
   </main><!-- end main-content -->
 </div><!-- end app-layout -->
 
-<!-- ── Updates Section ──────────────────────────────────────────────────── -->
-<section class="updates-section">
-  <div class="updates-header">
-    <span class="updates-icon">📋</span>
-    <h2>Recent Updates</h2>
-  </div>
-
-  <div class="update-item new">
-    <div class="update-date">March 2, 2026</div>
-    <div class="update-title"><span class="update-badge new">New</span>Ashley Escoe, NP added to tracking</div>
-    <div class="update-desc">New provider added to the compliance dashboard. Credentials pending setup.</div>
-  </div>
-
-  <div class="update-item removed">
-    <div class="update-date">March 2, 2026</div>
-    <div class="update-title"><span class="update-badge removed">Removed</span>Jacquelyn Sexton, NP removed from tracking</div>
-    <div class="update-desc">Provider terminated as of 2/28/2026. Removed from active provider list.</div>
-  </div>
-
-  <div class="update-item new">
-    <div class="update-date">March 2, 2026</div>
-    <div class="update-title"><span class="update-badge new">New</span>Michele Foster credentials added</div>
-    <div class="update-desc">Added Nursing CE Central platform login for Michele Foster, NP.</div>
-  </div>
-
-  <div class="update-item new">
-    <div class="update-date">March 2, 2026</div>
-    <div class="update-title"><span class="update-badge new">New</span>Alexis Foster-Horton credentials added</div>
-    <div class="update-desc">Added NetCE platform login for Alexis Foster-Horton, NP.</div>
-  </div>
-
-  <div class="update-item new">
-    <div class="update-date">March 2, 2026</div>
-    <div class="update-title"><span class="update-badge new">New</span>Skye Sauls credentials added</div>
-    <div class="update-desc">Added CEUfast platform login for Skye Sauls, NP.</div>
-  </div>
-
-  <div class="update-item changed">
-    <div class="update-date">March 2, 2026</div>
-    <div class="update-title"><span class="update-badge changed">Update</span>Dashboard updates section added</div>
-    <div class="update-desc">New updates section added to track provider and system changes over time.</div>
-  </div>
-</section>
-
 <!-- ── Tab: Status ─────────────────────────────────────────────────────── -->
 <div class="tab-panel" id="tab-status">
   <div class="status-page">
@@ -4071,9 +4200,534 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
   </div>
 </div>
 
-<footer>CEU Tracker &nbsp;·&nbsp; Last scraped: ${escHtml(runDate)}</footer>
+<!-- ── Tab: How It Works ─────────────────────────────────────────────────── -->
+<div class="tab-panel" id="tab-help">
+  <div class="help-page">
+    <div class="help-header">
+      <h1>How CEU Tracker Works</h1>
+      <p class="help-subtitle">Understanding the compliance tracking system</p>
+    </div>
+
+    <!-- Status Definitions -->
+    <div class="help-section">
+      <h2 class="help-section-title">
+        <span class="help-icon">🚦</span>
+        Compliance Status Definitions
+      </h2>
+      <div class="help-cards">
+        <div class="help-card help-card-complete">
+          <div class="help-card-header">
+            <span class="help-status-dot complete"></span>
+            <strong>Complete</strong>
+          </div>
+          <p>Provider has completed all required CE hours for the renewal period. No action needed.</p>
+        </div>
+        <div class="help-card help-card-progress">
+          <div class="help-card-header">
+            <span class="help-status-dot progress"></span>
+            <strong>In Progress</strong>
+          </div>
+          <p>Provider has remaining CE hours to complete but has more than 60 days until their renewal deadline. Monitor progress.</p>
+        </div>
+        <div class="help-card help-card-risk">
+          <div class="help-card-header">
+            <span class="help-status-dot risk"></span>
+            <strong>At Risk</strong>
+          </div>
+          <p>Provider has remaining CE hours AND their renewal deadline is within 60 days. Immediate attention required.</p>
+        </div>
+        <div class="help-card help-card-unknown">
+          <div class="help-card-header">
+            <span class="help-status-dot unknown"></span>
+            <strong>Credentials Needed</strong>
+          </div>
+          <p>Provider's CE Broker login credentials are not in the system. Cannot track compliance until credentials are submitted.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Data Sources -->
+    <div class="help-section">
+      <h2 class="help-section-title">
+        <span class="help-icon">📊</span>
+        Data Sources
+      </h2>
+      <div class="help-content">
+        <div class="help-source">
+          <h3>CE Broker (Primary)</h3>
+          <p>The official compliance tracking system used by most state nursing boards. CE Broker provides:</p>
+          <ul>
+            <li>License renewal deadlines</li>
+            <li>Required CE hours by subject area</li>
+            <li>Completed CE hours and transcript</li>
+            <li>Overall compliance status</li>
+          </ul>
+          <p class="help-note"><strong>Note:</strong> Providers without CE Broker credentials show as "Credentials Needed" and cannot be fully tracked.</p>
+        </div>
+        <div class="help-source">
+          <h3>Platform Scrapers (Secondary)</h3>
+          <p>Additional CE platforms are scraped to capture courses that may not yet appear in CE Broker:</p>
+          <ul>
+            <li><strong>NetCE</strong> — Course completion history</li>
+            <li><strong>CEUfast</strong> — Course completion history</li>
+            <li><strong>AANP Certification</strong> — National certification CE credits</li>
+          </ul>
+          <p class="help-note">Platform data supplements CE Broker data and helps identify courses in progress.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Provider Types -->
+    <div class="help-section">
+      <h2 class="help-section-title">
+        <span class="help-icon">👥</span>
+        Provider Types & Requirements
+      </h2>
+      <div class="help-content">
+        <div class="help-type-grid">
+          <div class="help-type-card clinical">
+            <div class="help-type-header">
+              <span class="help-type-badge clinical">Clinical Provider</span>
+            </div>
+            <h3>NP, MD, DO</h3>
+            <p>Nurse Practitioners, Medical Doctors, and Doctors of Osteopathy have prescriptive authority and must meet APRN/Physician CE requirements including:</p>
+            <ul>
+              <li>Pharmacology hours</li>
+              <li>Controlled substance prescribing</li>
+              <li>State-specific mandated topics</li>
+              <li>Florida Autonomous APRN requirements (HB 607) where applicable</li>
+            </ul>
+          </div>
+          <div class="help-type-card support">
+            <div class="help-type-header">
+              <span class="help-type-badge support">Support Staff</span>
+            </div>
+            <h3>RN</h3>
+            <p>Registered Nurses have different CE requirements focused on nursing practice:</p>
+            <ul>
+              <li>Prevention of medical errors</li>
+              <li>Domestic violence awareness</li>
+              <li>Human trafficking recognition</li>
+              <li>State-specific mandated topics</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Email Reminders -->
+    <div class="help-section">
+      <h2 class="help-section-title">
+        <span class="help-icon">📧</span>
+        Email Reminders
+      </h2>
+      <div class="help-content">
+        <div class="help-email-info">
+          <h3>Daily Renewal Reminders</h3>
+          <p>Sent daily at <strong>8:00 AM EST</strong> to:</p>
+          <ul>
+            <li>brittany.toliver@fountain.net</li>
+            <li>faith@fountain.net</li>
+          </ul>
+          <p>Reminders are sent when providers have:</p>
+          <ul>
+            <li>Renewal deadline within 30 days</li>
+            <li>Status is NOT Complete (still have CE hours remaining)</li>
+          </ul>
+          <p class="help-note">Reminders continue daily until the provider completes their requirements or the deadline passes.</p>
+        </div>
+        <div class="help-email-info">
+          <h3>Weekly Digest</h3>
+          <p>Sent every <strong>Monday at 9:00 AM EST</strong> with a full compliance summary and PDF attachment.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Credential Status -->
+    <div class="help-section">
+      <h2 class="help-section-title">
+        <span class="help-icon">🔐</span>
+        Credential Status Indicators
+      </h2>
+      <div class="help-content">
+        <table class="help-table">
+          <thead>
+            <tr>
+              <th>Indicator</th>
+              <th>Meaning</th>
+              <th>Action Needed</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="help-badge help-badge-green">✓ Healthy</span></td>
+              <td>Login working, data retrieved successfully</td>
+              <td>None</td>
+            </tr>
+            <tr>
+              <td><span class="help-badge help-badge-yellow">◷ Degraded</span></td>
+              <td>Occasional login failures (1-2 consecutive)</td>
+              <td>Monitor - may be temporary</td>
+            </tr>
+            <tr>
+              <td><span class="help-badge help-badge-orange">⚠ Warning</span></td>
+              <td>Multiple consecutive failures (3-4)</td>
+              <td>Verify credentials are correct</td>
+            </tr>
+            <tr>
+              <td><span class="help-badge help-badge-red">✗ Critical</span></td>
+              <td>5+ consecutive failures</td>
+              <td>Password likely changed - update credentials</td>
+            </tr>
+            <tr>
+              <td><span class="help-badge help-badge-gray">○ Not Configured</span></td>
+              <td>No credentials in system</td>
+              <td>Obtain and add CE Broker login</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- How Status is Calculated -->
+    <div class="help-section">
+      <h2 class="help-section-title">
+        <span class="help-icon">🧮</span>
+        How Status is Calculated
+      </h2>
+      <div class="help-content">
+        <div class="help-formula">
+          <div class="help-formula-step">
+            <span class="help-step-num">1</span>
+            <div class="help-step-content">
+              <strong>Get Hours Data</strong>
+              <p>Pull required and completed hours from CE Broker for each license</p>
+            </div>
+          </div>
+          <div class="help-formula-step">
+            <span class="help-step-num">2</span>
+            <div class="help-step-content">
+              <strong>Calculate Remaining</strong>
+              <p>Remaining Hours = Required Hours - Completed Hours</p>
+            </div>
+          </div>
+          <div class="help-formula-step">
+            <span class="help-step-num">3</span>
+            <div class="help-step-content">
+              <strong>Check Deadline</strong>
+              <p>Calculate days until renewal deadline</p>
+            </div>
+          </div>
+          <div class="help-formula-step">
+            <span class="help-step-num">4</span>
+            <div class="help-step-content">
+              <strong>Determine Status</strong>
+              <ul>
+                <li>Remaining = 0 → <span class="help-status complete">Complete</span></li>
+                <li>Remaining > 0 AND Days > 60 → <span class="help-status progress">In Progress</span></li>
+                <li>Remaining > 0 AND Days ≤ 60 → <span class="help-status risk">At Risk</span></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Data Refresh Schedule -->
+    <div class="help-section">
+      <h2 class="help-section-title">
+        <span class="help-icon">🔄</span>
+        Data Refresh Schedule
+      </h2>
+      <div class="help-content">
+        <div class="help-schedule">
+          <div class="help-schedule-item">
+            <span class="help-schedule-time">10:30 PM EST</span>
+            <span class="help-schedule-desc">Daily scrape of all providers (CE Broker + platforms)</span>
+          </div>
+          <div class="help-schedule-item">
+            <span class="help-schedule-time">8:00 AM EST</span>
+            <span class="help-schedule-desc">Daily renewal reminder emails (if applicable)</span>
+          </div>
+          <div class="help-schedule-item">
+            <span class="help-schedule-time">9:00 AM EST (Mondays)</span>
+            <span class="help-schedule-desc">Weekly compliance digest email</span>
+          </div>
+          <div class="help-schedule-item">
+            <span class="help-schedule-time">After each scrape</span>
+            <span class="help-schedule-desc">Dashboard auto-published to Vercel</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FAQ -->
+    <div class="help-section">
+      <h2 class="help-section-title">
+        <span class="help-icon">❓</span>
+        Frequently Asked Questions
+      </h2>
+      <div class="help-content">
+        <div class="help-faq">
+          <div class="help-faq-item">
+            <h4>Why does a provider show "Credentials Needed"?</h4>
+            <p>The provider's CE Broker username and password are not in the system. Contact the provider to obtain their credentials and submit them to be added.</p>
+          </div>
+          <div class="help-faq-item">
+            <h4>Why is platform data different from CE Broker data?</h4>
+            <p>CE platforms (NetCE, CEUfast) track course completions, but there can be a delay before those credits appear in CE Broker. Platform data shows the most recent activity.</p>
+          </div>
+          <div class="help-faq-item">
+            <h4>How often is data updated?</h4>
+            <p>Data is scraped daily at 10:30 PM EST and the dashboard is automatically updated. The "Last scraped" timestamp in the footer shows when data was last refreshed.</p>
+          </div>
+          <div class="help-faq-item">
+            <h4>What does "Login Failed" mean?</h4>
+            <p>The stored credentials are no longer working. The provider may have changed their password. Contact them to get updated credentials.</p>
+          </div>
+          <div class="help-faq-item">
+            <h4>Why are some subject areas highlighted in red?</h4>
+            <p>Red highlighting indicates the provider hasn't completed the required hours for that specific subject area (e.g., Pharmacology, Human Trafficking). These are mandatory topics that must be completed.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Updates (Auto-generated) -->
+    <div class="help-section">
+      <h2 class="help-section-title">
+        <span class="help-icon">📋</span>
+        Recent Updates
+      </h2>
+      <div class="help-content">
+        ${generateUpdatesHtml()}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab: Weekly Summary ────────────────────────────────────────────────── -->
+<div class="tab-panel" id="tab-summary">
+  <div class="help-page">
+    <div class="help-header">
+      <h1>Weekly Summary</h1>
+      <p class="help-subtitle">CEU Compliance Dashboard Overview — Generated ${escHtml(runDate)}</p>
+    </div>
+
+    <!-- Service Overview -->
+    <div class="help-section">
+      <h2 class="help-section-title">
+        <span class="help-icon">📋</span>
+        What This Service Does
+      </h2>
+      <div class="help-content">
+        <p style="font-size: 0.95rem; line-height: 1.7; margin-bottom: 16px;">
+          The <strong>CEU Tracker</strong> is an automated compliance monitoring system that tracks Continuing Education (CE) requirements
+          for Fountain's clinical team. It scrapes data nightly from CE Broker (the official state compliance system) and supplementary
+          CE platforms to provide real-time visibility into each provider's license renewal status.
+        </p>
+        <div style="background: var(--bg-secondary); border-radius: 10px; padding: 16px; margin-top: 12px;">
+          <h4 style="margin-bottom: 10px; color: var(--text-primary);">Key Features:</h4>
+          <ul style="margin-left: 20px; line-height: 1.8;">
+            <li><strong>Automated Scraping:</strong> Data collected daily at 10:30 PM EST from CE Broker + platforms</li>
+            <li><strong>Multi-Platform Tracking:</strong> NetCE, CEUfast, AANP Cert, and more</li>
+            <li><strong>Email Alerts:</strong> Daily reminders for providers with deadlines within 30 days</li>
+            <li><strong>Weekly Digest:</strong> Full compliance report emailed every Monday at 9:00 AM EST</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Current Status Summary -->
+    <div class="help-section">
+      <h2 class="help-section-title">
+        <span class="help-icon">📊</span>
+        Current Compliance Status
+      </h2>
+      <div class="help-content">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 16px; margin-bottom: 20px;">
+          <div style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; padding: 20px; border-radius: 12px; text-align: center;">
+            <div style="font-size: 2.2rem; font-weight: 800;">${total}</div>
+            <div style="font-size: 0.75rem; text-transform: uppercase; opacity: 0.9;">Total Providers</div>
+          </div>
+          <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 20px; border-radius: 12px; text-align: center;">
+            <div style="font-size: 2.2rem; font-weight: 800;">${complete}</div>
+            <div style="font-size: 0.75rem; text-transform: uppercase; opacity: 0.9;">Complete</div>
+          </div>
+          <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 20px; border-radius: 12px; text-align: center;">
+            <div style="font-size: 2.2rem; font-weight: 800;">${inProg}</div>
+            <div style="font-size: 0.75rem; text-transform: uppercase; opacity: 0.9;">In Progress</div>
+          </div>
+          <div style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; padding: 20px; border-radius: 12px; text-align: center;">
+            <div style="font-size: 2.2rem; font-weight: 800;">${atRisk}</div>
+            <div style="font-size: 0.75rem; text-transform: uppercase; opacity: 0.9;">At Risk</div>
+          </div>
+        </div>
+        <p style="color: var(--text-secondary); font-size: 0.85rem;">
+          <strong>Complete:</strong> All CE hours met &nbsp;|&nbsp;
+          <strong>In Progress:</strong> Hours remaining, deadline >60 days &nbsp;|&nbsp;
+          <strong>At Risk:</strong> Hours remaining AND deadline within 60 days
+        </p>
+      </div>
+    </div>
+
+    <!-- Upcoming Deadlines -->
+    <div class="help-section">
+      <h2 class="help-section-title">
+        <span class="help-icon">⏰</span>
+        Upcoming Renewal Deadlines
+      </h2>
+      <div class="help-content">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+          <div style="background: var(--status-red-bg); border-left: 4px solid var(--status-red); padding: 16px; border-radius: 8px;">
+            <div style="font-size: 1.8rem; font-weight: 800; color: var(--status-red);">${deadlines30.length}</div>
+            <div style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">Within 30 Days</div>
+            ${deadlines30.length > 0 ? `<div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 8px;">${deadlines30.slice(0, 3).map(d => d.providerName.split(',')[0]).join(', ')}${deadlines30.length > 3 ? '...' : ''}</div>` : ''}
+          </div>
+          <div style="background: var(--status-amber-bg); border-left: 4px solid var(--status-amber); padding: 16px; border-radius: 8px;">
+            <div style="font-size: 1.8rem; font-weight: 800; color: var(--status-amber);">${deadlines60.length}</div>
+            <div style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">31-60 Days</div>
+            ${deadlines60.length > 0 ? `<div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 8px;">${deadlines60.slice(0, 3).map(d => d.providerName.split(',')[0]).join(', ')}${deadlines60.length > 3 ? '...' : ''}</div>` : ''}
+          </div>
+          <div style="background: var(--bg-secondary); border-left: 4px solid var(--status-green); padding: 16px; border-radius: 8px;">
+            <div style="font-size: 1.8rem; font-weight: 800; color: var(--status-green);">${deadlines90.length}</div>
+            <div style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">61-90 Days</div>
+            ${deadlines90.length > 0 ? `<div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 8px;">${deadlines90.slice(0, 3).map(d => d.providerName.split(',')[0]).join(', ')}${deadlines90.length > 3 ? '...' : ''}</div>` : ''}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Provider Breakdown -->
+    <div class="help-section">
+      <h2 class="help-section-title">
+        <span class="help-icon">👥</span>
+        Team Breakdown by Role
+      </h2>
+      <div class="help-content">
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+          <thead>
+            <tr style="background: var(--bg-secondary);">
+              <th style="text-align: left; padding: 12px; border-bottom: 2px solid var(--border-color);">Role</th>
+              <th style="text-align: center; padding: 12px; border-bottom: 2px solid var(--border-color);">Count</th>
+              <th style="text-align: left; padding: 12px; border-bottom: 2px solid var(--border-color);">Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom: 1px solid var(--border-color);">
+              <td style="padding: 12px; font-weight: 600;">NP</td>
+              <td style="padding: 12px; text-align: center;">${providersByType.NP.length}</td>
+              <td style="padding: 12px; color: var(--text-secondary);">Nurse Practitioners — Primary prescribers</td>
+            </tr>
+            <tr style="border-bottom: 1px solid var(--border-color);">
+              <td style="padding: 12px; font-weight: 600;">MD</td>
+              <td style="padding: 12px; text-align: center;">${providersByType.MD.length}</td>
+              <td style="padding: 12px; color: var(--text-secondary);">Medical Doctors</td>
+            </tr>
+            <tr style="border-bottom: 1px solid var(--border-color);">
+              <td style="padding: 12px; font-weight: 600;">DO</td>
+              <td style="padding: 12px; text-align: center;">${providersByType.DO.length}</td>
+              <td style="padding: 12px; color: var(--text-secondary);">Doctors of Osteopathy</td>
+            </tr>
+            <tr>
+              <td style="padding: 12px; font-weight: 600;">RN</td>
+              <td style="padding: 12px; text-align: center;">${providersByType.RN.length}</td>
+              <td style="padding: 12px; color: var(--text-secondary);">Registered Nurses — Support staff</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Platform Overview -->
+    <div class="help-section">
+      <h2 class="help-section-title">
+        <span class="help-icon">📚</span>
+        CE Platform Data Sources
+      </h2>
+      <div class="help-content">
+        <p style="margin-bottom: 16px; color: var(--text-secondary);">
+          In addition to CE Broker, the system tracks courses from these platforms:
+        </p>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
+          ${Object.entries(platformStats).map(([name, stats]) => `
+            <div style="background: var(--bg-secondary); padding: 14px; border-radius: 10px; border: 1px solid var(--border-color);">
+              <div style="font-weight: 700; margin-bottom: 6px;">${escHtml(name)}</div>
+              <div style="font-size: 0.8rem; color: var(--text-secondary);">${stats.providers.length} providers tracked</div>
+              <div style="font-size: 0.8rem; color: var(--text-secondary);">${Math.round(stats.totalHours)} total hours</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+
+    <!-- Credentials Status -->
+    <div class="help-section">
+      <h2 class="help-section-title">
+        <span class="help-icon">🔐</span>
+        Credential Status
+      </h2>
+      <div class="help-content">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+          <div style="background: #d1fae5; padding: 16px; border-radius: 10px;">
+            <div style="font-size: 1.6rem; font-weight: 800; color: #059669;">${runResults.filter(r => r.status === 'success').length}</div>
+            <div style="font-size: 0.8rem; font-weight: 600; color: #065f46;">CE Broker Logins Working</div>
+          </div>
+          <div style="background: #fef3c7; padding: 16px; border-radius: 10px;">
+            <div style="font-size: 1.6rem; font-weight: 800; color: #d97706;">${noCredentialsProviders.length}</div>
+            <div style="font-size: 0.8rem; font-weight: 600; color: #92400e;">Credentials Needed</div>
+          </div>
+          <div style="background: #fee2e2; padding: 16px; border-radius: 10px;">
+            <div style="font-size: 1.6rem; font-weight: 800; color: #dc2626;">${loginErrors.length}</div>
+            <div style="font-size: 0.8rem; font-weight: 600; color: #991b1b;">Login Failures</div>
+          </div>
+        </div>
+        ${noCredentialsProviders.length > 0 ? `
+        <div style="margin-top: 16px; padding: 12px; background: var(--bg-tertiary); border-radius: 8px; font-size: 0.85rem;">
+          <strong>Providers needing credentials:</strong> ${noCredentialsProviders.join(', ')}
+        </div>
+        ` : ''}
+      </div>
+    </div>
+
+    <!-- How to Use -->
+    <div class="help-section">
+      <h2 class="help-section-title">
+        <span class="help-icon">💡</span>
+        How to Use This Dashboard
+      </h2>
+      <div class="help-content">
+        <ol style="margin-left: 20px; line-height: 2;">
+          <li><strong>Team View:</strong> See all providers with their current compliance status</li>
+          <li><strong>Compliance:</strong> View providers grouped by status (At Risk, In Progress, Complete)</li>
+          <li><strong>Platforms:</strong> See CE course data from external platforms (NetCE, CEUfast, etc.)</li>
+          <li><strong>Reports:</strong> Export data, view history, and access run logs</li>
+          <li><strong>How It Works:</strong> Detailed documentation on status definitions and FAQs</li>
+        </ol>
+        <p style="margin-top: 16px; padding: 12px; background: linear-gradient(135deg, #dbeafe 0%, #e0e7ff 100%); border-radius: 8px; font-size: 0.85rem;">
+          <strong>Tip:</strong> Click on any provider card to see detailed license information, subject area breakdowns, and completed courses.
+        </p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  <div class="footer-updates">
+    <span class="footer-updates-title">Recent Updates:</span>
+    ${getAllUpdates(3).map(u => `<span class="footer-update-item"><span class="footer-update-date">${escHtml(u.date)}</span> ${escHtml(u.title)}</span>`).join('')}
+  </div>
+  <div class="footer-meta">CEU Tracker &nbsp;·&nbsp; Last scraped: ${escHtml(runDate)}</div>
+</footer>
 
 <script>
+  // ── Global Error Handler ──
+  window.onerror = function(msg, url, line, col, error) {
+    console.error('Dashboard Error:', msg, 'at line', line);
+    return false;
+  };
+
   // ── Theme Toggle ──
   function toggleTheme() {
     const html = document.documentElement;
@@ -4085,14 +4739,15 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
   }
   function updateThemeButton(theme) {
     const btn = document.getElementById('themeToggle');
+    if (!btn) return;
     const icon = btn.querySelector('.theme-icon');
     const label = btn.querySelector('.theme-toggle-label');
     if (theme === 'dark') {
-      icon.textContent = '☀️';
-      label.textContent = 'Light';
+      if (icon) icon.textContent = '☀️';
+      if (label) label.textContent = 'Light';
     } else {
-      icon.textContent = '🌙';
-      label.textContent = 'Dark';
+      if (icon) icon.textContent = '🌙';
+      if (label) label.textContent = 'Dark';
     }
   }
   // Restore theme on load
@@ -4101,6 +4756,44 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     if (saved === 'dark') {
       document.documentElement.dataset.theme = 'dark';
       updateThemeButton('dark');
+    }
+  })();
+
+  // ── Sidebar Collapse Toggle ──
+  function toggleSidebarCollapse() {
+    const sidebar = document.getElementById('sidebar');
+    const icon = document.getElementById('sidebarCollapseIcon');
+    if (!sidebar) return;
+    const isCollapsed = sidebar.classList.toggle('collapsed');
+    document.body.classList.toggle('sidebar-collapsed', isCollapsed);
+    if (icon) icon.textContent = isCollapsed ? '▶' : '◀';
+    localStorage.setItem('ceu-sidebar-collapsed', isCollapsed ? '1' : '0');
+  }
+
+  // ── Header Collapse Toggle ──
+  function toggleHeaderCollapse() {
+    const header = document.querySelector('header');
+    const icon = document.getElementById('headerCollapseIcon');
+    if (!header) return;
+    const isCollapsed = header.classList.toggle('collapsed');
+    document.body.classList.toggle('header-collapsed', isCollapsed);
+    if (icon) icon.textContent = isCollapsed ? '▼' : '▲';
+    localStorage.setItem('ceu-header-collapsed', isCollapsed ? '1' : '0');
+  }
+
+  // Restore collapse states on load
+  (function() {
+    if (localStorage.getItem('ceu-sidebar-collapsed') === '1') {
+      document.getElementById('sidebar')?.classList.add('collapsed');
+      document.body.classList.add('sidebar-collapsed');
+      const icon = document.getElementById('sidebarCollapseIcon');
+      if (icon) icon.textContent = '▶';
+    }
+    if (localStorage.getItem('ceu-header-collapsed') === '1') {
+      document.querySelector('header')?.classList.add('collapsed');
+      document.body.classList.add('header-collapsed');
+      const icon = document.getElementById('headerCollapseIcon');
+      if (icon) icon.textContent = '▼';
     }
   })();
 
@@ -4812,10 +5505,16 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
   let chartsInit = false;
   function initCharts() {
     if (chartsInit) return;
+    if (typeof Chart === 'undefined') {
+      console.warn('Chart.js not loaded - charts will not render');
+      return;
+    }
     chartsInit = true;
 
     // Bar chart: Completed vs Required per license
-    const ctx1 = document.getElementById('hoursChart').getContext('2d');
+    const hoursChartEl = document.getElementById('hoursChart');
+    if (!hoursChartEl) return;
+    const ctx1 = hoursChartEl.getContext('2d');
     new Chart(ctx1, {
       type: 'bar',
       data: {
@@ -4873,7 +5572,9 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
         p.hoursRemaining != null ? p.hoursRemaining <= 0 : (p.hoursCompleted || 0) >= (p.hoursRequired || 1)
       ).length
     );
-    const ctx2 = document.getElementById('historyChart').getContext('2d');
+    const historyChartEl = document.getElementById('historyChart');
+    if (!historyChartEl) return;
+    const ctx2 = historyChartEl.getContext('2d');
     new Chart(ctx2, {
       type: 'line',
       data: {
@@ -5093,6 +5794,34 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/**
+ * Generate HTML for the updates section from updates.json and manual-updates.json
+ */
+function generateUpdatesHtml() {
+  try {
+    const updates = getAllUpdates(15); // Get last 15 updates
+
+    if (updates.length === 0) {
+      return '<p style="color: var(--text-secondary); font-style: italic;">No updates yet.</p>';
+    }
+
+    return updates.map(update => {
+      const badgeType = update.type === 'new' ? 'New' :
+                        update.type === 'removed' ? 'Removed' :
+                        update.type === 'changed' ? 'Update' : 'Info';
+      return `
+        <div class="update-item ${escHtml(update.type)}">
+          <div class="update-date">${escHtml(update.date)}</div>
+          <div class="update-title"><span class="update-badge ${escHtml(update.type)}">${badgeType}</span>${escHtml(update.title)}</div>
+          <div class="update-desc">${escHtml(update.desc)}</div>
+        </div>`;
+    }).join('\n');
+  } catch (err) {
+    console.error('Error generating updates HTML:', err.message);
+    return '<p style="color: var(--text-secondary); font-style: italic;">Unable to load updates.</p>';
+  }
+}
 
 function escHtml(str) {
   return String(str ?? '')
@@ -5407,3 +6136,10 @@ function buildSpendingSection(providerName, spendingData, orders = []) {
 }
 
 module.exports = { buildDashboard };
+
+// Run when executed directly
+if (require.main === module) {
+  console.log('Building dashboard...');
+  const outputPath = buildDashboard();
+  console.log('Dashboard built:', outputPath);
+}
