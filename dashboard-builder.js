@@ -878,6 +878,27 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       }).join('');
     }
 
+    // Aggregate progress bar data (sum across all licenses)
+    const totalCompleted = info.licenses.reduce((sum, l) => sum + (l.hoursCompleted || 0), 0);
+    const totalRequired = info.licenses.reduce((sum, l) => sum + (l.hoursRequired || 0), 0);
+    const totalRemaining = info.licenses.reduce((sum, l) => sum + (l.hoursRemaining || 0), 0);
+    const aggregatePct = totalRequired > 0 ? Math.min(100, Math.round((totalCompleted / totalRequired) * 100)) : 0;
+    const aggBarCls = aggregatePct >= 100 ? 'agg-complete' : aggregatePct >= 75 ? 'agg-good' : aggregatePct >= 50 ? 'agg-partial' : 'agg-low';
+
+    // Build aggregate progress bar HTML (only show for non-platform-only providers with requirements)
+    const showAggProgress = !isPlatformOnly && totalRequired > 0;
+    const aggProgressHtml = showAggProgress ? `
+      <div class="card-agg-progress">
+        <div class="agg-bar-track">
+          <div class="agg-bar-fill ${aggBarCls}" style="width:${aggregatePct}%"></div>
+        </div>
+        <div class="agg-bar-stats">
+          <span class="agg-completed">${totalCompleted}h completed</span>
+          <span class="agg-pct">${aggregatePct}%</span>
+          ${totalRemaining > 0 ? `<span class="agg-remaining">${totalRemaining}h needed</span>` : '<span class="agg-done">Complete</span>'}
+        </div>
+      </div>` : '';
+
     // Platform tags — show platform, hours, and course count
     const platTags = (platformByProvider[name] || [])
       .filter(pr => pr.status === 'success')
@@ -931,6 +952,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
         </div>
         <div class="card-lic-count">${isPlatformOnly && hasPlatformData ? `${platformTotals.platformCount} platform${platformTotals.platformCount !== 1 ? 's' : ''}` : `${info.licenses.length} license${info.licenses.length !== 1 ? 's' : ''}`} <span class="card-arrow">›</span></div>
       </div>
+      ${aggProgressHtml}
       <div class="lic-blocks">${licBadges}</div>
       ${platTagsRow}
     </div>`;
@@ -1490,6 +1512,47 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     [data-theme="dark"] .bar-track { background: #475569; }
     [data-theme="dark"] .bar-label { color: #cbd5e1; }
 
+    /* Aggregate Progress Bar (Provider Card Summary) */
+    .card-agg-progress {
+      padding: 8px 12px;
+      background: var(--bg-secondary);
+      border-radius: 6px;
+      margin: 8px 0;
+    }
+    .agg-bar-track {
+      height: 10px;
+      background: var(--bg-tertiary);
+      border-radius: 99px;
+      overflow: hidden;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+    }
+    .agg-bar-fill {
+      height: 100%;
+      border-radius: 99px;
+      transition: width .4s ease-out;
+      background: linear-gradient(90deg, #64748b, #94a3b8);
+    }
+    .agg-bar-fill.agg-complete { background: linear-gradient(90deg, #059669, #10b981); }
+    .agg-bar-fill.agg-good { background: linear-gradient(90deg, #0d9488, #14b8a6); }
+    .agg-bar-fill.agg-partial { background: linear-gradient(90deg, #d97706, #f59e0b); }
+    .agg-bar-fill.agg-low { background: linear-gradient(90deg, #dc2626, #ef4444); }
+    .agg-bar-stats {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 6px;
+      font-size: 0.75rem;
+    }
+    .agg-completed { color: #64748b; font-weight: 500; }
+    .agg-pct { font-weight: 700; color: var(--text-primary); font-size: 0.85rem; }
+    .agg-remaining { color: #dc2626; font-weight: 600; }
+    .agg-done { color: #059669; font-weight: 600; }
+    [data-theme="dark"] .card-agg-progress { background: rgba(255,255,255,0.05); }
+    [data-theme="dark"] .agg-bar-track { background: #334155; }
+    [data-theme="dark"] .agg-completed { color: #94a3b8; }
+    [data-theme="dark"] .agg-remaining { color: #f87171; }
+    [data-theme="dark"] .agg-done { color: #34d399; }
+
     .lic-course-link {
       display: inline-block;
       margin-top: 8px;
@@ -2024,6 +2087,12 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .dash-stat-complete .dash-stat-num, .dash-stat-complete .dash-stat-label { }
     .dash-stat-unknown { }
     .dash-stat-unknown .dash-stat-num, .dash-stat-unknown .dash-stat-label { }
+    .dash-stat-cost { border-color: #059669; cursor: pointer; }
+    .dash-stat-cost:hover { box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2); }
+    .dash-stat-cost .dash-stat-icon { color: #059669; font-family: system-ui, sans-serif; font-weight: 800; }
+    .dash-stat-cost .dash-stat-num { color: #059669; }
+    [data-theme="dark"] .dash-stat-cost { border-color: #34d399; }
+    [data-theme="dark"] .dash-stat-cost .dash-stat-icon, [data-theme="dark"] .dash-stat-cost .dash-stat-num { color: #34d399; }
 
     .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding: 0 40px 24px; }
     @media (max-width: 900px) { .dashboard-grid { grid-template-columns: 1fr; } }
@@ -2867,6 +2936,39 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .spending-order-date { color: #64748b; }
     .spending-order-total { font-weight: 600; color: #166534; }
     .spending-more { font-size: 0.72rem; color: #94a3b8; font-style: italic; padding: 4px 8px; }
+    .spending-stat-total { border-color: #16a34a; background: #f0fdf4; }
+    .spending-stat-total .spending-stat-value { font-size: 1.3rem; }
+
+    /* Platform Breakdown Bars */
+    .spending-platform-breakdown { margin-top: 16px; padding-top: 12px; border-top: 1px solid #dcfce7; }
+    .spending-breakdown-title { font-size: 0.75rem; font-weight: 600; color: #166534; margin-bottom: 10px; }
+    .spending-platform-row { display: grid; grid-template-columns: 100px 1fr 70px 80px; gap: 8px; align-items: center; padding: 6px 0; font-size: 0.78rem; }
+    .spending-platform-name { font-weight: 500; color: #334155; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .spending-platform-bar-track { height: 8px; background: #e2e8f0; border-radius: 99px; overflow: hidden; }
+    .spending-platform-bar-fill { height: 100%; border-radius: 99px; transition: width 0.3s ease; }
+    .spending-platform-amount { font-weight: 600; color: #166534; text-align: right; }
+    .spending-platform-count { color: #64748b; font-size: 0.72rem; text-align: right; }
+
+    /* Efficiency Indicators */
+    .spending-stat.efficiency-great { border-color: #059669; background: linear-gradient(135deg, #f0fdf4, #dcfce7); }
+    .spending-stat.efficiency-great .spending-stat-value { color: #059669; }
+    .spending-stat.efficiency-good { border-color: #14b8a6; }
+    .spending-stat.efficiency-good .spending-stat-value { color: #14b8a6; }
+    .spending-stat.efficiency-fair { border-color: #f59e0b; }
+    .spending-stat.efficiency-fair .spending-stat-value { color: #d97706; }
+    .spending-stat.efficiency-poor { border-color: #ef4444; background: #fef2f2; }
+    .spending-stat.efficiency-poor .spending-stat-value { color: #dc2626; }
+    .spending-efficiency-label { display: block; font-size: 0.65rem; color: #64748b; margin-top: 2px; font-style: italic; }
+
+    /* Dark mode for spending section */
+    [data-theme="dark"] .spending-section { background: rgba(16, 185, 129, 0.1); border-color: #065f46; }
+    [data-theme="dark"] .spending-section-title { color: #34d399; }
+    [data-theme="dark"] .spending-stat { background: #1e293b; border-color: #065f46; }
+    [data-theme="dark"] .spending-stat-value { color: #34d399; }
+    [data-theme="dark"] .spending-platform-bar-track { background: #334155; }
+    [data-theme="dark"] .spending-platform-name { color: #e2e8f0; }
+    [data-theme="dark"] .spending-order-item { background: #1e293b; }
+    [data-theme="dark"] .spending-order-total { color: #34d399; }
 
     /* ─ Platform Coverage Tab ─ */
     .platform-view { display: none; padding: 20px 0; }
@@ -3327,6 +3429,13 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       <div class="dash-stat-content">
         <div class="dash-stat-num">${noCredentialsProviders.length}</div>
         <div class="dash-stat-label">Missing Creds</div>
+      </div>
+    </div>
+    <div class="dash-stat-card dash-stat-cost" onclick="showTab('reports'); showReportView('cost-summary');">
+      <div class="dash-stat-icon">$</div>
+      <div class="dash-stat-content">
+        <div class="dash-stat-num">$${spendingStats.totalOrgSpend.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</div>
+        <div class="dash-stat-label">12-Month Spend</div>
       </div>
     </div>
   </div>
@@ -6421,7 +6530,7 @@ function buildLookbackComplianceSection(states, providerType, courses) {
 function buildSpendingSection(providerName, spendingData, orders = []) {
   if (!spendingData) return '';
 
-  const { courseCosts, subscriptionCosts, totalSpend, costPerHour, hoursCompleted } = spendingData;
+  const { courseCosts, subscriptionCosts, totalSpend, costPerHour, hoursCompleted, courseDetails } = spendingData;
 
   // If no spending data, show a placeholder
   if (!totalSpend && orders.length === 0) {
@@ -6430,6 +6539,49 @@ function buildSpendingSection(providerName, spendingData, orders = []) {
       <div class="spending-no-data">No cost data available. Add costs via costs.json or wait for order scraping.</div>
     </div>`;
   }
+
+  // Calculate platform breakdown from courseDetails
+  const platformBreakdown = {};
+  if (courseDetails && courseDetails.length > 0) {
+    for (const course of courseDetails) {
+      const platform = course.platform || 'Unknown';
+      if (!platformBreakdown[platform]) platformBreakdown[platform] = { cost: 0, count: 0 };
+      platformBreakdown[platform].cost += course.cost || 0;
+      platformBreakdown[platform].count++;
+    }
+  }
+
+  // Build platform breakdown bars
+  const maxPlatformCost = Math.max(...Object.values(platformBreakdown).map(p => p.cost), 1);
+  const platformColors = {
+    'NetCE': '#3b82f6',
+    'CEUfast': '#8b5cf6',
+    'AANP Cert': '#10b981',
+    'ExclamationCE': '#f59e0b',
+    'Nursece4less': '#06b6d4',
+    'Nursing CE Central': '#ec4899',
+    'Unknown': '#64748b',
+    'Manual Entry': '#94a3b8',
+  };
+  const platformBarsHtml = Object.keys(platformBreakdown).length > 0
+    ? `<div class="spending-platform-breakdown">
+        <div class="spending-breakdown-title">Spend by Platform</div>
+        ${Object.entries(platformBreakdown)
+          .sort((a, b) => b[1].cost - a[1].cost)
+          .map(([platform, data]) => {
+            const pct = Math.round((data.cost / maxPlatformCost) * 100);
+            const color = platformColors[platform] || '#64748b';
+            return `<div class="spending-platform-row">
+              <span class="spending-platform-name">${escHtml(platform)}</span>
+              <div class="spending-platform-bar-track">
+                <div class="spending-platform-bar-fill" style="width:${pct}%; background:${color}"></div>
+              </div>
+              <span class="spending-platform-amount">$${data.cost.toFixed(2)}</span>
+              <span class="spending-platform-count">${data.count} course${data.count !== 1 ? 's' : ''}</span>
+            </div>`;
+          }).join('')}
+      </div>`
+    : '';
 
   // Build order list if available
   const orderListHtml = orders.length > 0
@@ -6444,10 +6596,22 @@ function buildSpendingSection(providerName, spendingData, orders = []) {
       </div>`
     : '';
 
+  // Cost efficiency indicator
+  const efficiencyClass = costPerHour === null ? ''
+    : costPerHour < 5 ? 'efficiency-great'
+    : costPerHour < 10 ? 'efficiency-good'
+    : costPerHour < 20 ? 'efficiency-fair'
+    : 'efficiency-poor';
+  const efficiencyLabel = costPerHour === null ? ''
+    : costPerHour < 5 ? 'Excellent value'
+    : costPerHour < 10 ? 'Good value'
+    : costPerHour < 20 ? 'Average'
+    : 'High cost';
+
   return `<div class="spending-section">
     <div class="spending-section-title">Cost Tracking (Rolling 12 Months)</div>
     <div class="spending-summary">
-      <div class="spending-stat">
+      <div class="spending-stat spending-stat-total">
         <span class="spending-stat-value">$${totalSpend.toFixed(2)}</span>
         <span class="spending-stat-label">Total Spend</span>
       </div>
@@ -6459,11 +6623,13 @@ function buildSpendingSection(providerName, spendingData, orders = []) {
         <span class="spending-stat-value">$${subscriptionCosts.toFixed(2)}</span>
         <span class="spending-stat-label">Subscriptions</span>
       </div>
-      <div class="spending-stat">
+      <div class="spending-stat ${efficiencyClass}">
         <span class="spending-stat-value">${costPerHour !== null ? '$' + costPerHour.toFixed(2) : '—'}</span>
         <span class="spending-stat-label">Cost/CEU Hour</span>
+        ${efficiencyLabel ? `<span class="spending-efficiency-label">${efficiencyLabel}</span>` : ''}
       </div>
     </div>
+    ${platformBarsHtml}
     ${orderListHtml}
   </div>`;
 }

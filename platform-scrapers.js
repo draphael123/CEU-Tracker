@@ -5,6 +5,61 @@
 const { logger, sleep, screenshotOnError } = require('./utils');
 const { recordSuccess, recordFailure } = require('./credential-health');
 
+// ─── Retry Configuration ──────────────────────────────────────────────────────
+
+const MAX_RETRIES = 3;
+const BASE_DELAY_MS = 2000;  // 2 seconds
+
+/**
+ * Calculate exponential backoff delay
+ * @param {number} attempt - Current attempt number (1-based)
+ * @returns {number} Delay in milliseconds
+ */
+function getBackoffDelay(attempt) {
+  // Exponential backoff: 2s, 4s, 8s with jitter
+  const baseDelay = BASE_DELAY_MS * Math.pow(2, attempt - 1);
+  const jitter = Math.random() * 1000;  // 0-1s jitter
+  return baseDelay + jitter;
+}
+
+/**
+ * Execute a scraper function with retry logic and exponential backoff
+ * @param {Function} scraperFn - The scraper function to execute
+ * @param {object} browser - Playwright browser instance
+ * @param {object} credentials - Login credentials
+ * @param {string} providerName - Provider name for logging
+ * @param {string} platform - Platform name for logging
+ * @returns {Promise<object>} Scraper result
+ */
+async function withRetry(scraperFn, browser, credentials, providerName, platform) {
+  let lastError;
+
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const result = await scraperFn(browser, credentials, providerName);
+      if (result.status === 'success') {
+        if (attempt > 1) {
+          logger.success(`[${platform}] ${providerName}: Succeeded on attempt ${attempt}/${MAX_RETRIES}`);
+        }
+        return result;
+      }
+      // If scraper returned failed status, treat as error for retry
+      lastError = new Error(result.error || 'Scraper returned failed status');
+    } catch (err) {
+      lastError = err;
+    }
+
+    if (attempt < MAX_RETRIES) {
+      const delayMs = getBackoffDelay(attempt);
+      logger.warn(`[${platform}] ${providerName}: Attempt ${attempt}/${MAX_RETRIES} failed, retrying in ${(delayMs/1000).toFixed(1)}s...`);
+      await sleep(delayMs);
+    }
+  }
+
+  logger.error(`[${platform}] ${providerName}: All ${MAX_RETRIES} attempts failed`);
+  return emptyResult(platform, providerName, lastError?.message || 'All retry attempts failed');
+}
+
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 
 function emptyResult(platform, providerName, error) {
@@ -922,38 +977,29 @@ async function scrapeNursingCECentral(browser, credentials, providerName) {
 async function runPlatformScrapers(browser, providers) {
   const results = [];
 
+  // Map platform names to their scraper functions
+  const scraperMap = {
+    'NetCE':             scrapeNetCE,
+    'CEUfast':           scrapeCEUfast,
+    'AANP Cert':         scrapeAANPCert,
+    'ExclamationCE':     scrapeExclamationCE,
+    'Nursece4less':      scrapeNurseCE4Less,
+    'Nursing CE Central': scrapeNursingCECentral,
+  };
+
   for (const provider of providers) {
     if (!provider.platforms || provider.platforms.length === 0) continue;
 
     for (const creds of provider.platforms) {
-      let result;
-      try {
-        switch (creds.platform) {
-          case 'NetCE':
-            result = await scrapeNetCE(browser, creds, provider.name);
-            break;
-          case 'CEUfast':
-            result = await scrapeCEUfast(browser, creds, provider.name);
-            break;
-          case 'AANP Cert':
-            result = await scrapeAANPCert(browser, creds, provider.name);
-            break;
-          case 'ExclamationCE':
-            result = await scrapeExclamationCE(browser, creds, provider.name);
-            break;
-          case 'Nursece4less':
-            result = await scrapeNurseCE4Less(browser, creds, provider.name);
-            break;
-          case 'Nursing CE Central':
-            result = await scrapeNursingCECentral(browser, creds, provider.name);
-            break;
-          default:
-            logger.warn(`[Platform] Unknown platform "${creds.platform}" for ${provider.name}`);
-            continue;
-        }
-      } catch (err) {
-        result = emptyResult(creds.platform, provider.name, err.message);
+      const scraperFn = scraperMap[creds.platform];
+
+      if (!scraperFn) {
+        logger.warn(`[Platform] Unknown platform "${creds.platform}" for ${provider.name}`);
+        continue;
       }
+
+      // Use withRetry for automatic retry with exponential backoff
+      const result = await withRetry(scraperFn, browser, creds, provider.name, creds.platform);
 
       // Track credential health
       if (result.status === 'success') {
