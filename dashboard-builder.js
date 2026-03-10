@@ -273,6 +273,13 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
   const deadlines60 = upcomingDeadlines.filter(r => r.days > 30 && r.days <= 60);
   const deadlines90 = upcomingDeadlines.filter(r => r.days > 60 && r.days <= 90);
 
+  // ── Compliance metrics for quick filters ─────────────────────────────────
+  const totalProviders = Object.keys(providerMap || {}).length || flat.length;
+  const completeCount = complete;
+  const atRiskCount = atRisk;
+  const urgentCount = deadlines30.length;
+  const complianceScore = totalProviders > 0 ? Math.round((complete / Math.max(total, 1)) * 100) : 0;
+
   // ── Login errors from run results ─────────────────────────────────────
   const loginErrors = (runResults || []).filter(r => r.status === 'login_error' || r.status === 'failed');
 
@@ -1631,6 +1638,99 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     /* ─ Run log table ─ */
     .run-table-wrap { padding: 0 40px 40px; overflow-x: auto; }
     .run-table-wrap table { font-size: 0.84rem; }
+
+    /* ─ Quick Filters ─ */
+    .quick-filters { display: flex; gap: 8px; padding: 12px 40px; flex-wrap: wrap; align-items: center; }
+    .quick-filter-label { font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-right: 4px; }
+    .quick-filter-btn { padding: 6px 14px; border: 1px solid var(--border-color); border-radius: 20px; background: var(--bg-primary); color: var(--text-secondary); font-size: 0.8rem; font-weight: 500; cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px; }
+    .quick-filter-btn:hover { border-color: var(--accent-primary); color: var(--accent-primary); }
+    .quick-filter-btn.active { background: var(--accent-primary); color: #fff; border-color: var(--accent-primary); }
+    .quick-filter-btn .qf-count { background: rgba(0,0,0,0.1); padding: 2px 6px; border-radius: 10px; font-size: 0.7rem; }
+    .quick-filter-btn.active .qf-count { background: rgba(255,255,255,0.2); }
+    .quick-filter-btn.qf-urgent { border-color: var(--status-red); color: var(--status-red); }
+    .quick-filter-btn.qf-urgent:hover, .quick-filter-btn.qf-urgent.active { background: var(--status-red); color: #fff; }
+
+    /* ─ Keyboard Shortcuts ─ */
+    .keyboard-help { position: fixed; bottom: 20px; right: 20px; z-index: 90; }
+    .keyboard-help-btn { width: 36px; height: 36px; border-radius: 8px; background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-secondary); cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-sm); }
+    .keyboard-help-btn:hover { background: var(--bg-secondary); }
+    .keyboard-modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-primary); border-radius: 12px; padding: 24px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); z-index: 1001; min-width: 320px; }
+    .keyboard-modal.open { display: block; }
+    .keyboard-modal h3 { font-size: 1rem; font-weight: 700; margin-bottom: 16px; color: var(--text-primary); }
+    .keyboard-shortcut { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-color); }
+    .keyboard-shortcut:last-child { border-bottom: none; }
+    .shortcut-key { display: inline-flex; gap: 4px; }
+    .shortcut-key kbd { background: var(--bg-tertiary); padding: 4px 8px; border-radius: 4px; font-family: monospace; font-size: 0.8rem; border: 1px solid var(--border-color); }
+    .shortcut-desc { color: var(--text-secondary); font-size: 0.85rem; }
+    .keyboard-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; }
+    .keyboard-overlay.open { display: block; }
+
+    /* ─ Provider Notes ─ */
+    .provider-note { margin-top: 12px; padding: 10px 12px; background: #fefce8; border: 1px solid #fef08a; border-radius: 8px; font-size: 0.82rem; color: #854d0e; }
+    .provider-note-icon { margin-right: 6px; }
+    [data-theme="dark"] .provider-note { background: #422006; border-color: #854d0e; color: #fef08a; }
+    .note-editor { margin-top: 12px; }
+    .note-editor textarea { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 0.85rem; resize: vertical; min-height: 60px; background: var(--bg-primary); color: var(--text-primary); }
+    .note-editor-actions { display: flex; gap: 8px; margin-top: 8px; }
+    .note-btn { padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; border: none; }
+    .note-btn-save { background: var(--accent-primary); color: #fff; }
+    .note-btn-cancel { background: var(--bg-tertiary); color: var(--text-secondary); }
+
+    /* ─ Compliance Score ─ */
+    .compliance-score-card { background: var(--bg-primary); border-radius: 12px; padding: 20px; border: 1px solid var(--border-color); margin-bottom: 20px; }
+    .compliance-score-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .compliance-score-title { font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; }
+    .compliance-score-value { font-size: 2.5rem; font-weight: 700; }
+    .compliance-score-value.score-good { color: var(--status-green); }
+    .compliance-score-value.score-warning { color: var(--status-amber); }
+    .compliance-score-value.score-bad { color: var(--status-red); }
+    .compliance-breakdown { display: flex; gap: 16px; flex-wrap: wrap; }
+    .compliance-breakdown-item { flex: 1; min-width: 100px; text-align: center; padding: 12px; background: var(--bg-secondary); border-radius: 8px; }
+    .compliance-breakdown-num { font-size: 1.4rem; font-weight: 700; }
+    .compliance-breakdown-label { font-size: 0.72rem; color: var(--text-secondary); text-transform: uppercase; }
+
+    /* ─ Trend Chart ─ */
+    .trend-chart-container { background: var(--bg-primary); border-radius: 12px; padding: 20px; border: 1px solid var(--border-color); margin-bottom: 20px; }
+    .trend-chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .trend-chart-title { font-size: 0.9rem; font-weight: 600; color: var(--text-primary); }
+    .trend-chart-controls { display: flex; gap: 8px; }
+    .trend-chart-controls select { padding: 4px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.8rem; background: var(--bg-primary); color: var(--text-primary); }
+    .trend-chart { height: 200px; display: flex; align-items: flex-end; gap: 4px; padding-top: 20px; }
+    .trend-bar { flex: 1; background: var(--accent-primary); border-radius: 4px 4px 0 0; min-height: 4px; position: relative; transition: height 0.3s; }
+    .trend-bar:hover { opacity: 0.8; }
+    .trend-bar-label { position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%); font-size: 0.65rem; color: var(--text-secondary); white-space: nowrap; }
+    .trend-bar-value { position: absolute; top: -18px; left: 50%; transform: translateX(-50%); font-size: 0.7rem; font-weight: 600; color: var(--text-primary); }
+
+    /* ─ Calendar Export ─ */
+    .calendar-export-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary); font-size: 0.82rem; cursor: pointer; transition: all 0.15s; }
+    .calendar-export-btn:hover { border-color: var(--accent-primary); color: var(--accent-primary); }
+    .calendar-export-btn svg { width: 16px; height: 16px; }
+
+    /* ─ Print Compliance Report ─ */
+    .print-report-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary); font-size: 0.82rem; cursor: pointer; }
+    .print-report-btn:hover { border-color: var(--accent-primary); }
+    @media print {
+      .quick-filters, .keyboard-help, .sidebar, header, .providers-filter-bar, .bulk-controls, footer { display: none !important; }
+      .main-content { margin-left: 0 !important; }
+      .provider-card { break-inside: avoid; page-break-inside: avoid; border: 1px solid #ddd !important; box-shadow: none !important; }
+      .cards-grid { gap: 12px; }
+      body { background: #fff !important; color: #000 !important; font-size: 11pt; }
+      .print-header { display: block !important; text-align: center; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #000; }
+      .print-header h1 { font-size: 18pt; margin: 0; }
+      .print-header p { font-size: 10pt; color: #666; margin: 4px 0 0; }
+    }
+    .print-header { display: none; }
+
+    /* ─ Course Recommendations ─ */
+    .course-recommendations { margin-top: 16px; padding: 12px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; }
+    .course-rec-title { font-size: 0.8rem; font-weight: 600; color: #1e40af; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+    .course-rec-list { display: flex; flex-direction: column; gap: 6px; }
+    .course-rec-item { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: #1e3a8a; }
+    .course-rec-item a { color: #1d4ed8; text-decoration: none; }
+    .course-rec-item a:hover { text-decoration: underline; }
+    [data-theme="dark"] .course-recommendations { background: #1e3a5f; border-color: #1d4ed8; }
+    [data-theme="dark"] .course-rec-title { color: #93c5fd; }
+    [data-theme="dark"] .course-rec-item { color: #bfdbfe; }
 
     /* ─ Footer ─ */
     footer { text-align: center; padding: 16px; font-size: .76rem; color: var(--text-secondary); border-top: 1px solid var(--border-color); margin-top: 8px; background: var(--bg-primary); }
@@ -3297,6 +3397,41 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     </div>
   </div>
 
+  <!-- Compliance Score & Trend Row -->
+  <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 24px; padding: 0 40px 24px;">
+    <!-- Compliance Score -->
+    <div class="compliance-score-card">
+      <div class="compliance-score-header">
+        <span class="compliance-score-title">Team Compliance</span>
+      </div>
+      <div class="compliance-score-value ${complianceScore >= 80 ? 'score-good' : complianceScore >= 60 ? 'score-warning' : 'score-bad'}">${complianceScore}%</div>
+      <div class="compliance-breakdown">
+        <div class="compliance-breakdown-item">
+          <div class="compliance-breakdown-num" style="color: var(--status-green);">${complete}</div>
+          <div class="compliance-breakdown-label">Complete</div>
+        </div>
+        <div class="compliance-breakdown-item">
+          <div class="compliance-breakdown-num" style="color: var(--status-amber);">${inProg}</div>
+          <div class="compliance-breakdown-label">In Progress</div>
+        </div>
+        <div class="compliance-breakdown-item">
+          <div class="compliance-breakdown-num" style="color: var(--status-red);">${atRisk}</div>
+          <div class="compliance-breakdown-label">At Risk</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Monthly Trend Chart -->
+    <div class="trend-chart-container">
+      <div class="trend-chart-header">
+        <span class="trend-chart-title">CEU Completion Trend (Last 6 Months)</span>
+      </div>
+      <div class="trend-chart" id="trendChart">
+        ${generateTrendChart(courseHistory)}
+      </div>
+    </div>
+  </div>
+
   <!-- Last Run Summary Bar -->
   <div class="dashboard-run-summary">
     <div class="run-summary-header">
@@ -3343,8 +3478,44 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     </div>
   </div>
 
+  <!-- Print Header (shown only when printing) -->
+  <div class="print-header">
+    <h1>CEU Compliance Report</h1>
+    <p>Generated on ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+  </div>
+
   <!-- All Providers View -->
   <div class="provider-view active" id="provider-all">
+    <!-- Quick Filters -->
+    <div class="quick-filters">
+      <span class="quick-filter-label">Quick:</span>
+      <button class="quick-filter-btn qf-urgent" onclick="applyQuickFilter('urgent')" id="qf-urgent">
+        Needs Attention <span class="qf-count">${atRiskCount + urgentCount}</span>
+      </button>
+      <button class="quick-filter-btn" onclick="applyQuickFilter('due30')" id="qf-due30">
+        Due in 30 Days <span class="qf-count">${urgentCount}</span>
+      </button>
+      <button class="quick-filter-btn" onclick="applyQuickFilter('due90')" id="qf-due90">
+        Due in 90 Days
+      </button>
+      <button class="quick-filter-btn" onclick="applyQuickFilter('complete')" id="qf-complete">
+        Complete <span class="qf-count">${completeCount}</span>
+      </button>
+      <button class="quick-filter-btn" onclick="applyQuickFilter('all')" id="qf-all">
+        Show All
+      </button>
+      <div style="margin-left: auto; display: flex; gap: 8px;">
+        <button class="calendar-export-btn" onclick="exportToCalendar()" title="Export deadlines to calendar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Export Calendar
+        </button>
+        <button class="print-report-btn" onclick="printComplianceReport()" title="Print compliance report">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          Print Report
+        </button>
+      </div>
+    </div>
+
     <!-- Filter Bar -->
     <div class="providers-filter-bar">
       <input class="search-box" type="text" id="cardSearch" placeholder="Search providers..." oninput="filterCards()" />
@@ -5780,7 +5951,121 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     tick();
     setInterval(tick, 60000);
   })();
+
+  // ── Quick Filters ──────────────────────────────────────────────────────────
+  let activeQuickFilter = 'all';
+  function applyQuickFilter(filter) {
+    activeQuickFilter = filter;
+    document.querySelectorAll('.quick-filter-btn').forEach(btn => btn.classList.remove('active'));
+    const activeBtn = document.getElementById('qf-' + filter);
+    if (activeBtn) activeBtn.classList.add('active');
+
+    const deadlineMin = document.getElementById('deadlineMin');
+    const deadlineMax = document.getElementById('deadlineMax');
+    const statusFilter = document.getElementById('statusFilter');
+    if (deadlineMin) deadlineMin.value = '';
+    if (deadlineMax) deadlineMax.value = '';
+    if (statusFilter) statusFilter.value = 'all';
+    cardFilter = 'all';
+
+    switch(filter) {
+      case 'urgent':
+        if (statusFilter) statusFilter.value = 'At Risk';
+        cardFilter = 'At Risk';
+        break;
+      case 'due30':
+        if (deadlineMax) deadlineMax.value = '30';
+        break;
+      case 'due90':
+        if (deadlineMax) deadlineMax.value = '90';
+        break;
+      case 'complete':
+        if (statusFilter) statusFilter.value = 'Complete';
+        cardFilter = 'Complete';
+        break;
+    }
+    filterCards();
+  }
+
+  // ── Calendar Export (ICS) ──────────────────────────────────────────────────
+  function exportToCalendar() {
+    const events = [];
+    document.querySelectorAll('.provider-card').forEach(card => {
+      const name = card.dataset.provider || 'Unknown';
+      const deadline = parseInt(card.dataset.deadline) || 0;
+      if (deadline > 0 && deadline < 365) {
+        const deadlineDate = new Date();
+        deadlineDate.setDate(deadlineDate.getDate() + deadline);
+        const y = deadlineDate.getFullYear();
+        const m = String(deadlineDate.getMonth() + 1).padStart(2, '0');
+        const d = String(deadlineDate.getDate()).padStart(2, '0');
+        const dateStr = y + m + d;
+        const uid = 'ceu-' + name.replace(/\\s+/g, '-').toLowerCase() + '-' + Date.now() + Math.random().toString(36).substr(2,9);
+        events.push('BEGIN:VEVENT\\r\\nUID:' + uid + '\\r\\nDTSTART;VALUE=DATE:' + dateStr + '\\r\\nSUMMARY:CEU Deadline: ' + name + '\\r\\nDESCRIPTION:' + deadline + ' days until renewal\\r\\nEND:VEVENT');
+      }
+    });
+    if (events.length === 0) { alert('No upcoming deadlines to export.'); return; }
+    const ics = 'BEGIN:VCALENDAR\\r\\nVERSION:2.0\\r\\nPRODID:-//CEU Tracker//EN\\r\\n' + events.join('\\r\\n') + '\\r\\nEND:VCALENDAR';
+    const blob = new Blob([ics.replace(/\\\\r\\\\n/g, '\\r\\n')], { type: 'text/calendar' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'ceu-deadlines.ics';
+    link.click();
+  }
+
+  // ── Print Compliance Report ────────────────────────────────────────────────
+  function printComplianceReport() { window.print(); }
+
+  // ── Provider Notes (localStorage) ──────────────────────────────────────────
+  const providerNotes = JSON.parse(localStorage.getItem('ceuTrackerNotes') || '{}');
+  function saveProviderNote(name, note) {
+    if (note.trim()) providerNotes[name] = note.trim();
+    else delete providerNotes[name];
+    localStorage.setItem('ceuTrackerNotes', JSON.stringify(providerNotes));
+  }
+  function getProviderNote(name) { return providerNotes[name] || ''; }
+
+  // ── Keyboard Shortcuts ─────────────────────────────────────────────────────
+  let keyboardModalOpen = false;
+  let currentCardIndex = -1;
+  function toggleKeyboardModal() {
+    keyboardModalOpen = !keyboardModalOpen;
+    document.getElementById('keyboardModal')?.classList.toggle('open', keyboardModalOpen);
+    document.getElementById('keyboardOverlay')?.classList.toggle('open', keyboardModalOpen);
+  }
+  document.addEventListener('keydown', (e) => {
+    if (['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)) {
+      if (e.key === 'Escape') e.target.blur();
+      return;
+    }
+    const cards = Array.from(document.querySelectorAll('.provider-card')).filter(c => c.style.display !== 'none');
+    switch(e.key) {
+      case '/': e.preventDefault(); document.getElementById('cardSearch')?.focus(); break;
+      case '?': e.preventDefault(); toggleKeyboardModal(); break;
+      case 'j': e.preventDefault(); currentCardIndex = Math.min(currentCardIndex + 1, cards.length - 1); cards[currentCardIndex]?.scrollIntoView({ behavior: 'smooth', block: 'center' }); break;
+      case 'k': e.preventDefault(); currentCardIndex = Math.max(currentCardIndex - 1, 0); cards[currentCardIndex]?.scrollIntoView({ behavior: 'smooth', block: 'center' }); break;
+      case 'Enter': if (currentCardIndex >= 0 && cards[currentCardIndex]) openProvider(cards[currentCardIndex].dataset.provider); break;
+      case 'Escape': keyboardModalOpen ? toggleKeyboardModal() : closeProvider(); break;
+      case 'r': if (!e.ctrlKey && !e.metaKey) { e.preventDefault(); resetProviderFilters(); } break;
+      case '1': e.preventDefault(); applyQuickFilter('urgent'); break;
+      case '2': e.preventDefault(); applyQuickFilter('due30'); break;
+      case '3': e.preventDefault(); applyQuickFilter('complete'); break;
+      case '0': e.preventDefault(); applyQuickFilter('all'); break;
+    }
+  });
 </script>
+<div class="keyboard-overlay" id="keyboardOverlay" onclick="toggleKeyboardModal()"></div>
+<div class="keyboard-modal" id="keyboardModal">
+  <h3>Keyboard Shortcuts</h3>
+  <div class="keyboard-shortcut"><span class="shortcut-key"><kbd>/</kbd></span><span class="shortcut-desc">Focus search</span></div>
+  <div class="keyboard-shortcut"><span class="shortcut-key"><kbd>j</kbd> <kbd>k</kbd></span><span class="shortcut-desc">Navigate cards</span></div>
+  <div class="keyboard-shortcut"><span class="shortcut-key"><kbd>Enter</kbd></span><span class="shortcut-desc">Open provider</span></div>
+  <div class="keyboard-shortcut"><span class="shortcut-key"><kbd>Esc</kbd></span><span class="shortcut-desc">Close modal</span></div>
+  <div class="keyboard-shortcut"><span class="shortcut-key"><kbd>r</kbd></span><span class="shortcut-desc">Reset filters</span></div>
+  <div class="keyboard-shortcut"><span class="shortcut-key"><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>0</kbd></span><span class="shortcut-desc">Quick filters</span></div>
+  <div class="keyboard-shortcut"><span class="shortcut-key"><kbd>?</kbd></span><span class="shortcut-desc">This help</span></div>
+</div>
+<div class="keyboard-help"><button class="keyboard-help-btn" onclick="toggleKeyboardModal()" title="Keyboard shortcuts (?)">?</button></div>
 </body>
 </html>`;
 
@@ -5821,6 +6106,54 @@ function generateUpdatesHtml() {
     console.error('Error generating updates HTML:', err.message);
     return '<p style="color: var(--text-secondary); font-style: italic;">Unable to load updates.</p>';
   }
+}
+
+/**
+ * Generate a simple bar chart showing course completions by month
+ */
+function generateTrendChart(courseHistory) {
+  const months = [];
+  const now = new Date();
+
+  // Generate last 6 months
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push({
+      key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
+      label: d.toLocaleDateString('en-US', { month: 'short' }),
+      count: 0,
+      hours: 0
+    });
+  }
+
+  // Count courses per month from history
+  if (courseHistory && typeof courseHistory === 'object') {
+    for (const provider of Object.values(courseHistory)) {
+      const courses = provider.courses || [];
+      for (const course of courses) {
+        if (!course.date) continue;
+        const courseDate = new Date(course.date);
+        const courseKey = `${courseDate.getFullYear()}-${String(courseDate.getMonth() + 1).padStart(2, '0')}`;
+        const month = months.find(m => m.key === courseKey);
+        if (month) {
+          month.count++;
+          month.hours += parseFloat(course.hours) || 0;
+        }
+      }
+    }
+  }
+
+  // Find max for scaling
+  const maxHours = Math.max(...months.map(m => m.hours), 1);
+
+  // Generate HTML bars
+  return months.map(m => {
+    const height = Math.max(4, (m.hours / maxHours) * 160);
+    return `<div class="trend-bar" style="height: ${height}px;" title="${m.label}: ${m.hours.toFixed(1)} hours (${m.count} courses)">
+      <span class="trend-bar-value">${m.hours > 0 ? m.hours.toFixed(0) : ''}</span>
+      <span class="trend-bar-label">${m.label}</span>
+    </div>`;
+  }).join('');
 }
 
 function escHtml(str) {
