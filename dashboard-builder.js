@@ -712,17 +712,40 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     // Check if login failed
     const failedLogin = loginErrors.find(r => r.name === providerName);
     if (failedLogin) {
-      return { reason: 'Login Failed', detail: failedLogin.error || 'CE Broker login error', icon: '⚠', cls: 'unknown-error' };
+      return { reason: 'Login Failed', detail: failedLogin.error || 'CE Broker login error', icon: '⚠', cls: 'unknown-error', platforms: [] };
     }
+
+    // Get platforms this provider has access to
+    const providerPlatforms = (platformByProvider[providerName] || [])
+      .filter(p => p.status === 'success')
+      .map(p => p.platform);
+
     // Check if no CE Broker credentials
     if (noCEBrokerList.includes(providerName)) {
-      const hasPlatform = withPlatforms.has(providerName);
-      if (hasPlatform) {
-        return { reason: 'Credentials Needed', detail: 'CE Broker login required - Platform data available', icon: '○', cls: 'unknown-partial' };
+      if (providerPlatforms.length > 0) {
+        return {
+          reason: 'Platform Access',
+          detail: providerPlatforms.join(', '),
+          icon: '✓',
+          cls: 'unknown-partial',
+          platforms: providerPlatforms
+        };
       }
-      return { reason: 'Credentials Needed', detail: 'Submit CE Broker login for tracking', icon: '○', cls: 'unknown-none' };
+      // Check if they have platform credentials configured but not yet scraped
+      const provider = providers.find(p => p.name === providerName);
+      const configuredPlatforms = (provider?.platforms || []).map(p => p.platform);
+      if (configuredPlatforms.length > 0) {
+        return {
+          reason: 'Platform Configured',
+          detail: configuredPlatforms.join(', ') + ' (pending sync)',
+          icon: '◷',
+          cls: 'unknown-pending',
+          platforms: configuredPlatforms
+        };
+      }
+      return { reason: 'No Access Configured', detail: 'Submit credentials for tracking', icon: '○', cls: 'unknown-none', platforms: [] };
     }
-    return { reason: 'Credentials Needed', detail: 'Contact provider for login info', icon: '—', cls: 'unknown-default' };
+    return { reason: 'Awaiting Data', detail: 'Will sync on next scrape', icon: '◷', cls: 'unknown-default', platforms: [] };
   };
 
   // ── Helper to build a single provider card ───────────────────────────────
@@ -916,11 +939,17 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       }).join('');
     const platTagsRow = platTags ? `<div class="card-plat-tags">${platTags}</div>` : '';
 
-    // Unknown reason banner
+    // Unknown reason banner - show platform access badges if available
+    const platformBadges = (unknownInfo?.platforms || []).map(p => {
+      const slug = p === 'NetCE' ? 'netce' : p === 'CEUfast' ? 'ceufast' : p === 'AANP Cert' ? 'aanp' : 'other';
+      return `<span class="access-badge access-${slug}">${escHtml(p)}</span>`;
+    }).join('');
+
     const unknownBanner = unknownInfo ? `
       <div class="unknown-reason ${unknownInfo.cls}">
         <span class="unknown-icon">${unknownInfo.icon}</span>
-        <span class="unknown-text"><strong>${escHtml(unknownInfo.reason)}</strong> — ${escHtml(unknownInfo.detail)}</span>
+        <span class="unknown-text"><strong>${escHtml(unknownInfo.reason)}</strong>${unknownInfo.platforms?.length ? '' : ' — ' + escHtml(unknownInfo.detail)}</span>
+        ${platformBadges ? `<div class="access-badges">${platformBadges}</div>` : ''}
       </div>` : '';
 
     return `<div class="provider-card ${cardBorderCls} ${criticalCls} card-clickable"
@@ -1380,6 +1409,34 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .unknown-icon { font-size: 1rem; }
     .unknown-text { flex: 1; }
     .unknown-text strong { font-weight: 700; }
+    .unknown-reason.unknown-pending {
+      background: #fefce8;
+      color: #854d0e;
+      border: 1px solid #fde047;
+    }
+    [data-theme="dark"] .unknown-reason.unknown-pending {
+      background: #422006;
+      color: #fde047;
+      border-color: #ca8a04;
+    }
+
+    /* Platform Access Badges */
+    .access-badges { display: flex; gap: 6px; margin-left: auto; flex-wrap: wrap; }
+    .access-badge {
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+    .access-badge.access-netce { background: #dbeafe; color: #1e40af; }
+    .access-badge.access-ceufast { background: #ede9fe; color: #5b21b6; }
+    .access-badge.access-aanp { background: #d1fae5; color: #065f46; }
+    .access-badge.access-other { background: #f1f5f9; color: #475569; }
+    [data-theme="dark"] .access-badge.access-netce { background: #1e3a5f; color: #93c5fd; }
+    [data-theme="dark"] .access-badge.access-ceufast { background: #2e1065; color: #c4b5fd; }
+    [data-theme="dark"] .access-badge.access-aanp { background: #064e3b; color: #6ee7b7; }
+    [data-theme="dark"] .access-badge.access-other { background: #334155; color: #cbd5e1; }
 
     .card-top { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
     .avatar {
