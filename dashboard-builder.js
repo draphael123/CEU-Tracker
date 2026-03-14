@@ -3763,11 +3763,11 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       </button>
       <button class="nav-item" onclick="showTab('help')" data-tab="help">
         <span class="nav-icon">❓</span>
-        <span class="nav-label">How It Works</span>
+        <span class="nav-label">Help & FAQ</span>
       </button>
       <button class="nav-item" onclick="showTab('summary')" data-tab="summary">
         <span class="nav-icon">📋</span>
-        <span class="nav-label">Weekly Summary</span>
+        <span class="nav-label">Overview</span>
       </button>
     </nav>
     <div class="sidebar-footer">
@@ -4051,7 +4051,6 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     <button class="view-toggle" onclick="showProviderView('state')">By State</button>
     <button class="view-toggle" onclick="showProviderView('type')">By Type</button>
     <button class="view-toggle" onclick="showProviderView('favorites')">Pinned <span class="view-count">0</span></button>
-    <button class="view-toggle" onclick="showProviderView('actions')">Action Items <span class="view-count ${actionItems.critical.length > 0 ? 'warning' : ''}">${actionItems.critical.length + actionItems.urgent.length}</span></button>
     <button class="view-toggle" onclick="showProviderView('aanp')">AANP Cert <span class="view-count">${aanpCertData.length}</span></button>
     <button class="view-toggle" onclick="showProviderView('stats')">State Stats</button>
     <button class="view-toggle" onclick="showProviderView('timeline')">Timeline</button>
@@ -4299,101 +4298,6 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     </div>
     <div class="cards-grid favorites-cards">
       <div class="empty-favorites">No pinned providers. Click the star on any provider card to pin them here.</div>
-    </div>
-  </div>
-
-  <!-- Action Items View -->
-  <div class="provider-view" id="provider-actions">
-    <div class="action-queue">
-      <!-- Critical Actions -->
-      ${actionItems.critical.length > 0 ? `
-      <div class="action-section action-critical">
-        <div class="action-section-header">
-          <span class="action-icon">⚠</span>
-          <span class="action-section-title">Critical - At Risk</span>
-          <span class="action-section-count">${actionItems.critical.length}</span>
-        </div>
-        <div class="action-items-list">
-          ${actionItems.critical.map(item => `
-            <div class="action-item-card" onclick="openProvider('${escHtml(item.name).replace(/'/g, '&#39;')}')">
-              <div class="action-item-name">${escHtml(item.name)}</div>
-              <div class="action-item-details">
-                <span class="action-detail">${item.deadline >= 0 ? item.deadline + ' days left' : Math.abs(item.deadline) + ' days overdue'}</span>
-                <span class="action-detail">${item.hoursNeeded} hrs needed</span>
-              </div>
-              <div class="action-item-reason">${escHtml(item.reason)}</div>
-            </div>
-          `).join('')}
-        </div>
-      </div>` : ''}
-
-      <!-- Urgent Actions -->
-      ${actionItems.urgent.length > 0 ? `
-      <div class="action-section action-urgent">
-        <div class="action-section-header">
-          <span class="action-icon">◷</span>
-          <span class="action-section-title">Urgent - 30 Day Deadline</span>
-          <span class="action-section-count">${actionItems.urgent.length}</span>
-        </div>
-        <div class="action-items-list">
-          ${actionItems.urgent.map(item => `
-            <div class="action-item-card" onclick="openProvider('${escHtml(item.name).replace(/'/g, '&#39;')}')">
-              <div class="action-item-name">${escHtml(item.name)}</div>
-              <div class="action-item-details">
-                <span class="action-detail">${item.deadline} days left</span>
-                <span class="action-detail">${item.hoursNeeded} hrs needed</span>
-              </div>
-              <div class="action-item-reason">${escHtml(item.reason)}</div>
-            </div>
-          `).join('')}
-        </div>
-      </div>` : ''}
-
-      <!-- Warning Actions -->
-      ${actionItems.warning.length > 0 ? `
-      <div class="action-section action-warning">
-        <div class="action-section-header">
-          <span class="action-icon">○</span>
-          <span class="action-section-title">Attention - 60 Day Deadline</span>
-          <span class="action-section-count">${actionItems.warning.length}</span>
-        </div>
-        <div class="action-items-list">
-          ${actionItems.warning.map(item => `
-            <div class="action-item-card" onclick="openProvider('${escHtml(item.name).replace(/'/g, '&#39;')}')">
-              <div class="action-item-name">${escHtml(item.name)}</div>
-              <div class="action-item-details">
-                <span class="action-detail">${item.deadline} days left</span>
-                <span class="action-detail">${item.hoursNeeded} hrs needed</span>
-              </div>
-              <div class="action-item-reason">${escHtml(item.reason)}</div>
-            </div>
-          `).join('')}
-        </div>
-      </div>` : ''}
-
-      <!-- Info Actions -->
-      ${actionItems.info.length > 0 ? `
-      <div class="action-section action-info">
-        <div class="action-section-header">
-          <span class="action-icon">○</span>
-          <span class="action-section-title">Missing Credentials</span>
-          <span class="action-section-count">${actionItems.info.length}</span>
-        </div>
-        <div class="action-items-list">
-          ${actionItems.info.map(item => `
-            <div class="action-item-card" onclick="openProvider('${escHtml(item.name).replace(/'/g, '&#39;')}')">
-              <div class="action-item-name">${escHtml(item.name)}</div>
-              <div class="action-item-reason">${escHtml(item.reason)}</div>
-            </div>
-          `).join('')}
-        </div>
-      </div>` : ''}
-
-      ${actionItems.critical.length + actionItems.urgent.length + actionItems.warning.length + actionItems.info.length === 0 ? `
-      <div class="empty-actions">
-        <span class="empty-icon">✓</span>
-        <span class="empty-text">No action items! All providers are on track.</span>
-      </div>` : ''}
     </div>
   </div>
 
@@ -5327,12 +5231,12 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
   </div>
 </div>
 
-<!-- ── Tab: Weekly Summary ────────────────────────────────────────────────── -->
+<!-- ── Tab: Overview ────────────────────────────────────────────────── -->
 <div class="tab-panel" id="tab-summary">
   <div class="help-page">
     <div class="help-header">
-      <h1>Weekly Summary</h1>
-      <p class="help-subtitle">CEU Compliance Dashboard Overview — Generated ${escHtml(runDate)}</p>
+      <h1>Overview</h1>
+      <p class="help-subtitle">CEU Compliance Dashboard — Generated ${escHtml(runDate)}</p>
     </div>
 
     <!-- Service Overview -->
@@ -5356,39 +5260,6 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
             <li><strong>Weekly Digest:</strong> Full compliance report emailed every Monday at 9:00 AM EST</li>
           </ul>
         </div>
-      </div>
-    </div>
-
-    <!-- Current Status Summary -->
-    <div class="help-section">
-      <h2 class="help-section-title">
-        <span class="help-icon">📊</span>
-        Current Compliance Status
-      </h2>
-      <div class="help-content">
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 16px; margin-bottom: 20px;">
-          <div style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; padding: 20px; border-radius: 12px; text-align: center;">
-            <div style="font-size: 2.2rem; font-weight: 800;">${total}</div>
-            <div style="font-size: 0.75rem; text-transform: uppercase; opacity: 0.9;">Total Providers</div>
-          </div>
-          <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 20px; border-radius: 12px; text-align: center;">
-            <div style="font-size: 2.2rem; font-weight: 800;">${complete}</div>
-            <div style="font-size: 0.75rem; text-transform: uppercase; opacity: 0.9;">Complete</div>
-          </div>
-          <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 20px; border-radius: 12px; text-align: center;">
-            <div style="font-size: 2.2rem; font-weight: 800;">${inProg}</div>
-            <div style="font-size: 0.75rem; text-transform: uppercase; opacity: 0.9;">In Progress</div>
-          </div>
-          <div style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; padding: 20px; border-radius: 12px; text-align: center;">
-            <div style="font-size: 2.2rem; font-weight: 800;">${atRisk}</div>
-            <div style="font-size: 0.75rem; text-transform: uppercase; opacity: 0.9;">At Risk</div>
-          </div>
-        </div>
-        <p style="color: var(--text-secondary); font-size: 0.85rem;">
-          <strong>Complete:</strong> All CE hours met &nbsp;|&nbsp;
-          <strong>In Progress:</strong> Hours remaining, deadline >60 days &nbsp;|&nbsp;
-          <strong>At Risk:</strong> Hours remaining AND deadline within 60 days
-        </p>
       </div>
     </div>
 
@@ -5482,35 +5353,6 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       </div>
     </div>
 
-    <!-- Credentials Status -->
-    <div class="help-section">
-      <h2 class="help-section-title">
-        <span class="help-icon">🔐</span>
-        Credential Status
-      </h2>
-      <div class="help-content">
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
-          <div style="background: #d1fae5; padding: 16px; border-radius: 10px;">
-            <div style="font-size: 1.6rem; font-weight: 800; color: #059669;">${runResults.filter(r => r.status === 'success').length}</div>
-            <div style="font-size: 0.8rem; font-weight: 600; color: #065f46;">CE Broker Logins Working</div>
-          </div>
-          <div style="background: #fef3c7; padding: 16px; border-radius: 10px;">
-            <div style="font-size: 1.6rem; font-weight: 800; color: #d97706;">${noCredentialsProviders.length}</div>
-            <div style="font-size: 0.8rem; font-weight: 600; color: #92400e;">Credentials Needed</div>
-          </div>
-          <div style="background: #fee2e2; padding: 16px; border-radius: 10px;">
-            <div style="font-size: 1.6rem; font-weight: 800; color: #dc2626;">${loginErrors.length}</div>
-            <div style="font-size: 0.8rem; font-weight: 600; color: #991b1b;">Login Failures</div>
-          </div>
-        </div>
-        ${noCredentialsProviders.length > 0 ? `
-        <div style="margin-top: 16px; padding: 12px; background: var(--bg-tertiary); border-radius: 8px; font-size: 0.85rem;">
-          <strong>Providers needing credentials:</strong> ${noCredentialsProviders.join(', ')}
-        </div>
-        ` : ''}
-      </div>
-    </div>
-
     <!-- How to Use -->
     <div class="help-section">
       <h2 class="help-section-title">
@@ -5523,7 +5365,6 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
           <li><strong>Compliance:</strong> View providers grouped by status (At Risk, In Progress, Complete)</li>
           <li><strong>Platforms:</strong> See CE course data from external platforms (NetCE, CEUfast, etc.)</li>
           <li><strong>Reports:</strong> Export data, view history, and access run logs</li>
-          <li><strong>How It Works:</strong> Detailed documentation on status definitions and FAQs</li>
         </ol>
         <p style="margin-top: 16px; padding: 12px; background: linear-gradient(135deg, #dbeafe 0%, #e0e7ff 100%); border-radius: 8px; font-size: 0.85rem;">
           <strong>Tip:</strong> Click on any provider card to see detailed license information, subject area breakdowns, and completed courses.
