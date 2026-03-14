@@ -1946,6 +1946,165 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     [data-theme="dark"] .course-rec-title { color: #93c5fd; }
     [data-theme="dark"] .course-rec-item { color: #bfdbfe; }
 
+    /* ─ Action Items Banner ─ */
+    .action-banner {
+      margin: 20px 40px;
+      background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+      border-radius: 16px;
+      padding: 20px 24px;
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--border-color);
+    }
+    .action-banner-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .action-banner-title {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .action-banner-title-icon {
+      font-size: 1.3rem;
+    }
+    .action-banner-dismiss {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 1.2rem;
+      padding: 4px 8px;
+      border-radius: 6px;
+      transition: all var(--transition-fast);
+    }
+    .action-banner-dismiss:hover {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+    }
+    .action-banner-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    .action-item-card {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 16px;
+      background: var(--bg-primary);
+      border-radius: 12px;
+      border-left: 4px solid var(--accent-primary);
+      transition: all var(--transition-fast);
+      cursor: pointer;
+    }
+    .action-item-card:hover {
+      transform: translateX(4px);
+      box-shadow: var(--shadow-md);
+    }
+    .action-item-card.action-critical {
+      border-left-color: var(--status-red);
+      background: linear-gradient(135deg, rgba(239,68,68,0.05) 0%, var(--bg-primary) 100%);
+    }
+    .action-item-card.action-warning {
+      border-left-color: var(--status-amber);
+      background: linear-gradient(135deg, rgba(245,158,11,0.05) 0%, var(--bg-primary) 100%);
+    }
+    .action-item-card.action-info {
+      border-left-color: var(--accent-blue);
+      background: linear-gradient(135deg, rgba(59,130,246,0.05) 0%, var(--bg-primary) 100%);
+    }
+    .action-item-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      flex-shrink: 0;
+    }
+    .action-critical .action-item-icon {
+      background: linear-gradient(135deg, rgba(239,68,68,0.15) 0%, rgba(239,68,68,0.05) 100%);
+    }
+    .action-warning .action-item-icon {
+      background: linear-gradient(135deg, rgba(245,158,11,0.15) 0%, rgba(245,158,11,0.05) 100%);
+    }
+    .action-info .action-item-icon {
+      background: linear-gradient(135deg, rgba(59,130,246,0.15) 0%, rgba(59,130,246,0.05) 100%);
+    }
+    .action-item-content {
+      flex: 1;
+      min-width: 0;
+    }
+    .action-item-label {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+    .action-item-value {
+      font-size: 1.4rem;
+      font-weight: 800;
+      line-height: 1;
+    }
+    .action-critical .action-item-value { color: var(--status-red); }
+    .action-warning .action-item-value { color: var(--status-amber); }
+    .action-info .action-item-value { color: var(--accent-blue); }
+    .action-item-detail {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      margin-top: 6px;
+    }
+    .action-item-providers {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .action-provider-chip {
+      font-size: 0.72rem;
+      padding: 3px 8px;
+      background: var(--bg-secondary);
+      border-radius: 6px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+    .action-banner-empty {
+      text-align: center;
+      padding: 24px;
+      color: var(--text-secondary);
+    }
+    .action-banner-empty-icon {
+      font-size: 2.5rem;
+      margin-bottom: 8px;
+      opacity: 0.5;
+    }
+    .action-banner-empty-text {
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+    .action-banner.all-clear {
+      background: linear-gradient(135deg, rgba(16,185,129,0.1) 0%, var(--bg-primary) 100%);
+      border-color: var(--status-green);
+    }
+    [data-theme="dark"] .action-item-card {
+      background: var(--bg-secondary);
+    }
+    [data-theme="dark"] .action-item-card.action-critical {
+      background: linear-gradient(135deg, rgba(239,68,68,0.1) 0%, var(--bg-secondary) 100%);
+    }
+    [data-theme="dark"] .action-item-card.action-warning {
+      background: linear-gradient(135deg, rgba(245,158,11,0.1) 0%, var(--bg-secondary) 100%);
+    }
+    [data-theme="dark"] .action-item-card.action-info {
+      background: linear-gradient(135deg, rgba(59,130,246,0.1) 0%, var(--bg-secondary) 100%);
+    }
+
     /* ─ Footer ─ */
     footer { text-align: center; padding: 16px; font-size: .76rem; color: var(--text-secondary); border-top: 1px solid var(--border-color); margin-top: 8px; background: var(--bg-primary); }
     .footer-updates { margin-bottom: 8px; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 16px; align-items: center; }
@@ -2982,6 +3141,42 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       .provider-card { padding: 16px; }
       .stat-card { min-height: 90px; }
       button, .btn { min-height: 44px; }
+
+      /* Coverage matrix mobile */
+      .matrix-wrap { padding: 0 16px; }
+      .coverage-matrix { font-size: 0.75rem; }
+      .coverage-matrix th, .coverage-matrix td { padding: 8px 6px; }
+      .coverage-matrix th { font-size: 0.65rem; }
+      .cov-score { font-size: 0.75rem; }
+      .cov-score-bar { width: 40px; }
+      .cov-summary-num { font-size: 0.85rem; }
+      .cov-summary-pct { font-size: 0.6rem; }
+
+      /* Action banner mobile */
+      .action-banner { margin: 16px; padding: 16px; }
+      .action-banner-title { font-size: 0.95rem; }
+      .action-banner-grid { grid-template-columns: 1fr; gap: 12px; }
+      .action-item-card { padding: 14px; }
+      .action-item-icon { width: 36px; height: 36px; font-size: 1rem; }
+      .action-item-value { font-size: 1.2rem; }
+      .action-item-label { font-size: 0.8rem; }
+      .action-item-detail { font-size: 0.72rem; }
+      .action-provider-chip { font-size: 0.68rem; padding: 2px 6px; }
+
+      /* Quick filters mobile */
+      .quick-filters { padding: 12px 16px; gap: 8px; flex-wrap: wrap; }
+      .quick-filter-btn { padding: 6px 12px; font-size: 0.75rem; }
+      .qf-count { padding: 2px 5px; font-size: 0.65rem; }
+
+      /* Providers filter bar mobile */
+      .providers-filter-bar { padding: 12px 16px; gap: 8px; top: 50px; }
+      .providers-filter-bar .search-box { min-width: 100%; padding: 8px 12px; font-size: 0.85rem; }
+      .providers-filter-bar .filter-select { min-width: calc(50% - 4px); padding: 8px 10px; font-size: 0.82rem; }
+      .advanced-filter-toggle { padding: 8px 12px; font-size: 0.8rem; }
+
+      /* Platform cards mobile */
+      .platform-summary-grid { padding: 0 16px; grid-template-columns: 1fr; }
+      .credential-gaps-grid { padding: 0 16px; grid-template-columns: 1fr; }
     }
 
     /* ─ Print / Export PDF ─ */
@@ -3763,6 +3958,92 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
 
 <!-- ── Tab: Providers ─────────────────────────────────────────────────── -->
 <div class="tab-panel active" id="tab-providers">
+  <!-- Action Items Banner -->
+  ${(() => {
+    const criticalProviders = flat.filter(r => {
+      const days = daysUntil(r.renewalDeadline);
+      return days !== null && days >= 0 && days <= 30 && r.hoursRemaining > 0;
+    });
+    const warningProviders = flat.filter(r => {
+      const days = daysUntil(r.renewalDeadline);
+      return days !== null && days > 30 && days <= 60 && r.hoursRemaining > 0;
+    });
+    const missingCredsCount = noCredentialsProviders.length;
+    const failedLoginsCount = loginErrors.length;
+
+    const hasIssues = criticalProviders.length > 0 || warningProviders.length > 0 || missingCredsCount > 0 || failedLoginsCount > 0;
+
+    if (!hasIssues) {
+      return '<div class="action-banner all-clear"><div class="action-banner-empty"><div class="action-banner-empty-icon">✓</div><div class="action-banner-empty-text">All Clear! No urgent action items</div></div></div>';
+    }
+
+    let cards = '';
+
+    if (criticalProviders.length > 0) {
+      const names = [...new Set(criticalProviders.map(p => p.providerName))].slice(0, 3);
+      const moreCount = [...new Set(criticalProviders.map(p => p.providerName))].length - 3;
+      cards += '<div class="action-item-card action-critical" onclick="applyQuickFilter(&quot;urgent&quot;)">' +
+        '<div class="action-item-icon">🚨</div>' +
+        '<div class="action-item-content">' +
+          '<div class="action-item-label">Due Within 30 Days</div>' +
+          '<div class="action-item-value">' + [...new Set(criticalProviders.map(p => p.providerName))].length + ' providers</div>' +
+          '<div class="action-item-detail">Need to complete CE hours before deadline</div>' +
+          '<div class="action-item-providers">' + names.map(n => '<span class="action-provider-chip">' + escHtml(n) + '</span>').join('') + (moreCount > 0 ? '<span class="action-provider-chip">+' + moreCount + ' more</span>' : '') + '</div>' +
+        '</div>' +
+      '</div>';
+    }
+
+    if (warningProviders.length > 0) {
+      const names = [...new Set(warningProviders.map(p => p.providerName))].slice(0, 3);
+      const moreCount = [...new Set(warningProviders.map(p => p.providerName))].length - 3;
+      cards += '<div class="action-item-card action-warning" onclick="applyQuickFilter(&quot;due90&quot;)">' +
+        '<div class="action-item-icon">⚠️</div>' +
+        '<div class="action-item-content">' +
+          '<div class="action-item-label">Due Within 31-60 Days</div>' +
+          '<div class="action-item-value">' + [...new Set(warningProviders.map(p => p.providerName))].length + ' providers</div>' +
+          '<div class="action-item-detail">Should start working on CE requirements</div>' +
+          '<div class="action-item-providers">' + names.map(n => '<span class="action-provider-chip">' + escHtml(n) + '</span>').join('') + (moreCount > 0 ? '<span class="action-provider-chip">+' + moreCount + ' more</span>' : '') + '</div>' +
+        '</div>' +
+      '</div>';
+    }
+
+    if (missingCredsCount > 0) {
+      const names = noCredentialsProviders.slice(0, 3);
+      const moreCount = missingCredsCount - 3;
+      cards += '<div class="action-item-card action-info" onclick="showTab(&quot;platforms&quot;); setTimeout(function(){ showPlatformView(&quot;gaps&quot;); }, 100)">' +
+        '<div class="action-item-icon">🔑</div>' +
+        '<div class="action-item-content">' +
+          '<div class="action-item-label">Missing CE Broker Credentials</div>' +
+          '<div class="action-item-value">' + missingCredsCount + ' providers</div>' +
+          '<div class="action-item-detail">Cannot track compliance without credentials</div>' +
+          '<div class="action-item-providers">' + names.map(n => '<span class="action-provider-chip">' + escHtml(n) + '</span>').join('') + (moreCount > 0 ? '<span class="action-provider-chip">+' + moreCount + ' more</span>' : '') + '</div>' +
+        '</div>' +
+      '</div>';
+    }
+
+    if (failedLoginsCount > 0) {
+      const names = loginErrors.slice(0, 3).map(e => e.name);
+      const moreCount = failedLoginsCount - 3;
+      cards += '<div class="action-item-card action-critical">' +
+        '<div class="action-item-icon">❌</div>' +
+        '<div class="action-item-content">' +
+          '<div class="action-item-label">Failed Logins</div>' +
+          '<div class="action-item-value">' + failedLoginsCount + ' providers</div>' +
+          '<div class="action-item-detail">Credentials may have changed or expired</div>' +
+          '<div class="action-item-providers">' + names.map(n => '<span class="action-provider-chip">' + escHtml(n) + '</span>').join('') + (moreCount > 0 ? '<span class="action-provider-chip">+' + moreCount + ' more</span>' : '') + '</div>' +
+        '</div>' +
+      '</div>';
+    }
+
+    return '<div class="action-banner" id="actionBanner">' +
+      '<div class="action-banner-header">' +
+        '<div class="action-banner-title"><span class="action-banner-title-icon">📋</span> Action Required</div>' +
+        '<button class="action-banner-dismiss" onclick="document.getElementById(&quot;actionBanner&quot;).style.display=&quot;none&quot;" title="Dismiss">×</button>' +
+      '</div>' +
+      '<div class="action-banner-grid">' + cards + '</div>' +
+    '</div>';
+  })()}
+
   <!-- View Toggle Bar -->
   <div class="view-toggle-bar">
     <button class="view-toggle active" onclick="showProviderView('all')">All Providers <span class="view-count">${providerEntries.length}</span></button>
