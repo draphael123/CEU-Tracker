@@ -2659,6 +2659,42 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .sidebar.collapsed + .main-content,
     body.sidebar-collapsed .main-content { margin-left: 80px; }
 
+    /* Expand sidebar on hover when collapsed */
+    .sidebar.collapsed:hover {
+      width: 200px;
+      box-shadow: 4px 0 20px rgba(0,0,0,0.15);
+    }
+    .sidebar.collapsed:hover .nav-item {
+      flex-direction: row;
+      justify-content: flex-start;
+      padding: 12px 16px;
+      gap: 12px;
+      text-align: left;
+    }
+    .sidebar.collapsed:hover .nav-icon {
+      width: 20px;
+      font-size: 1rem;
+    }
+    .sidebar.collapsed:hover .nav-label {
+      font-size: 0.88rem;
+      max-width: none;
+      overflow: visible;
+    }
+    .sidebar.collapsed:hover .nav-desc {
+      display: block;
+    }
+    .sidebar.collapsed:hover .nav-badge {
+      position: static;
+      font-size: 0.7rem;
+      padding: 2px 6px;
+    }
+    .sidebar.collapsed:hover .sidebar-nav {
+      padding: 16px 10px;
+    }
+    .sidebar.collapsed:hover .sidebar-footer {
+      display: block;
+    }
+
     /* ─ Header Collapse Toggle ─ */
     .header-collapse-btn {
       background: rgba(255,255,255,0.1);
