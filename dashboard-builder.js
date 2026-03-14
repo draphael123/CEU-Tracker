@@ -4309,6 +4309,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
         <thead>
           <tr>
             <th class="cov-provider-hdr">Provider</th>
+            <th style="background: linear-gradient(135deg, #1e3a5f, #1e1b4b); color: #fff;">CE Broker</th>
             <th>NetCE</th>
             <th>CEUfast</th>
             <th>AANP Cert</th>
@@ -4319,6 +4320,16 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
           ${providerEntries.map(([name, info]) => {
             const providerPlatforms = platformByProvider[name] || [];
             const platforms = ['NetCE', 'CEUfast', 'AANP Cert', 'ExclamationCE'];
+            // CE Broker status from runResults
+            const cebrokerResult = (runResults || []).find(r => r.name === name);
+            let cebrokerCell = '<td class="cov-no">—</td>';
+            if (cebrokerResult) {
+              if (cebrokerResult.status === 'success') {
+                cebrokerCell = '<td class="cov-yes">✓</td>';
+              } else if (cebrokerResult.status === 'login_error' || cebrokerResult.status === 'failed') {
+                cebrokerCell = '<td class="cov-fail">✗</td>';
+              }
+            }
             const cells = platforms.map(plat => {
               const result = providerPlatforms.find(p => p.platform === plat);
               if (!result) return '<td class="cov-no">—</td>';
@@ -4329,7 +4340,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
               return '<td class="cov-fail">✗</td>';
             }).join('');
             const safeName = escHtml(name).replace(/'/g, '&#39;');
-            return '<tr><td class="cov-provider" onclick="openProvider(\'' + safeName + '\')">' + escHtml(name) + '</td>' + cells + '</tr>';
+            return '<tr><td class="cov-provider" onclick="openProvider(\'' + safeName + '\')">' + escHtml(name) + '</td>' + cebrokerCell + cells + '</tr>';
           }).join('')}
         </tbody>
       </table>
