@@ -1606,6 +1606,129 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .sidebar.collapsed .nav-desc { display: none; }
     .sidebar.collapsed .nav-label-wrap { align-items: center; }
 
+    /* ─ Missing Credentials Section ─ */
+    .missing-creds-section {
+      background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+      border: 2px solid #f59e0b;
+      border-radius: var(--card-border-radius);
+      padding: 20px 24px;
+      margin-bottom: 24px;
+    }
+    [data-theme="dark"] .missing-creds-section {
+      background: linear-gradient(135deg, #78350f 0%, #92400e 100%);
+      border-color: #f59e0b;
+    }
+    .missing-creds-header { margin-bottom: 16px; }
+    .missing-creds-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #92400e;
+      margin-bottom: 6px;
+    }
+    [data-theme="dark"] .missing-creds-title { color: #fef3c7; }
+    .missing-creds-icon { font-size: 1.3rem; }
+    .missing-creds-count {
+      background: #dc2626;
+      color: white;
+      padding: 2px 10px;
+      border-radius: 99px;
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+    .missing-creds-subtitle {
+      font-size: 0.88rem;
+      color: #78350f;
+      opacity: 0.9;
+    }
+    [data-theme="dark"] .missing-creds-subtitle { color: #fde68a; }
+    .missing-creds-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .missing-creds-item {
+      background: white;
+      border: 1px solid #fbbf24;
+      border-radius: 10px;
+      padding: 12px 16px;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 200px;
+    }
+    [data-theme="dark"] .missing-creds-item {
+      background: rgba(0,0,0,0.2);
+      border-color: #f59e0b;
+    }
+    .missing-creds-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(245,158,11,0.3);
+    }
+    .missing-creds-item-main {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .missing-creds-name {
+      font-weight: 600;
+      color: #1e293b;
+    }
+    [data-theme="dark"] .missing-creds-name { color: #fef3c7; }
+    .missing-creds-type {
+      font-size: 0.75rem;
+      background: #fbbf24;
+      color: #78350f;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-weight: 600;
+    }
+    .missing-creds-platforms {
+      font-size: 0.75rem;
+      color: #92400e;
+      font-weight: 500;
+    }
+    [data-theme="dark"] .missing-creds-platforms { color: #fde68a; }
+    .missing-creds-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .missing-creds-copy-btn,
+    .missing-creds-export-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      border: none;
+    }
+    .missing-creds-copy-btn {
+      background: #1e293b;
+      color: white;
+    }
+    .missing-creds-copy-btn:hover {
+      background: #0f172a;
+      transform: translateY(-1px);
+    }
+    .missing-creds-export-btn {
+      background: white;
+      color: #78350f;
+      border: 2px solid #fbbf24;
+    }
+    .missing-creds-export-btn:hover {
+      background: #fef3c7;
+    }
+
     /* ─ Section titles ─ */
     .section-title {
       padding: 24px 40px 12px;
@@ -4223,6 +4346,77 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       <div class="legend-item"><span class="legend-dot gray"></span> Missing Info - Need credentials</div>
     </div>
 
+    <!-- ── Missing Credentials Section ────────────────────────────────────── -->
+    ${(() => {
+      // Build list of providers with missing credentials for any platform
+      const allPlatforms = ['CE Broker', 'NetCE', 'CEUfast', 'AANP Cert', 'ExclamationCE'];
+      const providersMissingCreds = [];
+
+      for (const provider of providers) {
+        const missingPlatforms = [];
+
+        // Check CE Broker
+        if (!provider.username || !provider.password) {
+          missingPlatforms.push('CE Broker');
+        }
+
+        // Check other platforms - if not configured
+        const configuredPlatforms = (provider.platforms || []).map(p => p.platform);
+        for (const plat of ['NetCE', 'CEUfast', 'AANP Cert', 'ExclamationCE']) {
+          if (!configuredPlatforms.includes(plat)) {
+            missingPlatforms.push(plat);
+          }
+        }
+
+        if (missingPlatforms.length > 0) {
+          providersMissingCreds.push({
+            name: provider.name,
+            type: provider.type || '',
+            missing: missingPlatforms
+          });
+        }
+      }
+
+      // Only show providers missing CE Broker (the critical one)
+      const criticalMissing = providersMissingCreds.filter(p => p.missing.includes('CE Broker'));
+
+      if (criticalMissing.length === 0) return '';
+
+      return `
+    <div class="missing-creds-section">
+      <div class="missing-creds-header">
+        <div class="missing-creds-title">
+          <span class="missing-creds-icon">🔑</span>
+          <span>CE Credentials Needed</span>
+          <span class="missing-creds-count">${criticalMissing.length}</span>
+        </div>
+        <div class="missing-creds-subtitle">These providers need login credentials to track their continuing education compliance</div>
+      </div>
+      <div class="missing-creds-list">
+        ${criticalMissing.map(p => {
+          const missingText = p.missing.length <= 2
+            ? p.missing.join(', ')
+            : p.missing.slice(0, 2).join(', ') + ' +' + (p.missing.length - 2) + ' more';
+          return `<div class="missing-creds-item" onclick="openProvider('${escHtml(p.name).replace(/'/g, '&#39;')}')">
+            <div class="missing-creds-item-main">
+              <span class="missing-creds-name">${escHtml(p.name)}</span>
+              ${p.type ? `<span class="missing-creds-type">${escHtml(p.type)}</span>` : ''}
+            </div>
+            <div class="missing-creds-platforms">Missing: ${escHtml(missingText)}</div>
+          </div>`;
+        }).join('')}
+      </div>
+      <div class="missing-creds-actions">
+        <button class="missing-creds-copy-btn" onclick="copyMissingCredsList()">
+          <span>📋</span> Copy List to Clipboard
+        </button>
+        <button class="missing-creds-export-btn" onclick="exportMissingCredentials()">
+          <span>📥</span> Export as CSV
+        </button>
+      </div>
+    </div>`;
+    })()}
+
 <!-- ── Tab: Overview ──────────────────────────────────────────────────── -->
 <!-- ── Tab: Dashboard (Consolidated Overview) ────────────────────────────── -->
 <div class="tab-panel" id="tab-dashboard">
@@ -6123,6 +6317,26 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     a.download = 'filtered-providers-' + new Date().toISOString().split('T')[0] + '.csv';
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  // ── Copy Missing Credentials List ──
+  function copyMissingCredsList() {
+    const missingCreds = ${JSON.stringify(noCredentialsProviders)};
+    const text = missingCreds.join('\\n');
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.querySelector('.missing-creds-copy-btn');
+      if (btn) {
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<span>✓</span> Copied!';
+        btn.style.background = '#059669';
+        setTimeout(() => {
+          btn.innerHTML = originalText;
+          btn.style.background = '';
+        }, 2000);
+      }
+    }).catch(err => {
+      alert('Failed to copy: ' + err);
+    });
   }
 
   // ── Export Missing Credentials ──
