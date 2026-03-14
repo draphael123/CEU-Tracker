@@ -2293,16 +2293,34 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .sidebar-collapse-btn:hover { background: var(--bg-tertiary); color: var(--text-primary); }
 
     /* Collapsed Sidebar State */
-    .sidebar.collapsed { width: 50px; }
-    .sidebar.collapsed .nav-label,
-    .sidebar.collapsed .nav-badge,
+    .sidebar.collapsed { width: 80px; }
+    .sidebar.collapsed .nav-item {
+      flex-direction: column;
+      justify-content: center;
+      padding: 10px 6px;
+      gap: 4px;
+      text-align: center;
+    }
+    .sidebar.collapsed .nav-icon { width: auto; font-size: 1.2rem; }
+    .sidebar.collapsed .nav-label {
+      font-size: 0.65rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+    }
+    .sidebar.collapsed .nav-badge {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      font-size: 0.6rem;
+      padding: 1px 4px;
+    }
     .sidebar.collapsed .sidebar-footer { display: none; }
-    .sidebar.collapsed .nav-item { justify-content: center; padding: 10px; }
-    .sidebar.collapsed .nav-icon { width: auto; font-size: 1.1rem; }
     .sidebar.collapsed .sidebar-nav { padding: 10px 4px; }
     .sidebar.collapsed .sidebar-collapse-btn { right: -12px; }
     .sidebar.collapsed + .main-content,
-    body.sidebar-collapsed .main-content { margin-left: 50px; }
+    body.sidebar-collapsed .main-content { margin-left: 80px; }
 
     /* ─ Header Collapse Toggle ─ */
     .header-collapse-btn {
@@ -4638,7 +4656,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
             <th>CEUfast</th>
             <th>AANP Cert</th>
             <th>ExclamationCE</th>
-            <th>Coverage</th>
+            <th>CEU Coverage</th>
           </tr>
         </thead>
         <tbody>
@@ -4689,17 +4707,12 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
                 return '<td class="cov-fail">✗</td>';
               }).join('');
 
-              // Coverage score
-              const coveragePct = Math.round((connectedCount / 5) * 100);
-              let scoreClass = 'cov-score-low';
-              let fillClass = 'fill-low';
-              let rowClass = 'cov-row-none';
-              if (coveragePct === 100) { scoreClass = 'cov-score-full'; fillClass = 'fill-full'; rowClass = 'cov-row-full'; }
-              else if (coveragePct >= 60) { scoreClass = 'cov-score-good'; fillClass = 'fill-good'; rowClass = 'cov-row-good'; }
-              else if (coveragePct >= 40) { scoreClass = 'cov-score-partial'; fillClass = 'fill-partial'; rowClass = 'cov-row-partial'; }
-              else if (coveragePct >= 20) { rowClass = 'cov-row-minimal'; }
-
-              const scoreCell = '<td><div class="cov-score ' + scoreClass + '">' + coveragePct + '%</div><div class="cov-score-bar"><div class="cov-score-fill ' + fillClass + '" style="width:' + coveragePct + '%"></div></div></td>';
+              // CEU Coverage indicator (based on CE Broker status)
+              const hasCEUCoverage = cebrokerStatus === 'yes';
+              let rowClass = hasCEUCoverage ? 'cov-row-full' : 'cov-row-none';
+              const scoreCell = hasCEUCoverage
+                ? '<td class="cov-yes" style="text-align:center;font-size:1.1rem;">✓</td>'
+                : '<td class="cov-no" style="text-align:center;font-size:1.1rem;">✗</td>';
 
               const safeName = escHtml(name).replace(/'/g, '&#39;');
               return '<tr class="' + rowClass + '"><td class="cov-provider" onclick="openProvider(\'' + safeName + '\')">' + escHtml(name) + '</td>' + cebrokerCell + cells + scoreCell + '</tr>';
@@ -4712,9 +4725,10 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
               return '<td><div class="cov-summary-stat"><span class="cov-summary-num sum-green">' + t.yes + '</span><span class="cov-summary-pct">' + pct + '% connected</span></div></td>';
             }).join('');
 
-            const avgCoverage = totalProviders > 0 ? Math.round((Object.values(platformTotals).reduce((sum, t) => sum + t.yes, 0) / (totalProviders * 5)) * 100) : 0;
-            const avgClass = avgCoverage >= 80 ? 'sum-green' : avgCoverage >= 50 ? 'sum-gray' : 'sum-red';
-            const footerScore = '<td><div class="cov-summary-stat"><span class="cov-summary-num ' + avgClass + '">' + avgCoverage + '%</span><span class="cov-summary-pct">average</span></div></td>';
+            // CEU Coverage summary (count of providers with CE Broker)
+            const cebrokerConnected = platformTotals['CE Broker'].yes;
+            const cebrokerPct = totalProviders > 0 ? Math.round((cebrokerConnected / totalProviders) * 100) : 0;
+            const footerScore = '<td><div class="cov-summary-stat"><span class="cov-summary-num sum-green">' + cebrokerConnected + '</span><span class="cov-summary-pct">' + cebrokerPct + '% covered</span></div></td>';
 
             return rows + '</tbody><tfoot><tr><td class="cov-summary-label">Total (' + totalProviders + ' providers)</td>' + footerCells + footerScore + '</tr></tfoot>';
           })()}
