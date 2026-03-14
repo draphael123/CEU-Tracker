@@ -636,7 +636,31 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     <div>${licCards}</div>
     ${lookbackSection}
     ${spendingSection}
-    ${platformSection}`;
+    ${platformSection}
+    <div class="notes-section" data-provider="${escHtml(pName)}">
+      <div class="notes-header">
+        <div class="notes-title"><span class="notes-title-icon">📝</span> Notes & Tasks</div>
+        <button class="add-note-btn" onclick="showNoteForm('${escHtml(pName).replace(/'/g, '&#39;')}')">+ Add Note</button>
+      </div>
+      <div class="note-form" id="noteForm-${escHtml(pName).replace(/[^a-zA-Z0-9]/g, '_')}">
+        <div class="note-form-inner">
+          <textarea class="note-input" placeholder="Enter note or task..." id="noteInput-${escHtml(pName).replace(/[^a-zA-Z0-9]/g, '_')}"></textarea>
+          <div class="note-form-options">
+            <label class="note-type-toggle">
+              <input type="checkbox" id="noteIsTask-${escHtml(pName).replace(/[^a-zA-Z0-9]/g, '_')}">
+              <span>Mark as task</span>
+            </label>
+            <div class="note-form-actions">
+              <button class="note-cancel-btn" onclick="hideNoteForm('${escHtml(pName).replace(/'/g, '&#39;')}')">Cancel</button>
+              <button class="note-save-btn" onclick="saveNote('${escHtml(pName).replace(/'/g, '&#39;')}')">Save</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notes-list" id="notesList-${escHtml(pName).replace(/[^a-zA-Z0-9]/g, '_')}">
+        <div class="notes-empty">No notes yet. Click "+ Add Note" to add the first one.</div>
+      </div>
+    </div>`;
   }
 
   // ── Renewal deadline calendar (pre-rendered HTML) ────────────────────────
@@ -2794,6 +2818,93 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       color: #1d4ed8;
     }
     .print-btn:hover { background: #dbeafe; }
+
+    /* ─ Provider Notes Section ─ */
+    .notes-section {
+      margin-top: 24px; padding: 20px; background: var(--bg-secondary);
+      border-radius: 12px; border: 1px solid var(--border-color);
+    }
+    .notes-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color);
+    }
+    .notes-title {
+      font-size: 0.9rem; font-weight: 700; color: var(--text-primary);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .notes-title-icon { font-size: 1rem; }
+    .add-note-btn {
+      background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-purple) 100%);
+      color: white; border: none; padding: 6px 14px; border-radius: 8px;
+      font-size: 0.78rem; font-weight: 600; cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .add-note-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99,102,241,.3); }
+    .notes-list { display: flex; flex-direction: column; gap: 10px; }
+    .notes-empty {
+      text-align: center; padding: 24px; color: var(--text-secondary);
+      font-size: 0.85rem; font-style: italic;
+    }
+    .note-item {
+      background: var(--bg-body); border: 1px solid var(--border-color);
+      border-radius: 10px; padding: 14px 16px; position: relative;
+    }
+    .note-item.note-task { border-left: 4px solid var(--accent-primary); }
+    .note-item.note-task.task-done { border-left-color: var(--status-green); opacity: 0.7; }
+    .note-text { font-size: 0.88rem; color: var(--text-primary); line-height: 1.5; margin-bottom: 8px; }
+    .note-task .note-text { padding-left: 24px; }
+    .task-checkbox {
+      position: absolute; left: 16px; top: 16px; width: 16px; height: 16px;
+      cursor: pointer; accent-color: var(--accent-primary);
+    }
+    .note-meta {
+      display: flex; align-items: center; gap: 12px; font-size: 0.72rem;
+      color: var(--text-secondary);
+    }
+    .note-date { font-weight: 500; }
+    .note-actions { margin-left: auto; display: flex; gap: 8px; }
+    .note-action-btn {
+      background: none; border: none; cursor: pointer; font-size: 0.72rem;
+      color: var(--text-secondary); padding: 2px 6px; border-radius: 4px;
+      transition: background 0.15s, color 0.15s;
+    }
+    .note-action-btn:hover { background: var(--bg-secondary); color: var(--text-primary); }
+    .note-action-btn.delete:hover { background: #fef2f2; color: #dc2626; }
+
+    /* Note Form */
+    .note-form { display: none; margin-bottom: 16px; }
+    .note-form.active { display: block; }
+    .note-form-inner {
+      background: var(--bg-body); border: 1px solid var(--border-color);
+      border-radius: 10px; padding: 14px;
+    }
+    .note-input {
+      width: 100%; border: 1px solid var(--border-color); border-radius: 8px;
+      padding: 10px 12px; font-size: 0.88rem; resize: vertical; min-height: 60px;
+      font-family: inherit; background: var(--bg-body); color: var(--text-primary);
+    }
+    .note-input:focus { outline: none; border-color: var(--accent-primary); }
+    .note-form-options {
+      display: flex; align-items: center; gap: 12px; margin-top: 10px; flex-wrap: wrap;
+    }
+    .note-type-toggle {
+      display: flex; align-items: center; gap: 6px; font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+    .note-type-toggle input { accent-color: var(--accent-primary); }
+    .note-form-actions { margin-left: auto; display: flex; gap: 8px; }
+    .note-cancel-btn {
+      background: var(--bg-secondary); border: 1px solid var(--border-color);
+      padding: 6px 14px; border-radius: 8px; font-size: 0.78rem;
+      font-weight: 600; color: var(--text-secondary); cursor: pointer;
+    }
+    .note-save-btn {
+      background: var(--accent-primary); color: white; border: none;
+      padding: 6px 14px; border-radius: 8px; font-size: 0.78rem;
+      font-weight: 600; cursor: pointer;
+    }
+    .note-cancel-btn:hover { background: var(--bg-tertiary); }
+    .note-save-btn:hover { background: var(--accent-purple); }
 
     /* ─ Calendar ─ */
     .cal-wrap { padding: 20px 40px 40px; display: flex; flex-direction: column; gap: 16px; }
@@ -6100,6 +6211,8 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     document.getElementById('drawerContent').innerHTML = html;
     document.getElementById('drawerOverlay').classList.add('open');
     document.body.style.overflow = 'hidden';
+    // Load notes for this provider
+    loadProviderNotes(name);
   }
   function closeProvider() {
     document.getElementById('drawerOverlay').classList.remove('open');
@@ -6109,6 +6222,133 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     window.print();
   }
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeProvider(); });
+
+  // ── Provider Notes System ──
+  function getNotesKey(provider) {
+    return 'ceu-notes-' + provider.replace(/[^a-zA-Z0-9]/g, '_');
+  }
+  function getFormId(provider) {
+    return provider.replace(/[^a-zA-Z0-9]/g, '_');
+  }
+  function loadAllNotes() {
+    const allNotes = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('ceu-notes-')) {
+        try {
+          allNotes[key] = JSON.parse(localStorage.getItem(key));
+        } catch (e) {}
+      }
+    }
+    return allNotes;
+  }
+  function loadProviderNotes(provider) {
+    const key = getNotesKey(provider);
+    const formId = getFormId(provider);
+    const listEl = document.getElementById('notesList-' + formId);
+    if (!listEl) return;
+    let notes = [];
+    try {
+      notes = JSON.parse(localStorage.getItem(key)) || [];
+    } catch (e) {}
+    renderNotes(provider, notes, listEl);
+  }
+  function renderNotes(provider, notes, listEl) {
+    if (notes.length === 0) {
+      listEl.innerHTML = '<div class="notes-empty">No notes yet. Click "+ Add Note" to add the first one.</div>';
+      return;
+    }
+    // Sort: incomplete tasks first, then by date (newest first)
+    notes.sort((a, b) => {
+      if (a.isTask && !a.done && (!b.isTask || b.done)) return -1;
+      if (b.isTask && !b.done && (!a.isTask || a.done)) return 1;
+      return new Date(b.date) - new Date(a.date);
+    });
+    listEl.innerHTML = notes.map((note, idx) => {
+      const taskClass = note.isTask ? 'note-task' + (note.done ? ' task-done' : '') : '';
+      const checkbox = note.isTask ? '<input type="checkbox" class="task-checkbox" ' + (note.done ? 'checked' : '') + ' onchange="toggleNoteTask(\\'' + provider.replace(/'/g, '&#39;') + '\\', ' + idx + ')">' : '';
+      const dateStr = new Date(note.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+      const textStyle = note.isTask && note.done ? 'text-decoration: line-through;' : '';
+      return '<div class="note-item ' + taskClass + '">' +
+        checkbox +
+        '<div class="note-text" style="' + textStyle + '">' + escapeHtml(note.text) + '</div>' +
+        '<div class="note-meta">' +
+          '<span class="note-date">' + dateStr + '</span>' +
+          (note.isTask ? '<span class="note-type-badge">' + (note.done ? 'Completed' : 'Task') + '</span>' : '') +
+          '<div class="note-actions">' +
+            '<button class="note-action-btn delete" onclick="deleteNote(\\'' + provider.replace(/'/g, '&#39;') + '\\', ' + idx + ')">Delete</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+  function showNoteForm(provider) {
+    const formId = getFormId(provider);
+    const form = document.getElementById('noteForm-' + formId);
+    if (form) {
+      form.classList.add('active');
+      const input = document.getElementById('noteInput-' + formId);
+      if (input) input.focus();
+    }
+  }
+  function hideNoteForm(provider) {
+    const formId = getFormId(provider);
+    const form = document.getElementById('noteForm-' + formId);
+    const input = document.getElementById('noteInput-' + formId);
+    const checkbox = document.getElementById('noteIsTask-' + formId);
+    if (form) form.classList.remove('active');
+    if (input) input.value = '';
+    if (checkbox) checkbox.checked = false;
+  }
+  function saveNote(provider) {
+    const formId = getFormId(provider);
+    const input = document.getElementById('noteInput-' + formId);
+    const checkbox = document.getElementById('noteIsTask-' + formId);
+    const text = input ? input.value.trim() : '';
+    if (!text) return;
+    const key = getNotesKey(provider);
+    let notes = [];
+    try {
+      notes = JSON.parse(localStorage.getItem(key)) || [];
+    } catch (e) {}
+    notes.push({
+      text: text,
+      isTask: checkbox ? checkbox.checked : false,
+      done: false,
+      date: new Date().toISOString()
+    });
+    localStorage.setItem(key, JSON.stringify(notes));
+    hideNoteForm(provider);
+    loadProviderNotes(provider);
+  }
+  function deleteNote(provider, idx) {
+    if (!confirm('Delete this note?')) return;
+    const key = getNotesKey(provider);
+    let notes = [];
+    try {
+      notes = JSON.parse(localStorage.getItem(key)) || [];
+    } catch (e) {}
+    notes.splice(idx, 1);
+    localStorage.setItem(key, JSON.stringify(notes));
+    loadProviderNotes(provider);
+  }
+  function toggleNoteTask(provider, idx) {
+    const key = getNotesKey(provider);
+    let notes = [];
+    try {
+      notes = JSON.parse(localStorage.getItem(key)) || [];
+    } catch (e) {}
+    if (notes[idx]) {
+      notes[idx].done = !notes[idx].done;
+      localStorage.setItem(key, JSON.stringify(notes));
+      loadProviderNotes(provider);
+    }
+  }
 
   // ── Table filter ──
   let tableFilter = 'all';
