@@ -3154,19 +3154,47 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
 
     /* Coverage matrix table */
     .matrix-wrap { padding: 0 40px; overflow-x: auto; }
-    .coverage-matrix { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-    .coverage-matrix th, .coverage-matrix td { padding: 12px 16px; text-align: center; border: 1px solid #e2e8f0; }
-    .coverage-matrix th { background: #f8fafc; color: #475569; font-weight: 600; white-space: nowrap; }
+    .coverage-matrix { width: 100%; border-collapse: collapse; font-size: 0.85rem; border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-md); }
+    .coverage-matrix th, .coverage-matrix td { padding: 14px 18px; text-align: center; border: 1px solid var(--border-color); }
+    .coverage-matrix th { background: linear-gradient(135deg, #1e3a5f, #1e1b4b); color: #fff; font-weight: 700; white-space: nowrap; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; }
     .coverage-matrix .cov-provider-hdr { text-align: left; }
-    .coverage-matrix .cov-provider { text-align: left; font-weight: 500; cursor: pointer; color: #1d4ed8; }
+    .coverage-matrix .cov-provider { text-align: left; font-weight: 600; cursor: pointer; color: var(--accent-primary); }
     .coverage-matrix .cov-provider:hover { text-decoration: underline; }
-    .coverage-matrix .cov-yes { background: #dcfce7; color: #059669; font-weight: 600; }
-    .coverage-matrix .cov-fail { background: #fee2e2; color: #dc2626; }
-    .coverage-matrix .cov-no { background: #f8fafc; color: #94a3b8; }
-    .coverage-matrix tbody tr:hover { background: #f1f5f9; }
-    .coverage-matrix tbody tr:hover .cov-yes { background: #bbf7d0; }
-    .coverage-matrix tbody tr:hover .cov-fail { background: #fecaca; }
-    .coverage-matrix tbody tr:hover .cov-no { background: #e2e8f0; }
+    .coverage-matrix .cov-yes { background: linear-gradient(135deg, rgba(16,185,129,0.15), rgba(52,211,153,0.1)); color: #059669; font-weight: 700; }
+    .coverage-matrix .cov-fail { background: linear-gradient(135deg, rgba(239,68,68,0.15), rgba(248,113,113,0.1)); color: #dc2626; font-weight: 700; }
+    .coverage-matrix .cov-no { background: var(--bg-secondary); color: #94a3b8; }
+    .coverage-matrix tbody tr { transition: all var(--transition-fast); }
+    .coverage-matrix tbody tr:hover { transform: scale(1.005); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .coverage-matrix tbody tr:hover .cov-yes { background: linear-gradient(135deg, rgba(16,185,129,0.25), rgba(52,211,153,0.2)); }
+    .coverage-matrix tbody tr:hover .cov-fail { background: linear-gradient(135deg, rgba(239,68,68,0.25), rgba(248,113,113,0.2)); }
+    .coverage-matrix tbody tr:hover .cov-no { background: var(--bg-tertiary); }
+    /* Row coverage level color-coding */
+    .coverage-matrix tbody tr.cov-row-full { background: rgba(16,185,129,0.05); }
+    .coverage-matrix tbody tr.cov-row-good { background: rgba(6,182,212,0.05); }
+    .coverage-matrix tbody tr.cov-row-partial { background: rgba(245,158,11,0.05); }
+    .coverage-matrix tbody tr.cov-row-minimal { background: rgba(239,68,68,0.05); }
+    .coverage-matrix tbody tr.cov-row-none { background: rgba(239,68,68,0.1); }
+    /* Coverage score column */
+    .cov-score { font-weight: 800; font-size: 0.9rem; }
+    .cov-score-full { color: #059669; }
+    .cov-score-good { color: #0891b2; }
+    .cov-score-partial { color: #d97706; }
+    .cov-score-low { color: #dc2626; }
+    .cov-score-bar { width: 60px; height: 6px; background: var(--bg-tertiary); border-radius: 99px; margin: 4px auto 0; overflow: hidden; }
+    .cov-score-fill { height: 100%; border-radius: 99px; transition: width 0.3s; }
+    .cov-score-fill.fill-full { background: linear-gradient(90deg, #059669, #10b981); }
+    .cov-score-fill.fill-good { background: linear-gradient(90deg, #0891b2, #06b6d4); }
+    .cov-score-fill.fill-partial { background: linear-gradient(90deg, #d97706, #f59e0b); }
+    .cov-score-fill.fill-low { background: linear-gradient(90deg, #dc2626, #ef4444); }
+    /* Summary footer row */
+    .coverage-matrix tfoot td { background: linear-gradient(135deg, #f8fafc, #f1f5f9); font-weight: 700; font-size: 0.8rem; border-top: 2px solid var(--border-color); }
+    .coverage-matrix tfoot .cov-summary-label { text-align: left; color: var(--text-primary); }
+    .cov-summary-stat { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+    .cov-summary-num { font-size: 1rem; font-weight: 800; }
+    .cov-summary-num.sum-green { color: #059669; }
+    .cov-summary-num.sum-red { color: #dc2626; }
+    .cov-summary-num.sum-gray { color: #64748b; }
+    .cov-summary-pct { font-size: 0.7rem; color: var(--text-secondary); }
 
     /* Platform summary cards */
     .platform-summary-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; padding: 0 40px; }
@@ -4309,40 +4337,91 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
         <thead>
           <tr>
             <th class="cov-provider-hdr">Provider</th>
-            <th style="background: linear-gradient(135deg, #1e3a5f, #1e1b4b); color: #fff;">CE Broker</th>
+            <th>CE Broker</th>
             <th>NetCE</th>
             <th>CEUfast</th>
             <th>AANP Cert</th>
             <th>ExclamationCE</th>
+            <th>Coverage</th>
           </tr>
         </thead>
         <tbody>
-          ${providerEntries.map(([name, info]) => {
-            const providerPlatforms = platformByProvider[name] || [];
-            const platforms = ['NetCE', 'CEUfast', 'AANP Cert', 'ExclamationCE'];
-            // CE Broker status from runResults
-            const cebrokerResult = (runResults || []).find(r => r.name === name);
-            let cebrokerCell = '<td class="cov-no">—</td>';
-            if (cebrokerResult) {
-              if (cebrokerResult.status === 'success') {
-                cebrokerCell = '<td class="cov-yes">✓</td>';
-              } else if (cebrokerResult.status === 'login_error' || cebrokerResult.status === 'failed') {
-                cebrokerCell = '<td class="cov-fail">✗</td>';
+          ${(() => {
+            const allPlatforms = ['CE Broker', 'NetCE', 'CEUfast', 'AANP Cert', 'ExclamationCE'];
+            const platformTotals = { 'CE Broker': { yes: 0, fail: 0, no: 0 }, 'NetCE': { yes: 0, fail: 0, no: 0 }, 'CEUfast': { yes: 0, fail: 0, no: 0 }, 'AANP Cert': { yes: 0, fail: 0, no: 0 }, 'ExclamationCE': { yes: 0, fail: 0, no: 0 } };
+            const totalProviders = providerEntries.length;
+
+            const rows = providerEntries.map(([name, info]) => {
+              const providerPlatforms = platformByProvider[name] || [];
+              const platforms = ['NetCE', 'CEUfast', 'AANP Cert', 'ExclamationCE'];
+
+              // CE Broker status from runResults
+              const cebrokerResult = (runResults || []).find(r => r.name === name);
+              let cebrokerStatus = 'no';
+              let cebrokerCell = '<td class="cov-no">—</td>';
+              if (cebrokerResult) {
+                if (cebrokerResult.status === 'success') {
+                  cebrokerCell = '<td class="cov-yes">✓</td>';
+                  cebrokerStatus = 'yes';
+                  platformTotals['CE Broker'].yes++;
+                } else if (cebrokerResult.status === 'login_error' || cebrokerResult.status === 'failed') {
+                  cebrokerCell = '<td class="cov-fail">✗</td>';
+                  cebrokerStatus = 'fail';
+                  platformTotals['CE Broker'].fail++;
+                } else {
+                  platformTotals['CE Broker'].no++;
+                }
+              } else {
+                platformTotals['CE Broker'].no++;
               }
-            }
-            const cells = platforms.map(plat => {
-              const result = providerPlatforms.find(p => p.platform === plat);
-              if (!result) return '<td class="cov-no">—</td>';
-              if (result.status === 'success') {
-                const hours = result.hoursEarned !== null ? result.hoursEarned + 'h' : '✓';
-                return '<td class="cov-yes">' + hours + '</td>';
-              }
-              return '<td class="cov-fail">✗</td>';
+
+              // Platform cells
+              let connectedCount = cebrokerStatus === 'yes' ? 1 : 0;
+              const cells = platforms.map(plat => {
+                const result = providerPlatforms.find(p => p.platform === plat);
+                if (!result) {
+                  platformTotals[plat].no++;
+                  return '<td class="cov-no">—</td>';
+                }
+                if (result.status === 'success') {
+                  platformTotals[plat].yes++;
+                  connectedCount++;
+                  const hours = result.hoursEarned !== null ? result.hoursEarned + 'h' : '✓';
+                  return '<td class="cov-yes">' + hours + '</td>';
+                }
+                platformTotals[plat].fail++;
+                return '<td class="cov-fail">✗</td>';
+              }).join('');
+
+              // Coverage score
+              const coveragePct = Math.round((connectedCount / 5) * 100);
+              let scoreClass = 'cov-score-low';
+              let fillClass = 'fill-low';
+              let rowClass = 'cov-row-none';
+              if (coveragePct === 100) { scoreClass = 'cov-score-full'; fillClass = 'fill-full'; rowClass = 'cov-row-full'; }
+              else if (coveragePct >= 60) { scoreClass = 'cov-score-good'; fillClass = 'fill-good'; rowClass = 'cov-row-good'; }
+              else if (coveragePct >= 40) { scoreClass = 'cov-score-partial'; fillClass = 'fill-partial'; rowClass = 'cov-row-partial'; }
+              else if (coveragePct >= 20) { rowClass = 'cov-row-minimal'; }
+
+              const scoreCell = '<td><div class="cov-score ' + scoreClass + '">' + coveragePct + '%</div><div class="cov-score-bar"><div class="cov-score-fill ' + fillClass + '" style="width:' + coveragePct + '%"></div></div></td>';
+
+              const safeName = escHtml(name).replace(/'/g, '&#39;');
+              return '<tr class="' + rowClass + '"><td class="cov-provider" onclick="openProvider(\'' + safeName + '\')">' + escHtml(name) + '</td>' + cebrokerCell + cells + scoreCell + '</tr>';
             }).join('');
-            const safeName = escHtml(name).replace(/'/g, '&#39;');
-            return '<tr><td class="cov-provider" onclick="openProvider(\'' + safeName + '\')">' + escHtml(name) + '</td>' + cebrokerCell + cells + '</tr>';
-          }).join('')}
-        </tbody>
+
+            // Summary footer
+            const footerCells = allPlatforms.map(plat => {
+              const t = platformTotals[plat];
+              const pct = totalProviders > 0 ? Math.round((t.yes / totalProviders) * 100) : 0;
+              return '<td><div class="cov-summary-stat"><span class="cov-summary-num sum-green">' + t.yes + '</span><span class="cov-summary-pct">' + pct + '% connected</span></div></td>';
+            }).join('');
+
+            const avgCoverage = totalProviders > 0 ? Math.round((Object.values(platformTotals).reduce((sum, t) => sum + t.yes, 0) / (totalProviders * 5)) * 100) : 0;
+            const avgClass = avgCoverage >= 80 ? 'sum-green' : avgCoverage >= 50 ? 'sum-gray' : 'sum-red';
+            const footerScore = '<td><div class="cov-summary-stat"><span class="cov-summary-num ' + avgClass + '">' + avgCoverage + '%</span><span class="cov-summary-pct">average</span></div></td>';
+
+            return rows + '</tbody><tfoot><tr><td class="cov-summary-label">Total (' + totalProviders + ' providers)</td>' + footerCells + footerScore + '</tr></tfoot>';
+          })()}
       </table>
     </div>
   </div>
