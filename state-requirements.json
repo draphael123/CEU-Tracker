@@ -35,6 +35,36 @@
           "lookbackYears": null
         }
       ]
+    },
+    "RN": {
+      "description": "Florida RN Requirements",
+      "totalHours": 24,
+      "subjects": [
+        {
+          "name": "Prevention of Medical Errors",
+          "pattern": "medical.*error|error.*prevent|patient.*safety",
+          "hoursRequired": 2,
+          "lookbackYears": null
+        },
+        {
+          "name": "Domestic Violence",
+          "pattern": "domestic.*violen|intimate.*partner|family.*violen",
+          "hoursRequired": 2,
+          "lookbackYears": null
+        },
+        {
+          "name": "Human Trafficking",
+          "pattern": "human.*traffick|trafficking",
+          "hoursRequired": 2,
+          "lookbackYears": null
+        },
+        {
+          "name": "HIV/AIDS",
+          "pattern": "hiv|aids|human.*immuno",
+          "hoursRequired": 1,
+          "lookbackYears": null
+        }
+      ]
     }
   },
   "OH": {
@@ -113,6 +143,18 @@
           "lookbackYears": null
         }
       ]
+    },
+    "RN": {
+      "description": "Texas RN Requirements",
+      "totalHours": 20,
+      "subjects": [
+        {
+          "name": "Nursing Jurisprudence & Ethics",
+          "pattern": "jurisprud|ethics|legal.*nurs",
+          "hoursRequired": 2,
+          "lookbackYears": null
+        }
+      ]
     }
   },
   "NY": {
@@ -120,6 +162,24 @@
     "NP": {
       "description": "New York NP Requirements",
       "totalHours": 30,
+      "subjects": [
+        {
+          "name": "Infection Control",
+          "pattern": "infection.*control|infect.*prevent",
+          "hoursRequired": 4,
+          "lookbackYears": 4
+        },
+        {
+          "name": "Child Abuse Identification",
+          "pattern": "child.*abuse|abuse.*identif|maltreat",
+          "hoursRequired": 2,
+          "lookbackYears": null
+        }
+      ]
+    },
+    "RN": {
+      "description": "New York RN Requirements",
+      "totalHours": 3,
       "subjects": [
         {
           "name": "Infection Control",

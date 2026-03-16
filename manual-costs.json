@@ -1,0 +1,30 @@
+{
+  "description": "Manual cost entries for providers. Add entries here for costs not captured by scrapers.",
+  "instructions": {
+    "subscriptions": "Add organization-wide or per-provider subscription costs",
+    "courses": "Add individual course costs by provider name"
+  },
+  "examples": {
+    "subscription": {
+      "name": "NetCE Unlimited Annual",
+      "platform": "NetCE",
+      "cost": 99,
+      "period": "annual",
+      "startDate": "2026-01-01"
+    },
+    "course": {
+      "courseName": "HIV/AIDS for Healthcare Professionals",
+      "date": "2026-01-15",
+      "hours": 2,
+      "cost": 29.99,
+      "platform": "NetCE"
+    }
+  },
+  "entries": {
+    "subscriptions": {
+      "organization": [],
+      "perProvider": {}
+    },
+    "courses": {}
+  }
+}

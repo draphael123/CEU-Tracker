@@ -11,6 +11,7 @@ const { runLicenseVerification } = require('./license-scraper');
 const { buildReport } = require('./exporter');
 const { buildDashboard } = require('./dashboard-builder');
 const { logger, randomDelay, printSummary, ensureScreenshotsDir } = require('./utils');
+const { runChangeDetection } = require('./change-detector');
 
 // ─── Load Providers ──────────────────────────────────────────────────────────
 const providers = require('./providers.json');
@@ -106,6 +107,30 @@ async function main() {
     const pOk   = platformData.filter(r => r.status === 'success').length;
     const pFail = platformData.filter(r => r.status === 'failed').length;
     logger.success(`Platform scrapers done: ${pOk} succeeded, ${pFail} failed`);
+
+    // Save platform data with costs
+    const platformDataFile = path.join(__dirname, 'platform-data.json');
+    const costSummary = platformData
+      .filter(r => r.status === 'success' && r.totalSpent)
+      .map(r => ({ provider: r.providerName, platform: r.platform, spent: r.totalSpent }));
+
+    if (costSummary.length > 0) {
+      logger.info(`Cost data found: ${costSummary.length} platform(s) with spending`);
+      costSummary.forEach(c => logger.info(`  ${c.provider} - ${c.platform}: $${c.spent.toFixed(2)}`));
+    }
+
+    fs.writeFileSync(platformDataFile, JSON.stringify({
+      timestamp: new Date().toISOString(),
+      results: platformData.map(r => ({
+        providerName: r.providerName,
+        platform: r.platform,
+        status: r.status,
+        hoursEarned: r.hoursEarned,
+        totalSpent: r.totalSpent,
+        courseCount: r.courses?.length || 0,
+        orderCount: r.orders?.length || 0,
+      }))
+    }, null, 2));
   } catch (platformErr) {
     logger.error(`Platform scraper error: ${platformErr.message}`);
   }
@@ -131,6 +156,20 @@ async function main() {
     logger.success(`Excel report saved: ${outputPath}`);
   } catch (exportErr) {
     logger.error(`Excel export failed: ${exportErr.message}`);
+  }
+
+  // ── Run change detection ────────────────────────────────────────────────────
+  try {
+    const changeResult = runChangeDetection();
+    if (changeResult.detected > 0) {
+      logger.success(`Change detection: ${changeResult.detected} change(s) logged`);
+    } else if (changeResult.firstRun) {
+      logger.info('Change detection: Initial snapshot created');
+    } else {
+      logger.info('Change detection: No changes detected');
+    }
+  } catch (changeErr) {
+    logger.error(`Change detection failed: ${changeErr.message}`);
   }
 
   // ── Build HTML dashboard ───────────────────────────────────────────────────

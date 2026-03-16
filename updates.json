@@ -1,0 +1,32 @@
+[
+  {
+    "date": "March 2, 2026",
+    "type": "new",
+    "title": "Ashley Escoe, NP added to tracking",
+    "desc": "New provider added to the compliance dashboard. Credentials pending setup."
+  },
+  {
+    "date": "March 2, 2026",
+    "type": "removed",
+    "title": "Jacquelyn Sexton, NP removed from tracking",
+    "desc": "Provider terminated as of 2/28/2026. Removed from active provider list."
+  },
+  {
+    "date": "March 2, 2026",
+    "type": "new",
+    "title": "Michele Foster credentials added",
+    "desc": "Added Nursing CE Central platform login for Michele Foster, NP."
+  },
+  {
+    "date": "March 2, 2026",
+    "type": "new",
+    "title": "Alexis Foster-Horton credentials added",
+    "desc": "Added NetCE platform login for Alexis Foster-Horton, NP."
+  },
+  {
+    "date": "March 2, 2026",
+    "type": "new",
+    "title": "Skye Sauls credentials added",
+    "desc": "Added CEUfast platform login for Skye Sauls, NP."
+  }
+]

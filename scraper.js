@@ -2,6 +2,7 @@
 
 const { chromium } = require('playwright');
 const { logger, sleep, screenshotOnError } = require('./utils');
+const { recordSuccess, recordFailure } = require('./credential-health');
 
 // ─── Browser Launch ──────────────────────────────────────────────────────────
 
@@ -16,60 +17,82 @@ async function launchBrowser() {
 
 // ─── Login ───────────────────────────────────────────────────────────────────
 
+const MAX_LOGIN_RETRIES = 3;
+
 /**
  * Two-step login on launchpad.cebroker.com/login:
  *   Step 1 → fill username → click Continue
  *   Step 2 → fill password → click Log in
  *
  * Returns an open page on the dashboard, throws on failure.
+ * Retries up to MAX_LOGIN_RETRIES times on failure.
  */
 async function loginProvider(browser, provider) {
   const { name, username, password } = provider;
   logger.info(`Logging in as ${name} (${username})...`);
 
-  const context = await browser.newContext({
-    viewport: { width: 1400, height: 900 },
-    userAgent:
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
-      '(KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-  });
-  const page = await context.newPage();
+  let lastError;
 
-  try {
-    await page.goto('https://launchpad.cebroker.com/login', {
-      waitUntil: 'domcontentloaded',
-      timeout: 30000,
+  for (let attempt = 1; attempt <= MAX_LOGIN_RETRIES; attempt++) {
+    const context = await browser.newContext({
+      viewport: { width: 1400, height: 900 },
+      userAgent:
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
+        '(KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
     });
-    await sleep(1500);
+    const page = await context.newPage();
 
-    // Step 1 — username
-    await page.waitForSelector('input[name="username"]', { timeout: 15000 });
-    await page.fill('input[name="username"]', username);
-    await sleep(400);
-    await page.click('button[type="submit"]');   // "Continue"
+    try {
+      // Add extra delay on first attempt to let browser warm up
+      if (attempt === 1) {
+        await sleep(1000);
+      }
 
-    // Step 2 — password (same URL, SPA reveals the field)
-    await page.waitForSelector('input[name="password"]', { timeout: 15000 });
-    await sleep(400);
-    await page.fill('input[name="password"]', password);
-    await sleep(300);
-    await page.click('button[type="submit"]');   // "Log in"
+      await page.goto('https://launchpad.cebroker.com/login', {
+        waitUntil: 'domcontentloaded',
+        timeout: 30000,
+      });
+      await sleep(1500);
 
-    // Wait for URL to reach the licensees dashboard (handles redirect via /login?redirect_to=...)
-    await page.waitForURL(
-      u => u.toString().includes('licensees.cebroker.com') && !u.toString().includes('/login'),
-      { timeout: 25000 }
-    );
-    await sleep(2500);
+      // Step 1 — username
+      await page.waitForSelector('input[name="username"]', { timeout: 15000 });
+      await page.fill('input[name="username"]', username);
+      await sleep(400);
+      await page.click('button[type="submit"]');   // "Continue"
 
-    logger.success(`Logged in as ${name}`);
-    return page;
+      // Step 2 — password (same URL, SPA reveals the field)
+      await page.waitForSelector('input[name="password"]', { timeout: 15000 });
+      await sleep(400);
+      await page.fill('input[name="password"]', password);
+      await sleep(300);
+      await page.click('button[type="submit"]');   // "Log in"
 
-  } catch (err) {
-    await screenshotOnError(page, name, 'login_error');
-    await context.close();
-    throw err;
+      // Wait for URL to reach the licensees dashboard (handles redirect via /login?redirect_to=...)
+      await page.waitForURL(
+        u => u.toString().includes('licensees.cebroker.com') && !u.toString().includes('/login'),
+        { timeout: 25000 }
+      );
+      await sleep(2500);
+
+      logger.success(`Logged in as ${name}`);
+      recordSuccess(name, 'CE Broker');
+      return page;
+
+    } catch (err) {
+      lastError = err;
+      await screenshotOnError(page, name, `login_error_attempt${attempt}`);
+      try { await context.close(); } catch { /* ignore */ }
+
+      if (attempt < MAX_LOGIN_RETRIES) {
+        logger.warn(`Login attempt ${attempt}/${MAX_LOGIN_RETRIES} failed for ${name}, retrying in 3s...`);
+        await sleep(3000);
+      }
+    }
   }
+
+  // All retries exhausted
+  recordFailure(name, 'CE Broker', lastError?.message || 'Unknown error');
+  throw lastError;
 }
 
 // ─── Data Scraping ────────────────────────────────────────────────────────────

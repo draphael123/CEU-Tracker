@@ -561,6 +561,48 @@
   "Priya Chaudhari, NP": {
     "courses": [
       {
+        "date": "2026-03-14",
+        "name": "Florida autonomous aprn 45-hour pharmacology initial certification package",
+        "hours": 1,
+        "state": "Florida",
+        "scrapedAt": "2026-03-15"
+      },
+      {
+        "date": "2026-03-14",
+        "name": "Florida autonomous aprn 45-hour pharmacology initial certification package",
+        "hours": 45,
+        "state": "Florida",
+        "scrapedAt": "2026-03-15"
+      },
+      {
+        "date": "2026-03-14",
+        "name": "Florida autonomous aprn 45-hour pharmacology initial certification package",
+        "hours": 2,
+        "state": "Florida",
+        "scrapedAt": "2026-03-15"
+      },
+      {
+        "date": "2026-03-14",
+        "name": "Florida autonomous aprn 45-hour pharmacology initial certification package",
+        "hours": 3,
+        "state": "Florida",
+        "scrapedAt": "2026-03-15"
+      },
+      {
+        "date": "2026-03-14",
+        "name": "Florida autonomous aprn 45-hour pharmacology initial certification package",
+        "hours": 4,
+        "state": "Florida",
+        "scrapedAt": "2026-03-15"
+      },
+      {
+        "date": "2026-03-14",
+        "name": "Florida autonomous aprn 45-hour pharmacology initial certification package",
+        "hours": 6,
+        "state": "Florida",
+        "scrapedAt": "2026-03-15"
+      },
+      {
         "date": "2026-02-27",
         "name": "Ancc approved- safe and effective prescription of controlled substances",
         "hours": 2,
@@ -573,6 +615,20 @@
         "hours": 3,
         "state": "Florida",
         "scrapedAt": "2026-03-01"
+      },
+      {
+        "date": "2026-02-27",
+        "name": "Ancc approved- safe and effective prescription of controlled substances",
+        "hours": 4,
+        "state": "Florida",
+        "scrapedAt": "2026-03-02"
+      },
+      {
+        "date": "2026-02-27",
+        "name": "Ancc approved- safe and effective prescription of controlled substances",
+        "hours": 6,
+        "state": "Florida",
+        "scrapedAt": "2026-03-02"
       }
     ],
     "deadlines": [
@@ -691,5 +747,192 @@
       }
     ],
     "type": "NP"
+  },
+  "Unknown": {
+    "courses": [],
+    "deadlines": [
+      {
+        "date": "2027-04-30",
+        "state": "Florida"
+      },
+      {
+        "date": "2026-07-31",
+        "state": "Florida"
+      },
+      {
+        "date": "2027-06-30",
+        "state": "New Mexico"
+      },
+      {
+        "date": "2028-02-29",
+        "state": "New York"
+      },
+      {
+        "date": "2027-05-31",
+        "state": "Texas"
+      },
+      {
+        "date": "2028-02-28",
+        "state": "Texas"
+      },
+      {
+        "date": "2028-03-01",
+        "state": "Michigan"
+      },
+      {
+        "date": "2026-04-30",
+        "state": "Florida"
+      },
+      {
+        "date": "2027-09-30",
+        "state": "New Mexico"
+      },
+      {
+        "date": "2026-05-31",
+        "state": "New Mexico"
+      }
+    ]
+  },
+  "Lindsay Burden, NP": {
+    "courses": [
+      {
+        "date": "2025-03-10",
+        "name": "Part 2 - expert perspectives on practice-changing strategies for improved patient outcomes in multiple myeloma",
+        "hours": 2,
+        "state": "Florida",
+        "scrapedAt": "2026-03-09"
+      },
+      {
+        "date": "2025-03-10",
+        "name": "Part 2 - expert perspectives on practice-changing strategies for improved patient outcomes in multiple myeloma",
+        "hours": 1,
+        "state": "Florida",
+        "scrapedAt": "2026-03-09"
+      },
+      {
+        "date": "2025-03-10",
+        "name": "Part 2 - expert perspectives on practice-changing strategies for improved patient outcomes in multiple myeloma",
+        "hours": 4,
+        "state": "Florida",
+        "scrapedAt": "2026-03-09"
+      },
+      {
+        "date": "2025-03-10",
+        "name": "Part 2 - expert perspectives on practice-changing strategies for improved patient outcomes in multiple myeloma",
+        "hours": 1.5,
+        "state": "Florida",
+        "scrapedAt": "2026-03-09"
+      },
+      {
+        "date": "2025-03-10",
+        "name": "Part 2 - expert perspectives on practice-changing strategies for improved patient outcomes in multiple myeloma",
+        "hours": 3,
+        "state": "Florida",
+        "scrapedAt": "2026-03-09"
+      },
+      {
+        "date": "2025-03-10",
+        "name": "Part 2 - expert perspectives on practice-changing strategies for improved patient outcomes in multiple myeloma",
+        "hours": 0,
+        "state": "Florida",
+        "scrapedAt": "2026-03-09"
+      },
+      {
+        "date": "2025-03-10",
+        "name": "Part 2 - expert perspectives on practice-changing strategies for improved patient outcomes in multiple myeloma",
+        "hours": 6,
+        "state": "Florida",
+        "scrapedAt": "2026-03-09"
+      },
+      {
+        "date": "2025-03-10",
+        "name": "Part 2 - expert perspectives on practice-changing strategies for improved patient outcomes in multiple myeloma",
+        "hours": 2.5,
+        "state": "Florida",
+        "scrapedAt": "2026-03-09"
+      },
+      {
+        "date": "2025-01-27",
+        "name": "Acute flaccid myelitis (fl initial autonomous practice- differential diagnosis)",
+        "hours": 0,
+        "state": "Florida",
+        "scrapedAt": "2026-03-09"
+      },
+      {
+        "date": "2025-01-27",
+        "name": "Acute flaccid myelitis (fl initial autonomous practice- differential diagnosis)",
+        "hours": 3,
+        "state": "Florida",
+        "scrapedAt": "2026-03-09"
+      },
+      {
+        "date": "2025-01-27",
+        "name": "Acute flaccid myelitis (fl initial autonomous practice- differential diagnosis)",
+        "hours": 2,
+        "state": "Florida",
+        "scrapedAt": "2026-03-09"
+      },
+      {
+        "date": "2014-02-17",
+        "name": "Keeping patients safe and preventing medcal errors 2012-2013",
+        "hours": 2,
+        "state": "Florida",
+        "scrapedAt": "2026-03-09"
+      },
+      {
+        "date": "2014-02-17",
+        "name": "Keeping patients safe and preventing medcal errors 2012-2013",
+        "hours": 3,
+        "state": "Florida",
+        "scrapedAt": "2026-03-09"
+      },
+      {
+        "date": "2014-02-17",
+        "name": "Keeping patients safe and preventing medcal errors 2012-2013",
+        "hours": 1,
+        "state": "Florida",
+        "scrapedAt": "2026-03-09"
+      },
+      {
+        "date": "2014-02-17",
+        "name": "Keeping patients safe and preventing medcal errors 2012-2013",
+        "hours": 5,
+        "state": "Florida",
+        "scrapedAt": "2026-03-09"
+      },
+      {
+        "date": "2014-02-17",
+        "name": "Keeping patients safe and preventing medcal errors 2012-2013",
+        "hours": 1.5,
+        "state": "Florida",
+        "scrapedAt": "2026-03-09"
+      },
+      {
+        "date": "2014-02-17",
+        "name": "Keeping patients safe and preventing medcal errors 2012-2013",
+        "hours": 6.5,
+        "state": "Florida",
+        "scrapedAt": "2026-03-09"
+      }
+    ],
+    "deadlines": [
+      {
+        "date": "2027-04-30",
+        "state": "Florida",
+        "licenseType": "NP"
+      }
+    ],
+    "type": "NP"
+  },
+  "Bryce Hanley, RN": {
+    "courses": [],
+    "deadlines": [
+      {
+        "date": "2026-09-30",
+        "state": "Tennessee",
+        "licenseType": "RN"
+      }
+    ],
+    "type": "RN"
   }
 }

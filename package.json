@@ -8,11 +8,18 @@
     "start": "node index.js",
     "serve": "node server.js",
     "build": "echo Dashboard pre-built",
-    "install-browsers": "npx playwright install chromium"
+    "install-browsers": "npx playwright install chromium",
+    "schedule": "node scheduler.js",
+    "pdf": "node pdf-export.js",
+    "email": "node email-digest.js",
+    "email:setup": "node email-digest.js --setup"
   },
   "dependencies": {
     "exceljs": "^4.4.0",
     "express": "^5.2.1",
+    "node-cron": "^4.2.1",
+    "nodemailer": "^8.0.1",
+    "pdfkit": "^0.17.2",
     "playwright": "^1.41.0"
   },
   "devDependencies": {

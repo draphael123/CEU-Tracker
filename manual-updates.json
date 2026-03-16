@@ -1,0 +1,62 @@
+[
+  {
+    "date": "March 9, 2026",
+    "type": "new",
+    "title": "Weekly Summary tab added",
+    "desc": "New one-page summary tab showing compliance overview, deadlines, team breakdown, and platform data."
+  },
+  {
+    "date": "March 9, 2026",
+    "type": "new",
+    "title": "PM2 scheduler configured",
+    "desc": "Automated scheduler now runs via PM2 for reliable 10:30 PM EST daily scrapes and survives system restarts."
+  },
+  {
+    "date": "March 9, 2026",
+    "type": "new",
+    "title": "Bryce Hanley CE Broker credentials added",
+    "desc": "CE Broker login configured for Bryce Hanley, RN. Tennessee license now tracked (0/10 hrs)."
+  },
+  {
+    "date": "March 9, 2026",
+    "type": "new",
+    "title": "Lindsay Burden CE Broker credentials added",
+    "desc": "CE Broker login configured for Lindsay Burden, NP. Florida license now tracked."
+  },
+  {
+    "date": "March 5, 2026",
+    "type": "new",
+    "title": "Automatic change detection implemented",
+    "desc": "System now automatically detects and logs provider additions, removals, and credential changes."
+  },
+  {
+    "date": "March 5, 2026",
+    "type": "new",
+    "title": "Collapsible header and sidebar added",
+    "desc": "Added collapse toggles to minimize header and sidebar for more content space."
+  },
+  {
+    "date": "March 5, 2026",
+    "type": "changed",
+    "title": "Compact header and sidebar design",
+    "desc": "Reduced header and sidebar sizes for better content visibility."
+  },
+  {
+    "date": "March 5, 2026",
+    "type": "new",
+    "title": "Daily renewal reminders configured",
+    "desc": "Email reminders now sent daily at 8 AM EST for providers with renewals within 30 days."
+  },
+  {
+    "date": "March 5, 2026",
+    "type": "new",
+    "title": "How It Works documentation added",
+    "desc": "Added comprehensive documentation explaining the CEU tracking system."
+  },
+  {
+    "date": "March 2, 2026",
+    "type": "new",
+    "title": "Dashboard updates section added",
+    "desc": "New updates section added to track provider and system changes over time."
+  }
+]

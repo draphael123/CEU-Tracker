@@ -67,11 +67,13 @@ function isWithinMonths(dateStr, months) {
  * @param {string} providerName
  * @param {Array} courses - Array of courses with cost field
  * @param {Object} subscriptions - Subscriptions data
- * @returns {Object} { courseCosts, subscriptionCosts, totalSpend }
+ * @param {Object} platformDefaults - Default pricing for platforms
+ * @returns {Object} { courseCosts, subscriptionCosts, totalSpend, estimatedCosts }
  */
-function calculateRolling12MonthSpending(providerName, courses, subscriptions) {
+function calculateRolling12MonthSpending(providerName, courses, subscriptions, platformDefaults = {}) {
   const result = {
     courseCosts: 0,
+    estimatedCosts: 0,
     subscriptionCosts: 0,
     totalSpend: 0,
     courseCount: 0,
@@ -81,16 +83,33 @@ function calculateRolling12MonthSpending(providerName, courses, subscriptions) {
   // Sum course costs within last 12 months
   if (courses && Array.isArray(courses)) {
     for (const course of courses) {
-      if (course.cost && isWithinMonths(course.date, 12)) {
-        const cost = parseFloat(course.cost) || 0;
-        result.courseCosts += cost;
+      if (isWithinMonths(course.date, 12)) {
         result.courseCount++;
-        result.courseDetails.push({
-          name: course.name,
-          cost: cost,
-          date: course.date,
-          platform: course.platform || 'Unknown',
-        });
+        const platform = course.platform || 'Unknown';
+
+        if (course.cost) {
+          // Use actual cost
+          const cost = parseFloat(course.cost) || 0;
+          result.courseCosts += cost;
+          result.courseDetails.push({
+            name: course.name,
+            cost: cost,
+            date: course.date,
+            platform: platform,
+            isEstimate: false,
+          });
+        } else if (platformDefaults[platform]?.avgCoursePrice) {
+          // Use platform default estimate
+          const estimatedCost = platformDefaults[platform].avgCoursePrice;
+          result.estimatedCosts += estimatedCost;
+          result.courseDetails.push({
+            name: course.name,
+            cost: estimatedCost,
+            date: course.date,
+            platform: platform,
+            isEstimate: true,
+          });
+        }
       }
     }
   }
@@ -118,8 +137,9 @@ function calculateRolling12MonthSpending(providerName, courses, subscriptions) {
     }
   }
 
-  result.totalSpend = Math.round((result.courseCosts + result.subscriptionCosts) * 100) / 100;
+  result.totalSpend = Math.round((result.courseCosts + result.estimatedCosts + result.subscriptionCosts) * 100) / 100;
   result.courseCosts = Math.round(result.courseCosts * 100) / 100;
+  result.estimatedCosts = Math.round(result.estimatedCosts * 100) / 100;
   result.subscriptionCosts = Math.round(result.subscriptionCosts * 100) / 100;
 
   return result;
@@ -231,9 +251,13 @@ function mergeCostsIntoCourses(scrapedCourses, manualCosts) {
  * @returns {Object} Spending stats per provider
  */
 function calculateAllProviderSpending(courseHistory, costData) {
+  const platformDefaults = costData.platformDefaults || {};
+
   const stats = {
     byProvider: {},
     totalOrgSpend: 0,
+    totalActualCosts: 0,
+    totalEstimatedCosts: 0,
     orgSubscriptions: getOrganizationSubscriptionCosts(costData.subscriptions),
     byPlatform: {},
   };
@@ -248,7 +272,8 @@ function calculateAllProviderSpending(courseHistory, costData) {
     const spending = calculateRolling12MonthSpending(
       providerName,
       courses,
-      costData.subscriptions
+      costData.subscriptions,
+      platformDefaults
     );
 
     const hoursCompleted = courses.reduce((sum, c) => {
@@ -265,6 +290,8 @@ function calculateAllProviderSpending(courseHistory, costData) {
     };
 
     stats.totalOrgSpend += spending.totalSpend;
+    stats.totalActualCosts += spending.courseCosts;
+    stats.totalEstimatedCosts += spending.estimatedCosts;
 
     // Aggregate platform spending
     const platformSpend = calculateSpendingByPlatform(courses);
@@ -276,6 +303,8 @@ function calculateAllProviderSpending(courseHistory, costData) {
   // Add org subscriptions to total
   stats.totalOrgSpend += stats.orgSubscriptions;
   stats.totalOrgSpend = Math.round(stats.totalOrgSpend * 100) / 100;
+  stats.totalActualCosts = Math.round(stats.totalActualCosts * 100) / 100;
+  stats.totalEstimatedCosts = Math.round(stats.totalEstimatedCosts * 100) / 100;
 
   // Round platform totals
   for (const key of Object.keys(stats.byPlatform)) {

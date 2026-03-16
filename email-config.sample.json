@@ -1,0 +1,16 @@
+{
+  "smtp": {
+    "host": "smtp.gmail.com",
+    "port": 587,
+    "secure": false,
+    "auth": {
+      "user": "your-email@gmail.com",
+      "pass": "your-app-password"
+    }
+  },
+  "from": "CEU Tracker <your-email@gmail.com>",
+  "recipients": [
+    "recipient1@example.com",
+    "recipient2@example.com"
+  ]
+}

@@ -7,7 +7,12 @@ node_modules/
 # ── Generated artifacts ───────────────────────────────────────────────────────
 screenshots/
 *.xlsx
+*.pdf
 last_run.json
+nul
+credential-health.json
+providers-snapshot.json
+email-config.json
 
 # ── Env ───────────────────────────────────────────────────────────────────────
 .env
@@ -16,3 +21,5 @@ last_run.json
 # ── Editor / tooling ──────────────────────────────────────────────────────────
 .claude/
 .cursor/
+.vercel
+.env*.local
