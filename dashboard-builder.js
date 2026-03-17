@@ -4297,9 +4297,9 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
 <!-- ── App Layout with Sidebar ─────────────────────────────────────────── -->
 <div class="app-layout">
   <!-- Sidebar Navigation -->
-  <aside class="sidebar" id="sidebar">
-    <button class="sidebar-collapse-btn" onclick="toggleSidebarCollapse()" title="Collapse sidebar" id="sidebarCollapseBtn">
-      <span id="sidebarCollapseIcon">◀</span>
+  <aside class="sidebar collapsed" id="sidebar">
+    <button class="sidebar-collapse-btn" onclick="toggleSidebarCollapse()" title="Expand sidebar" id="sidebarCollapseBtn">
+      <span id="sidebarCollapseIcon">▶</span>
     </button>
     <nav class="sidebar-nav">
       <button class="nav-item active" onclick="showTab('providers')" data-tab="providers">
@@ -6194,11 +6194,15 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
 
   // Restore collapse states on load
   (function() {
-    if (localStorage.getItem('ceu-sidebar-collapsed') === '1') {
-      document.getElementById('sidebar')?.classList.add('collapsed');
-      document.body.classList.add('sidebar-collapsed');
+    // Sidebar is collapsed by default; only expand if user explicitly saved '0'
+    if (localStorage.getItem('ceu-sidebar-collapsed') === '0') {
+      document.getElementById('sidebar')?.classList.remove('collapsed');
+      document.body.classList.remove('sidebar-collapsed');
       const icon = document.getElementById('sidebarCollapseIcon');
-      if (icon) icon.textContent = '▶';
+      if (icon) icon.textContent = '◀';
+    } else {
+      // Ensure body class matches default collapsed state
+      document.body.classList.add('sidebar-collapsed');
     }
     if (localStorage.getItem('ceu-header-collapsed') === '1') {
       document.querySelector('header')?.classList.add('collapsed');
