@@ -3893,43 +3893,6 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     [data-theme="dark"] .spending-order-item { background: #1e293b; }
     [data-theme="dark"] .spending-order-total { color: #34d399; }
 
-    /* ─ Expense Tab Styles ─ */
-    .expense-summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 8px; }
-    .expense-card { background: var(--bg-secondary); border-radius: 12px; padding: 20px; text-align: center; border: 1px solid var(--border-color); }
-    .expense-card-total { background: linear-gradient(135deg, #f0fdf4, #dcfce7); border-color: #16a34a; }
-    .expense-card-value { font-size: 1.6rem; font-weight: 800; color: #059669; }
-    .expense-card-total .expense-card-value { font-size: 2rem; color: #166534; }
-    .expense-card-label { font-size: 0.75rem; text-transform: uppercase; color: var(--text-secondary); margin-top: 6px; font-weight: 600; letter-spacing: 0.3px; }
-    .expense-platform-list { display: flex; flex-direction: column; gap: 12px; }
-    .expense-platform-row { display: grid; grid-template-columns: 140px 1fr 90px; gap: 12px; align-items: center; padding: 8px 0; }
-    .expense-platform-name { font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .expense-platform-bar-track { height: 12px; background: var(--bg-tertiary); border-radius: 99px; overflow: hidden; }
-    .expense-platform-bar-fill { height: 100%; border-radius: 99px; transition: width 0.3s ease; }
-    .expense-platform-amount { font-weight: 700; color: #059669; text-align: right; font-size: 0.95rem; }
-    .expense-table th { font-size: 0.75rem; text-transform: uppercase; }
-    .expense-table td { font-size: 0.9rem; }
-    .expense-table .efficiency-great { color: #059669; font-weight: 700; }
-    .expense-table .efficiency-good { color: #14b8a6; font-weight: 600; }
-    .expense-table .efficiency-fair { color: #d97706; font-weight: 600; }
-    .expense-table .efficiency-poor { color: #dc2626; font-weight: 700; }
-    .expense-subscriptions { display: flex; flex-direction: column; gap: 12px; }
-    .expense-subscription-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; background: var(--bg-secondary); border-radius: 10px; border: 1px solid var(--border-color); }
-    .expense-subscription-name { font-weight: 600; color: var(--text-primary); }
-    .expense-subscription-details { display: flex; gap: 16px; align-items: center; }
-    .expense-subscription-platform { font-size: 0.85rem; color: var(--text-secondary); padding: 4px 10px; background: var(--bg-tertiary); border-radius: 6px; }
-    .expense-subscription-cost { font-weight: 700; color: #059669; }
-    .expense-no-data { font-size: 0.9rem; color: var(--text-secondary); font-style: italic; padding: 20px; text-align: center; }
-
-    /* Dark mode for expense tab */
-    [data-theme="dark"] .expense-card { background: var(--bg-secondary); border-color: var(--border-color); }
-    [data-theme="dark"] .expense-card-total { background: rgba(16, 185, 129, 0.15); border-color: #065f46; }
-    [data-theme="dark"] .expense-card-value { color: #34d399; }
-    [data-theme="dark"] .expense-card-total .expense-card-value { color: #4ade80; }
-    [data-theme="dark"] .expense-platform-bar-track { background: #334155; }
-    [data-theme="dark"] .expense-platform-amount { color: #34d399; }
-    [data-theme="dark"] .expense-subscription-item { background: var(--bg-secondary); }
-    [data-theme="dark"] .expense-subscription-cost { color: #34d399; }
-
     /* ─ Platform Coverage Tab ─ */
     .platform-view { display: none; padding: 20px 0; }
     .platform-view.active { display: block; }
@@ -4368,13 +4331,6 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
           <span class="nav-desc">Export & history</span>
         </div>
       </button>
-      <button class="nav-item" onclick="showTab('expenses')" data-tab="expenses">
-        <span class="nav-icon">💰</span>
-        <div class="nav-label-wrap">
-          <span class="nav-label">Expenses</span>
-          <span class="nav-desc">Cost tracking</span>
-        </div>
-      </button>
       <button class="nav-item" onclick="showTab('help')" data-tab="help">
         <span class="nav-icon">❓</span>
         <div class="nav-label-wrap">
@@ -4421,7 +4377,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
           ? `<span class="quick-summary-highlight">All ${total} providers are on track!</span> No immediate action needed.`
           : atRisk > 0
             ? `<strong>${complete} of ${total}</strong> providers are on track. <span class="quick-summary-warning">${atRisk} need${atRisk === 1 ? 's' : ''} attention</span> before their renewal deadline${atRisk === 1 ? '' : 's'}.`
-            : `<strong>${complete} of ${total}</strong> providers are on track. ${noCredentialsProviders.length} have no CEU credentials.`
+            : `<strong>${complete} of ${total}</strong> providers are on track. ${noCredentialsProviders.length} still need CE Broker credentials.`
         }
       </div>
     </div>
@@ -4610,7 +4566,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
         ${noCredentialsProviders.length > 0 ? `
         <div class="dash-action-item dash-action-info" onclick="showTab('providers'); document.getElementById('noCredsFilter').checked = true; filterCards();">
           <span class="dash-action-icon">○</span>
-          <span class="dash-action-text"><strong>${noCredentialsProviders.length}</strong> provider${noCredentialsProviders.length !== 1 ? 's' : ''} with no CEU credentials</span>
+          <span class="dash-action-text"><strong>${noCredentialsProviders.length}</strong> providers need CE Broker credentials</span>
           <span class="dash-action-arrow">→</span>
         </div>` : ''}
         ${loginErrors.length > 0 ? `
@@ -4669,8 +4625,19 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
         <span class="compliance-score-title">Team Compliance</span>
       </div>
       <div class="compliance-score-value ${complianceScore >= 80 ? 'score-good' : complianceScore >= 60 ? 'score-warning' : 'score-bad'}">${complianceScore}%</div>
-      <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 8px;">
-        ${complete} of ${total} providers on track
+      <div class="compliance-breakdown">
+        <div class="compliance-breakdown-item">
+          <div class="compliance-breakdown-num" style="color: var(--status-green);">${complete}</div>
+          <div class="compliance-breakdown-label">Complete</div>
+        </div>
+        <div class="compliance-breakdown-item">
+          <div class="compliance-breakdown-num" style="color: var(--status-amber);">${inProg}</div>
+          <div class="compliance-breakdown-label">In Progress</div>
+        </div>
+        <div class="compliance-breakdown-item">
+          <div class="compliance-breakdown-num" style="color: var(--status-red);">${atRisk}</div>
+          <div class="compliance-breakdown-label">At Risk</div>
+        </div>
       </div>
     </div>
 
@@ -4685,16 +4652,25 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     </div>
   </div>
 
-  <!-- Last Run Summary (Compact) -->
-  <div class="dashboard-run-summary-compact">
-    <span class="run-summary-icon">🔄</span>
-    <span class="run-summary-text">Last synced: <strong id="lastScrapedValue" data-iso="${runIso}">${escHtml(runDate)}</strong></span>
-    <span class="run-summary-ago" id="lastScrapedAgo"></span>
-    <span class="run-summary-stats-compact">
-      ${(runResults || []).filter(r => r.status === 'success').length + platformData.filter(p => p.status === 'success').length} successful
-      ${loginErrors.length > 0 ? ` · <span style="color: var(--status-red);">${loginErrors.length} failed</span>` : ''}
-    </span>
-    <a href="#" onclick="showTab('status'); return false;" class="run-details-link">View Details →</a>
+  <!-- Last Run Summary Bar -->
+  <div class="dashboard-run-summary">
+    <div class="run-summary-header">
+      <span class="run-summary-title">Last Scrape</span>
+      <span class="run-summary-time" id="lastScrapedValue" data-iso="${runIso}">${escHtml(runDate)}</span>
+      <span class="run-summary-ago" id="lastScrapedAgo"></span>
+    </div>
+    <div class="run-summary-stats">
+      <div class="run-stat">
+        <span class="run-stat-label">CE Broker</span>
+        <span class="run-stat-value">${(runResults || []).filter(r => r.status === 'success').length} <span class="run-ok">✓</span></span>
+        ${loginErrors.length > 0 ? `<span class="run-stat-value">${loginErrors.length} <span class="run-fail">✗</span></span>` : ''}
+        <span class="run-stat-value">${(runResults || []).filter(r => r.status === 'not_configured').length} skipped</span>
+      </div>
+      <div class="run-stat">
+        <span class="run-stat-label">Platforms</span>
+        <span class="run-stat-value">${platformData.filter(p => p.status === 'success').length} <span class="run-ok">✓</span></span>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -4757,9 +4733,9 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       cards += '<div class="action-item-card action-info" onclick="showTab(&quot;platforms&quot;); setTimeout(function(){ showPlatformView(&quot;gaps&quot;); }, 100)">' +
         '<div class="action-item-icon">🔑</div>' +
         '<div class="action-item-content">' +
-          '<div class="action-item-label">No CEU Credentials</div>' +
+          '<div class="action-item-label">Missing CE Broker Login</div>' +
           '<div class="action-item-value">' + missingCredsCount + ' provider' + (missingCredsCount !== 1 ? 's' : '') + '</div>' +
-          '<div class="action-item-detail"><strong>Action:</strong> Request CEU platform credentials from these providers</div>' +
+          '<div class="action-item-detail"><strong>Action:</strong> Request CE Broker username/password from these providers</div>' +
           '<div class="action-item-providers">' + names.map(n => '<span class="action-provider-chip">' + escHtml(n) + '</span>').join('') + (moreCount > 0 ? '<span class="action-provider-chip">+' + moreCount + ' more</span>' : '') + '</div>' +
         '</div>' +
       '</div>';
@@ -5787,68 +5763,31 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       </div>
     </div>
 
-    <!-- Email Notifications -->
+    <!-- Email Reminders -->
     <div class="help-section">
       <h2 class="help-section-title">
         <span class="help-icon">📧</span>
-        Automated Email Notifications
+        Email Reminders
       </h2>
       <div class="help-content">
         <div class="help-email-info">
-          <h3>📅 Weekly Compliance Digest</h3>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 12px 0;">
-            <div>
-              <strong style="color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase;">Schedule</strong>
-              <p style="margin: 4px 0;">Every <strong>Monday at 9:00 AM EST</strong></p>
-            </div>
-            <div>
-              <strong style="color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase;">Recipients</strong>
-              <p style="margin: 4px 0; font-size: 0.9rem;">brittany.toliver@fountain.net<br>faith@fountain.net<br>daniel@fountain.net</p>
-            </div>
-          </div>
-          <div style="background: var(--bg-tertiary); border-radius: 8px; padding: 12px; margin-top: 12px;">
-            <strong>Email Contents:</strong>
-            <ul style="margin: 8px 0 0 16px; line-height: 1.8;">
-              <li>Summary statistics (Complete, In Progress, At Risk counts)</li>
-              <li>Highlighted list of At Risk providers with details</li>
-              <li>Full provider compliance status table</li>
-              <li><strong>PDF Attachment:</strong> Complete compliance report for records</li>
-            </ul>
-          </div>
+          <h3>Daily Renewal Reminders</h3>
+          <p>Sent daily at <strong>8:00 AM EST</strong> to:</p>
+          <ul>
+            <li>brittany.toliver@fountain.net</li>
+            <li>faith@fountain.net</li>
+          </ul>
+          <p>Reminders are sent when providers have:</p>
+          <ul>
+            <li>Renewal deadline within 30 days</li>
+            <li>Status is NOT Complete (still have CE hours remaining)</li>
+          </ul>
+          <p class="help-note">Reminders continue daily until the provider completes their requirements or the deadline passes.</p>
         </div>
         <div class="help-email-info">
-          <h3>⚠️ Daily Renewal Reminders</h3>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 12px 0;">
-            <div>
-              <strong style="color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase;">Schedule</strong>
-              <p style="margin: 4px 0;">Daily at <strong>8:00 AM EST</strong></p>
-            </div>
-            <div>
-              <strong style="color: var(--text-secondary); font-size: 0.75rem; text-transform: uppercase;">Recipients</strong>
-              <p style="margin: 4px 0; font-size: 0.9rem;">brittany.toliver@fountain.net<br>faith@fountain.net<br>daniel@fountain.net</p>
-            </div>
-          </div>
-          <div style="background: #fef3c7; border-radius: 8px; padding: 12px; margin-top: 12px; border-left: 4px solid #f59e0b;">
-            <strong>Only Sends When:</strong>
-            <ul style="margin: 8px 0 0 16px; line-height: 1.8;">
-              <li>Provider has a renewal deadline within <strong>90 days</strong></li>
-              <li>Provider has NOT completed all required CE hours</li>
-            </ul>
-          </div>
-          <div style="background: var(--bg-tertiary); border-radius: 8px; padding: 12px; margin-top: 12px;">
-            <strong>Email Contents:</strong>
-            <ul style="margin: 8px 0 0 16px; line-height: 1.8;">
-              <li>Provider name and state</li>
-              <li>Renewal deadline and days remaining</li>
-              <li>CE hours completed vs. required</li>
-              <li>Color-coded urgency indicators</li>
-            </ul>
-          </div>
-          <p class="help-note" style="margin-top: 12px;">If no providers meet the criteria, the daily email is <strong>not sent</strong>.</p>
+          <h3>Weekly Digest</h3>
+          <p>Sent every <strong>Monday at 9:00 AM EST</strong> with a full compliance summary and PDF attachment.</p>
         </div>
-        <p class="help-note" style="margin-top: 16px; padding: 12px; background: var(--bg-secondary); border-radius: 8px;">
-          <strong>Note:</strong> Email configuration is managed in <code>email-config.json</code>. Contact system administrator to modify recipients or schedules.
-        </p>
       </div>
     </div>
 
@@ -6011,160 +5950,6 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       <div class="help-content">
         ${generateUpdatesHtml()}
       </div>
-    </div>
-  </div>
-</div>
-
-<!-- ── Tab: Expenses ────────────────────────────────────────────────── -->
-<div class="tab-panel" id="tab-expenses">
-  <div class="help-page">
-    <div class="help-header">
-      <h1>Expense Tracking</h1>
-      <p class="help-subtitle">CEU spending analysis — Rolling 12 months</p>
-    </div>
-
-    <!-- Organization Overview -->
-    <div class="help-section">
-      <h2 class="help-section-title">
-        <span class="help-icon">💰</span>
-        Organization Overview
-      </h2>
-      <div class="expense-summary-grid">
-        <div class="expense-card expense-card-total">
-          <div class="expense-card-value">$${(spendingStats.totalOrgSpend || 0).toFixed(2)}</div>
-          <div class="expense-card-label">Total 12-Month Spend</div>
-        </div>
-        <div class="expense-card">
-          <div class="expense-card-value">$${(spendingStats.orgSubscriptions || 0).toFixed(2)}</div>
-          <div class="expense-card-label">Subscriptions</div>
-        </div>
-        <div class="expense-card">
-          <div class="expense-card-value">$${(spendingStats.totalActualCosts || 0).toFixed(2)}</div>
-          <div class="expense-card-label">Actual Course Costs</div>
-        </div>
-        <div class="expense-card">
-          <div class="expense-card-value">$${(spendingStats.totalEstimatedCosts || 0).toFixed(2)}</div>
-          <div class="expense-card-label">Estimated Costs</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Spending by Platform -->
-    <div class="help-section">
-      <h2 class="help-section-title">
-        <span class="help-icon">📊</span>
-        Spending by Platform
-      </h2>
-      <div class="expense-platform-list">
-        ${(() => {
-          const platforms = spendingStats.byPlatform || {};
-          const sortedPlatforms = Object.entries(platforms).sort((a, b) => b[1] - a[1]);
-          const maxSpend = Math.max(...Object.values(platforms), 1);
-          if (sortedPlatforms.length === 0) {
-            return '<p class="expense-no-data">No platform spending data available</p>';
-          }
-          return sortedPlatforms.map(([platform, amount]) => {
-            const pct = (amount / maxSpend) * 100;
-            const platformColors = {
-              'NetCE': '#0891b2',
-              'CEUfast': '#7c3aed',
-              'AANP Cert': '#059669',
-              'Nursing CE Central': '#dc2626',
-              'Nursece4less': '#d97706',
-              'ExclamationCE': '#2563eb'
-            };
-            const color = platformColors[platform] || '#64748b';
-            return \`
-              <div class="expense-platform-row">
-                <div class="expense-platform-name">\${escHtml(platform)}</div>
-                <div class="expense-platform-bar-track">
-                  <div class="expense-platform-bar-fill" style="width: \${pct}%; background: \${color};"></div>
-                </div>
-                <div class="expense-platform-amount">$\${amount.toFixed(2)}</div>
-              </div>
-            \`;
-          }).join('');
-        })()}
-      </div>
-    </div>
-
-    <!-- Spending by Provider -->
-    <div class="help-section">
-      <h2 class="help-section-title">
-        <span class="help-icon">👥</span>
-        Spending by Provider
-      </h2>
-      <div class="compliance-table-wrap">
-        <table class="compliance-table expense-table">
-          <thead>
-            <tr>
-              <th>Provider</th>
-              <th>Course Costs</th>
-              <th>Subscriptions</th>
-              <th>Total Spend</th>
-              <th>CEU Hours</th>
-              <th>$/Hour</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${(() => {
-              const providers = spendingStats.byProvider || {};
-              const sortedProviders = Object.entries(providers).sort((a, b) => (b[1].totalSpend || 0) - (a[1].totalSpend || 0));
-              if (sortedProviders.length === 0) {
-                return '<tr><td colspan="6" class="expense-no-data">No provider spending data available</td></tr>';
-              }
-              return sortedProviders.map(([name, stats]) => {
-                const costPerHour = stats.costPerHour;
-                let efficiencyClass = '';
-                if (costPerHour !== null && costPerHour !== undefined) {
-                  if (costPerHour < 5) efficiencyClass = 'efficiency-great';
-                  else if (costPerHour < 10) efficiencyClass = 'efficiency-good';
-                  else if (costPerHour < 20) efficiencyClass = 'efficiency-fair';
-                  else efficiencyClass = 'efficiency-poor';
-                }
-                return \`
-                  <tr>
-                    <td>\${escHtml(name)}</td>
-                    <td>$\${(stats.courseCosts || 0).toFixed(2)}</td>
-                    <td>$\${(stats.subscriptionCosts || 0).toFixed(2)}</td>
-                    <td><strong>$\${(stats.totalSpend || 0).toFixed(2)}</strong></td>
-                    <td>\${(stats.hoursCompleted || 0).toFixed(1)}</td>
-                    <td class="\${efficiencyClass}">\${costPerHour !== null && costPerHour !== undefined ? '$' + costPerHour.toFixed(2) : '—'}</td>
-                  </tr>
-                \`;
-              }).join('');
-            })()}
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Active Subscriptions -->
-    <div class="help-section">
-      <h2 class="help-section-title">
-        <span class="help-icon">📋</span>
-        Active Subscriptions
-      </h2>
-      <div class="expense-subscriptions">
-        ${(() => {
-          const orgSubs = (costData.subscriptions && costData.subscriptions.organization) || [];
-          if (orgSubs.length === 0) {
-            return '<p class="expense-no-data">No organization subscriptions configured</p>';
-          }
-          return orgSubs.map(sub => \`
-            <div class="expense-subscription-item">
-              <div class="expense-subscription-name">\${escHtml(sub.name)}</div>
-              <div class="expense-subscription-details">
-                <span class="expense-subscription-platform">\${escHtml(sub.platform || 'N/A')}</span>
-                <span class="expense-subscription-cost">$\${(sub.cost || 0).toFixed(2)}/\${sub.period || 'year'}</span>
-              </div>
-            </div>
-          \`).join('');
-        })()}
-      </div>
-      <p class="help-note" style="margin-top: 16px;">
-        Subscription costs are configured in <code>costs.json</code>. Contact system administrator to update.
-      </p>
     </div>
   </div>
 </div>
