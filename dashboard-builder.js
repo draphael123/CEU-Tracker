@@ -792,6 +792,160 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     return { reason: 'Awaiting Data', detail: 'Will sync on next scrape', icon: '◷', cls: 'unknown-default', platforms: [] };
   };
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ENHANCED FEATURES DATA - Timeline, Cost Comparison, ROI, Trends
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // ── Timeline data (12-month deadline view) ───────────────────────────────
+  const timelineMonths = [];
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+  for (let i = 0; i < 12; i++) {
+    const monthIdx = (currentMonth + i) % 12;
+    const year = currentYear + Math.floor((currentMonth + i) / 12);
+    timelineMonths.push({
+      month: monthIdx,
+      year: year,
+      label: new Date(year, monthIdx, 1).toLocaleString('en-US', { month: 'short' }),
+      isCurrent: i === 0
+    });
+  }
+
+  const timelineDeadlines = flat
+    .map(r => {
+      const d = parseDate(r.renewalDeadline);
+      if (!d) return null;
+      const days = daysUntil(d);
+      if (days === null || days < 0 || days > 365) return null;
+      const monthIdx = d.getMonth();
+      const year = d.getFullYear();
+      const dayOfMonth = d.getDate();
+      const daysInMonth = new Date(year, monthIdx + 1, 0).getDate();
+      // Calculate position within the 12-month timeline (0-100%)
+      const monthOffset = timelineMonths.findIndex(m => m.month === monthIdx && m.year === year);
+      if (monthOffset === -1) return null;
+      const pct = ((monthOffset + (dayOfMonth / daysInMonth)) / 12) * 100;
+      return {
+        name: r.providerName,
+        date: r.renewalDeadline,
+        days: days,
+        pct: pct,
+        urgency: days <= 30 ? 'urgent' : days <= 90 ? 'warning' : 'safe'
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.days - b.days);
+
+  // ── Cost per hour comparison across platforms ────────────────────────────
+  const platformCostData = {};
+  for (const [providerName, providerHistory] of Object.entries(courseHistory)) {
+    const courses = providerHistory.courses || [];
+    for (const course of courses) {
+      if (course.platform && course.hours > 0) {
+        if (!platformCostData[course.platform]) {
+          platformCostData[course.platform] = { totalCost: 0, totalHours: 0, courses: 0, providers: new Set() };
+        }
+        platformCostData[course.platform].totalHours += course.hours;
+        platformCostData[course.platform].courses++;
+        platformCostData[course.platform].providers.add(providerName);
+        if (course.cost) {
+          platformCostData[course.platform].totalCost += course.cost;
+        }
+      }
+    }
+  }
+  // Add subscription/course costs from costData
+  for (const [platform, costs] of Object.entries(costData.subscriptions || {})) {
+    if (!platformCostData[platform]) {
+      platformCostData[platform] = { totalCost: 0, totalHours: 0, courses: 0, providers: new Set() };
+    }
+    platformCostData[platform].totalCost += costs.annual || costs.monthly * 12 || 0;
+  }
+  const platformComparison = Object.entries(platformCostData)
+    .map(([platform, data]) => ({
+      platform,
+      costPerHour: data.totalHours > 0 ? data.totalCost / data.totalHours : 0,
+      totalSpent: data.totalCost,
+      totalHours: data.totalHours,
+      courseCount: data.courses,
+      providerCount: data.providers.size
+    }))
+    .filter(p => p.totalHours > 0)
+    .sort((a, b) => a.costPerHour - b.costPerHour);
+  const bestValuePlatform = platformComparison[0]?.platform || null;
+
+  // ── Platform ROI data ────────────────────────────────────────────────────
+  const platformROI = {};
+  for (const [providerName, providerHistory] of Object.entries(courseHistory)) {
+    const courses = providerHistory.courses || [];
+    for (const course of courses) {
+      if (course.platform && course.hours > 0) {
+        if (!platformROI[course.platform]) {
+          platformROI[course.platform] = { totalSpent: 0, totalHours: 0, topUsers: {} };
+        }
+        platformROI[course.platform].totalHours += course.hours;
+        if (course.cost) platformROI[course.platform].totalSpent += course.cost;
+        if (!platformROI[course.platform].topUsers[providerName]) {
+          platformROI[course.platform].topUsers[providerName] = 0;
+        }
+        platformROI[course.platform].topUsers[providerName] += course.hours;
+      }
+    }
+  }
+  const platformROICards = Object.entries(platformROI)
+    .map(([platform, data]) => ({
+      platform,
+      totalSpent: data.totalSpent,
+      totalHours: data.totalHours,
+      topUsers: Object.entries(data.topUsers)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([name, hours]) => ({ name, hours }))
+    }))
+    .filter(p => p.totalHours > 0)
+    .sort((a, b) => b.totalSpent - a.totalSpent);
+
+  // ── Compliance trend data (last 6 data points for sparkline) ─────────────
+  const historyData = (() => {
+    try {
+      const histFile = require('path').join(__dirname, 'history.json');
+      if (require('fs').existsSync(histFile)) {
+        return JSON.parse(require('fs').readFileSync(histFile, 'utf8'));
+      }
+    } catch (e) {}
+    return [];
+  })();
+  const trendData = historyData
+    .slice(-6)
+    .map(snapshot => {
+      const providers = snapshot.providers || [];
+      const total = providers.length;
+      const complete = providers.filter(p => {
+        const remaining = p.hoursRemaining ?? (p.hoursRequired - p.hoursCompleted);
+        return remaining <= 0;
+      }).length;
+      return total > 0 ? Math.round((complete / total) * 100) : 0;
+    });
+  const trendDirection = trendData.length >= 2
+    ? (trendData[trendData.length - 1] > trendData[0] ? 'up' : trendData[trendData.length - 1] < trendData[0] ? 'down' : 'flat')
+    : 'flat';
+
+  // ── Monthly spending for briefing ────────────────────────────────────────
+  const now = new Date();
+  const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  let thisMonthSpend = 0;
+  for (const [providerName, providerHistory] of Object.entries(courseHistory)) {
+    const courses = providerHistory.courses || [];
+    for (const course of courses) {
+      if (course.cost && course.date) {
+        const courseDate = parseDate(course.date);
+        if (courseDate && courseDate >= thisMonthStart) {
+          thisMonthSpend += course.cost;
+        }
+      }
+    }
+  }
+
   // ── Helper to build a single provider card ───────────────────────────────
   const buildProviderCard = ([name, info]) => {
     // Check if this is a platform-only provider (no CE Broker data)
@@ -4253,6 +4407,119 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .compliance-empty .empty-icon { font-size: 2rem; color: #94a3b8; }
     .compliance-empty .empty-text { font-size: 1rem; color: #64748b; }
     .compliance-empty .empty-hint { font-size: 0.85rem; color: #94a3b8; margin-top: 8px; }
+
+    /* ═══════════════════════════════════════════════════════════════════════════
+       ENHANCED FEATURES - Daily Briefing, Focus Mode, Timeline, etc.
+    ═══════════════════════════════════════════════════════════════════════════ */
+
+    /* ─ Daily Briefing Banner ─ */
+    .daily-briefing { background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: #fff; padding: 16px 24px; margin: 0 24px 20px; border-radius: 16px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap; box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
+    .briefing-date { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.7; }
+    .briefing-stats { display: flex; gap: 24px; flex: 1; flex-wrap: wrap; }
+    .briefing-stat { display: flex; align-items: center; gap: 8px; }
+    .briefing-stat-icon { font-size: 1.2rem; }
+    .briefing-stat-value { font-size: 1.4rem; font-weight: 700; }
+    .briefing-stat-label { font-size: 0.78rem; opacity: 0.8; }
+    .briefing-stat.urgent .briefing-stat-value { color: #fca5a5; }
+    .briefing-stat.warning .briefing-stat-value { color: #fcd34d; }
+    .briefing-stat.good .briefing-stat-value { color: #86efac; }
+    .briefing-cta { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 10px 20px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+    .briefing-cta:hover { background: rgba(255,255,255,0.25); transform: translateY(-1px); }
+    [data-theme="dark"] .daily-briefing { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); }
+
+    /* ─ Focus Mode Toggle ─ */
+    .focus-mode-toggle { display: flex; align-items: center; gap: 10px; padding: 8px 16px; background: var(--bg-primary); border: 2px solid var(--border-color); border-radius: 99px; cursor: pointer; transition: all 0.2s; margin-left: auto; }
+    .focus-mode-toggle:hover { border-color: var(--accent-primary); }
+    .focus-mode-toggle.active { background: linear-gradient(135deg, #ef4444, #f97316); border-color: transparent; color: #fff; }
+    .focus-mode-toggle .toggle-icon { font-size: 1rem; }
+    .focus-mode-toggle .toggle-label { font-size: 0.82rem; font-weight: 600; }
+    .focus-mode-banner { display: none; background: linear-gradient(135deg, #fef2f2, #fff7ed); border: 1px solid #fecaca; padding: 12px 20px; margin: 0 24px 16px; border-radius: 10px; color: #991b1b; font-size: 0.88rem; align-items: center; gap: 10px; }
+    .focus-mode-banner.visible { display: flex; }
+    .focus-mode-banner .banner-icon { font-size: 1.1rem; }
+    .focus-mode-banner .banner-text { flex: 1; }
+    .focus-mode-banner .exit-focus { background: #991b1b; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
+
+    /* ─ Deadline Timeline ─ */
+    .deadline-timeline { background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px 24px; margin: 0 24px 20px; }
+    .timeline-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .timeline-title { font-size: 0.9rem; font-weight: 700; color: var(--text-primary); }
+    .timeline-subtitle { font-size: 0.75rem; color: var(--text-secondary); }
+    .timeline-track { position: relative; height: 60px; background: var(--bg-secondary); border-radius: 8px; overflow: hidden; }
+    .timeline-months { display: flex; position: absolute; top: 0; left: 0; right: 0; height: 20px; border-bottom: 1px solid var(--border-color); }
+    .timeline-month { flex: 1; text-align: center; font-size: 0.65rem; font-weight: 600; color: var(--text-secondary); padding-top: 4px; border-right: 1px solid var(--border-color); }
+    .timeline-month:last-child { border-right: none; }
+    .timeline-month.current { background: rgba(99,102,241,0.1); color: var(--accent-primary); }
+    .timeline-markers { position: absolute; top: 24px; left: 0; right: 0; bottom: 0; }
+    .timeline-marker { position: absolute; top: 50%; transform: translate(-50%, -50%); width: 12px; height: 12px; border-radius: 50%; cursor: pointer; transition: all 0.2s; z-index: 1; }
+    .timeline-marker:hover { transform: translate(-50%, -50%) scale(1.5); z-index: 10; }
+    .timeline-marker.urgent { background: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.3); }
+    .timeline-marker.warning { background: #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,0.3); }
+    .timeline-marker.safe { background: #10b981; }
+    .timeline-marker.cluster { width: 20px; height: 20px; font-size: 0.65rem; font-weight: 700; color: #fff; display: flex; align-items: center; justify-content: center; }
+    .timeline-today { position: absolute; top: 20px; bottom: 0; width: 2px; background: var(--accent-primary); z-index: 5; }
+    .timeline-today::before { content: 'Today'; position: absolute; top: -16px; left: 50%; transform: translateX(-50%); font-size: 0.6rem; font-weight: 600; color: var(--accent-primary); white-space: nowrap; }
+
+    /* ─ Cost Comparison ─ */
+    .cost-comparison { background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px 24px; margin: 0 24px 20px; }
+    .cost-comparison-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .cost-comparison-title { font-size: 0.9rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
+    .cost-comparison-title .title-icon { font-size: 1.1rem; }
+    .cost-platforms { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+    .cost-platform-card { background: var(--bg-secondary); border-radius: 12px; padding: 16px; border: 2px solid transparent; transition: all 0.2s; }
+    .cost-platform-card.best-value { border-color: #10b981; background: linear-gradient(135deg, rgba(16,185,129,0.05), rgba(16,185,129,0.1)); }
+    .cost-platform-card.best-value::before { content: '✓ Best Value'; position: absolute; top: -10px; right: 12px; background: #10b981; color: #fff; font-size: 0.65rem; font-weight: 700; padding: 3px 8px; border-radius: 4px; }
+    .cost-platform-card { position: relative; }
+    .cost-platform-name { font-size: 0.85rem; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; }
+    .cost-platform-rate { font-size: 1.5rem; font-weight: 700; color: var(--accent-primary); }
+    .cost-platform-rate span { font-size: 0.8rem; font-weight: 500; color: var(--text-secondary); }
+    .cost-platform-details { font-size: 0.75rem; color: var(--text-secondary); margin-top: 6px; }
+
+    /* ─ Compliance Trend Sparkline ─ */
+    .trend-sparkline { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; background: var(--bg-secondary); border-radius: 8px; }
+    .sparkline-svg { width: 60px; height: 24px; }
+    .sparkline-line { fill: none; stroke: var(--accent-primary); stroke-width: 2; }
+    .sparkline-area { fill: url(#sparklineGradient); opacity: 0.3; }
+    .trend-direction { font-size: 0.75rem; font-weight: 600; }
+    .trend-direction.up { color: #10b981; }
+    .trend-direction.down { color: #ef4444; }
+    .trend-direction.flat { color: #64748b; }
+
+    /* ─ Platform ROI Section ─ */
+    .platform-roi { background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px 24px; margin: 0 24px 20px; }
+    .roi-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .roi-title { font-size: 0.9rem; font-weight: 700; color: var(--text-primary); }
+    .roi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+    .roi-card { background: var(--bg-secondary); border-radius: 12px; padding: 16px; }
+    .roi-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .roi-platform-name { font-size: 0.9rem; font-weight: 600; color: var(--text-primary); }
+    .roi-total-spent { font-size: 1.1rem; font-weight: 700; color: #059669; }
+    .roi-stats { display: flex; gap: 16px; margin-bottom: 12px; }
+    .roi-stat { text-align: center; }
+    .roi-stat-value { font-size: 1rem; font-weight: 700; color: var(--text-primary); }
+    .roi-stat-label { font-size: 0.68rem; color: var(--text-secondary); text-transform: uppercase; }
+    .roi-top-users { border-top: 1px solid var(--border-color); padding-top: 12px; }
+    .roi-top-users-title { font-size: 0.72rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; text-transform: uppercase; }
+    .roi-user { display: flex; justify-content: space-between; font-size: 0.8rem; padding: 4px 0; }
+    .roi-user-name { color: var(--text-primary); }
+    .roi-user-hours { color: var(--text-secondary); font-weight: 500; }
+
+    /* ─ Keyboard Shortcuts Overlay ─ */
+    .shortcuts-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 9999; display: none; align-items: center; justify-content: center; }
+    .shortcuts-overlay.visible { display: flex; }
+    .shortcuts-modal { background: var(--bg-primary); border-radius: 16px; padding: 24px 32px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+    .shortcuts-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .shortcuts-title { font-size: 1.1rem; font-weight: 700; color: var(--text-primary); }
+    .shortcuts-close { background: none; border: none; font-size: 1.5rem; color: var(--text-secondary); cursor: pointer; padding: 4px; }
+    .shortcuts-close:hover { color: var(--text-primary); }
+    .shortcuts-section { margin-bottom: 20px; }
+    .shortcuts-section-title { font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+    .shortcut-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border-color); }
+    .shortcut-row:last-child { border-bottom: none; }
+    .shortcut-keys { display: flex; gap: 4px; }
+    .shortcut-key { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 6px; padding: 4px 10px; font-size: 0.8rem; font-weight: 600; font-family: monospace; color: var(--text-primary); }
+    .shortcut-desc { font-size: 0.85rem; color: var(--text-secondary); }
+    .shortcuts-hint { text-align: center; font-size: 0.75rem; color: var(--text-secondary); margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color); }
+
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 </head>
@@ -4367,6 +4634,63 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
         <div class="welcome-subtitle">Track continuing education requirements and renewal deadlines for all clinical team members in one place. This dashboard updates automatically every night with the latest data from CE Broker and other platforms.</div>
       </div>
       <button class="welcome-dismiss" onclick="dismissWelcome()">Got it</button>
+    </div>
+
+    <!-- ── Daily Briefing Banner ──────────────────────────────────────────── -->
+    <div class="daily-briefing" id="dailyBriefing">
+      <div class="briefing-date">${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</div>
+      <div class="briefing-stats">
+        ${atRisk > 0 ? `
+        <div class="briefing-stat urgent">
+          <span class="briefing-stat-icon">⚠</span>
+          <span class="briefing-stat-value">${atRisk}</span>
+          <span class="briefing-stat-label">need attention</span>
+        </div>` : ''}
+        ${deadlines30.length > 0 ? `
+        <div class="briefing-stat warning">
+          <span class="briefing-stat-icon">◷</span>
+          <span class="briefing-stat-value">${deadlines30.length}</span>
+          <span class="briefing-stat-label">due in 30 days</span>
+        </div>` : ''}
+        <div class="briefing-stat good">
+          <span class="briefing-stat-icon">✓</span>
+          <span class="briefing-stat-value">${complete}</span>
+          <span class="briefing-stat-label">on track</span>
+        </div>
+        ${thisMonthSpend > 0 ? `
+        <div class="briefing-stat">
+          <span class="briefing-stat-icon">$</span>
+          <span class="briefing-stat-value">$${thisMonthSpend.toFixed(0)}</span>
+          <span class="briefing-stat-label">spent this month</span>
+        </div>` : ''}
+      </div>
+      ${atRisk > 0 ? `<button class="briefing-cta" onclick="toggleFocusMode()">Focus on At-Risk</button>` : ''}
+    </div>
+
+    <!-- ── Focus Mode Banner (hidden by default) ──────────────────────────── -->
+    <div class="focus-mode-banner" id="focusModeBanner">
+      <span class="banner-icon">🎯</span>
+      <span class="banner-text"><strong>Focus Mode:</strong> Showing only providers that need attention</span>
+      <button class="exit-focus" onclick="toggleFocusMode()">Exit Focus Mode</button>
+    </div>
+
+    <!-- ── Deadline Timeline (12-month view) ──────────────────────────────── -->
+    <div class="deadline-timeline" id="deadlineTimeline">
+      <div class="timeline-header">
+        <div class="timeline-title">Deadline Timeline</div>
+        <div class="timeline-subtitle">${timelineDeadlines.length} renewals in the next 12 months</div>
+      </div>
+      <div class="timeline-track">
+        <div class="timeline-months">
+          ${timelineMonths.map(m => `<div class="timeline-month${m.isCurrent ? ' current' : ''}">${m.label}</div>`).join('')}
+        </div>
+        <div class="timeline-markers">
+          ${timelineDeadlines.map(d => `
+            <div class="timeline-marker ${d.urgency}" style="left: ${d.pct}%" title="${escHtml(d.name)}: ${d.days} days (${escHtml(d.date)})"></div>
+          `).join('')}
+        </div>
+        <div class="timeline-today" style="left: ${(1/365) * 100}%"></div>
+      </div>
     </div>
 
     <!-- ── Quick Stats Summary ────────────────────────────────────────────── -->
@@ -5446,6 +5770,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
   <div class="view-toggle-bar">
     <button class="view-toggle active" onclick="showReportView('charts')">Progress Charts</button>
     <button class="view-toggle" onclick="showReportView('calendar')">Deadline Calendar</button>
+    <button class="view-toggle" onclick="showReportView('costs')">Cost Analysis</button>
     <button class="view-toggle" onclick="showReportView('runlog')">Run History</button>
   </div>
 
@@ -5467,6 +5792,68 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
   <div class="report-view" id="report-calendar">
     <div class="cal-wrap">
       ${calendarHtml}
+    </div>
+  </div>
+
+  <!-- Cost Analysis View -->
+  <div class="report-view" id="report-costs">
+    <!-- Cost Per Hour Comparison -->
+    <div class="cost-comparison">
+      <div class="cost-comparison-header">
+        <div class="cost-comparison-title"><span class="title-icon">💰</span> Cost Per CEU Hour</div>
+      </div>
+      <div class="cost-platforms">
+        ${platformComparison.length > 0 ? platformComparison.map(p => `
+          <div class="cost-platform-card${p.platform === bestValuePlatform ? ' best-value' : ''}">
+            <div class="cost-platform-name">${escHtml(p.platform)}</div>
+            <div class="cost-platform-rate">$${p.costPerHour.toFixed(2)} <span>/ hour</span></div>
+            <div class="cost-platform-details">
+              ${p.totalHours} hours from ${p.courseCount} courses | $${p.totalSpent.toFixed(0)} total
+            </div>
+          </div>
+        `).join('') : '<div class="cost-platform-card"><div class="cost-platform-name">No cost data available</div><div class="cost-platform-details">Add course costs to see comparison</div></div>'}
+      </div>
+    </div>
+
+    <!-- Platform ROI -->
+    <div class="platform-roi">
+      <div class="roi-header">
+        <div class="roi-title">Platform Investment Breakdown</div>
+      </div>
+      <div class="roi-grid">
+        ${platformROICards.length > 0 ? platformROICards.map(p => `
+          <div class="roi-card">
+            <div class="roi-card-header">
+              <span class="roi-platform-name">${escHtml(p.platform)}</span>
+              <span class="roi-total-spent">$${p.totalSpent.toFixed(0)}</span>
+            </div>
+            <div class="roi-stats">
+              <div class="roi-stat">
+                <div class="roi-stat-value">${p.totalHours}</div>
+                <div class="roi-stat-label">Hours</div>
+              </div>
+              <div class="roi-stat">
+                <div class="roi-stat-value">${p.topUsers.length}</div>
+                <div class="roi-stat-label">Providers</div>
+              </div>
+              <div class="roi-stat">
+                <div class="roi-stat-value">$${p.totalHours > 0 ? (p.totalSpent / p.totalHours).toFixed(2) : '0'}</div>
+                <div class="roi-stat-label">Per Hour</div>
+              </div>
+            </div>
+            ${p.topUsers.length > 0 ? `
+            <div class="roi-top-users">
+              <div class="roi-top-users-title">Top Users</div>
+              ${p.topUsers.map(u => `
+                <div class="roi-user">
+                  <span class="roi-user-name">${escHtml(u.name)}</span>
+                  <span class="roi-user-hours">${u.hours} hrs</span>
+                </div>
+              `).join('')}
+            </div>` : ''}
+          </div>
+        `).join('') : '<div class="roi-card"><div class="roi-platform-name">No platform data</div></div>'}
+      </div>
     </div>
   </div>
 
@@ -7418,6 +7805,39 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
   }
   function getProviderNote(name) { return providerNotes[name] || ''; }
 
+  // ── Focus Mode ────────────────────────────────────────────────────────────
+  let focusModeActive = false;
+  function toggleFocusMode() {
+    focusModeActive = !focusModeActive;
+    const banner = document.getElementById('focusModeBanner');
+    const cards = document.querySelectorAll('.provider-card');
+
+    if (focusModeActive) {
+      banner?.classList.add('visible');
+      // Show only at-risk and due-soon providers
+      cards.forEach(card => {
+        const status = card.dataset.status;
+        const deadline = parseInt(card.dataset.deadline) || 999;
+        const needsAttention = status === 'At Risk' || deadline <= 30;
+        card.style.display = needsAttention ? '' : 'none';
+      });
+      // Update count
+      const visibleCount = Array.from(cards).filter(c => c.style.display !== 'none').length;
+      document.getElementById('providerFilterCount').textContent = visibleCount + ' providers need attention';
+    } else {
+      banner?.classList.remove('visible');
+      // Show all providers
+      cards.forEach(card => card.style.display = '');
+      resetProviderFilters();
+    }
+  }
+
+  // ── Shortcuts Overlay ────────────────────────────────────────────────────
+  function toggleShortcutsOverlay() {
+    const overlay = document.getElementById('shortcutsOverlay');
+    overlay?.classList.toggle('visible');
+  }
+
   // ── Keyboard Shortcuts ─────────────────────────────────────────────────────
   let keyboardModalOpen = false;
   let currentCardIndex = -1;
@@ -7431,14 +7851,17 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       if (e.key === 'Escape') e.target.blur();
       return;
     }
+    const shortcutsOpen = document.getElementById('shortcutsOverlay')?.classList.contains('visible');
     const cards = Array.from(document.querySelectorAll('.provider-card')).filter(c => c.style.display !== 'none');
     switch(e.key) {
       case '/': e.preventDefault(); document.getElementById('cardSearch')?.focus(); break;
-      case '?': e.preventDefault(); toggleKeyboardModal(); break;
+      case '?': e.preventDefault(); toggleShortcutsOverlay(); break;
+      case 'f': e.preventDefault(); toggleFocusMode(); break;
+      case 'd': e.preventDefault(); toggleTheme(); break;
       case 'j': e.preventDefault(); currentCardIndex = Math.min(currentCardIndex + 1, cards.length - 1); cards[currentCardIndex]?.scrollIntoView({ behavior: 'smooth', block: 'center' }); break;
       case 'k': e.preventDefault(); currentCardIndex = Math.max(currentCardIndex - 1, 0); cards[currentCardIndex]?.scrollIntoView({ behavior: 'smooth', block: 'center' }); break;
       case 'Enter': if (currentCardIndex >= 0 && cards[currentCardIndex]) openProvider(cards[currentCardIndex].dataset.provider); break;
-      case 'Escape': keyboardModalOpen ? toggleKeyboardModal() : closeProvider(); break;
+      case 'Escape': shortcutsOpen ? toggleShortcutsOverlay() : keyboardModalOpen ? toggleKeyboardModal() : closeProvider(); break;
       case 'r': if (!e.ctrlKey && !e.metaKey) { e.preventDefault(); resetProviderFilters(); } break;
       case '1': e.preventDefault(); applyQuickFilter('urgent'); break;
       case '2': e.preventDefault(); applyQuickFilter('due30'); break;
@@ -7458,7 +7881,75 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
   <div class="keyboard-shortcut"><span class="shortcut-key"><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>0</kbd></span><span class="shortcut-desc">Quick filters</span></div>
   <div class="keyboard-shortcut"><span class="shortcut-key"><kbd>?</kbd></span><span class="shortcut-desc">This help</span></div>
 </div>
-<div class="keyboard-help"><button class="keyboard-help-btn" onclick="toggleKeyboardModal()" title="Keyboard shortcuts (?)">?</button></div>
+<div class="keyboard-help"><button class="keyboard-help-btn" onclick="toggleShortcutsOverlay()" title="Keyboard shortcuts (?)">?</button></div>
+
+<!-- ── Keyboard Shortcuts Overlay ─────────────────────────────────────────── -->
+<div class="shortcuts-overlay" id="shortcutsOverlay" onclick="if(event.target===this)toggleShortcutsOverlay()">
+  <div class="shortcuts-modal">
+    <div class="shortcuts-header">
+      <div class="shortcuts-title">Keyboard Shortcuts</div>
+      <button class="shortcuts-close" onclick="toggleShortcutsOverlay()">&times;</button>
+    </div>
+    <div class="shortcuts-section">
+      <div class="shortcuts-section-title">Navigation</div>
+      <div class="shortcut-row">
+        <span class="shortcut-desc">Focus search</span>
+        <div class="shortcut-keys"><span class="shortcut-key">/</span></div>
+      </div>
+      <div class="shortcut-row">
+        <span class="shortcut-desc">Navigate cards</span>
+        <div class="shortcut-keys"><span class="shortcut-key">j</span><span class="shortcut-key">k</span></div>
+      </div>
+      <div class="shortcut-row">
+        <span class="shortcut-desc">Open selected provider</span>
+        <div class="shortcut-keys"><span class="shortcut-key">Enter</span></div>
+      </div>
+      <div class="shortcut-row">
+        <span class="shortcut-desc">Close modal/drawer</span>
+        <div class="shortcut-keys"><span class="shortcut-key">Esc</span></div>
+      </div>
+    </div>
+    <div class="shortcuts-section">
+      <div class="shortcuts-section-title">Filters</div>
+      <div class="shortcut-row">
+        <span class="shortcut-desc">Show At Risk only</span>
+        <div class="shortcut-keys"><span class="shortcut-key">1</span></div>
+      </div>
+      <div class="shortcut-row">
+        <span class="shortcut-desc">Show Due in 30 days</span>
+        <div class="shortcut-keys"><span class="shortcut-key">2</span></div>
+      </div>
+      <div class="shortcut-row">
+        <span class="shortcut-desc">Show Complete</span>
+        <div class="shortcut-keys"><span class="shortcut-key">3</span></div>
+      </div>
+      <div class="shortcut-row">
+        <span class="shortcut-desc">Show all (reset)</span>
+        <div class="shortcut-keys"><span class="shortcut-key">0</span></div>
+      </div>
+      <div class="shortcut-row">
+        <span class="shortcut-desc">Reset all filters</span>
+        <div class="shortcut-keys"><span class="shortcut-key">r</span></div>
+      </div>
+    </div>
+    <div class="shortcuts-section">
+      <div class="shortcuts-section-title">Views</div>
+      <div class="shortcut-row">
+        <span class="shortcut-desc">Toggle Focus Mode</span>
+        <div class="shortcut-keys"><span class="shortcut-key">f</span></div>
+      </div>
+      <div class="shortcut-row">
+        <span class="shortcut-desc">Toggle dark mode</span>
+        <div class="shortcut-keys"><span class="shortcut-key">d</span></div>
+      </div>
+      <div class="shortcut-row">
+        <span class="shortcut-desc">Show shortcuts</span>
+        <div class="shortcut-keys"><span class="shortcut-key">?</span></div>
+      </div>
+    </div>
+    <div class="shortcuts-hint">Press <span class="shortcut-key">Esc</span> to close</div>
+  </div>
+</div>
 </body>
 </html>`;
 
