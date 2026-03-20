@@ -246,6 +246,199 @@
       font-weight: 700;
       box-shadow: 0 2px 8px rgba(16,185,129,0.4);
     }
+    /* Not Started stat card - for 0 CEU providers */
+    .stat-card.not-started::before { background: linear-gradient(135deg, #991b1b, #dc2626); }
+    .stat-card.not-started .num { color: #dc2626; }
+    .stat-card.not-started {
+      box-shadow: var(--shadow-md), 0 0 0 1px rgba(220,38,38,0.25);
+      cursor: pointer;
+    }
+    .stat-card.not-started:hover {
+      box-shadow: var(--shadow-lg), 0 0 0 2px rgba(220,38,38,0.4);
+    }
+    .stat-card.not-started.has-providers {
+      background: linear-gradient(135deg, rgba(220,38,38,0.08) 0%, rgba(220,38,38,0.03) 100%);
+    }
+    /* No CEUs badge on provider cards */
+    .no-ceu-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: linear-gradient(135deg, #dc2626, #ef4444);
+      color: #fff;
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 99px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      box-shadow: 0 1px 4px rgba(220,38,38,0.3);
+      margin-left: 6px;
+    }
+    /* Empty progress bar for 0% providers */
+    .agg-bar-fill.agg-empty {
+      width: 0% !important;
+      background: transparent;
+    }
+    .agg-bar-track.empty-bar {
+      background: #e5e7eb;
+      border: 1px dashed #d1d5db;
+    }
+    [data-theme="dark"] .agg-bar-track.empty-bar {
+      background: #1e293b;
+      border: 1px dashed #475569;
+    }
+    /* No CEUs view tab styling */
+    .view-toggle.no-ceus-tab {
+      border-color: rgba(220,38,38,0.3);
+    }
+    .view-toggle.no-ceus-tab.active {
+      background: linear-gradient(135deg, rgba(220,38,38,0.1) 0%, rgba(220,38,38,0.05) 100%);
+      border-color: #dc2626;
+      color: #dc2626;
+    }
+    .view-toggle .view-count.danger {
+      background: #dc2626;
+      color: #fff;
+    }
+    /* Table header highlight for No CEUs filter */
+    .provider-table th.highlight-danger {
+      background: linear-gradient(135deg, rgba(220,38,38,0.15) 0%, rgba(220,38,38,0.08) 100%);
+      color: #dc2626;
+    }
+    /* No CEUs filter checkbox in table view */
+    .table-filter-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 12px 0;
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .table-filter-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+    .table-filter-checkbox input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: #dc2626;
+    }
+    .table-filter-checkbox.active {
+      color: #dc2626;
+      font-weight: 600;
+    }
+    /* No CEUs view header styling */
+    .noceus-view-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 24px;
+      background: linear-gradient(135deg, rgba(220,38,38,0.08) 0%, rgba(220,38,38,0.03) 100%);
+      border: 1px solid rgba(220,38,38,0.2);
+      border-radius: 12px;
+      margin-bottom: 20px;
+    }
+    .noceus-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #dc2626;
+      margin: 0 0 4px;
+    }
+    .noceus-subtitle {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin: 0;
+    }
+    .btn-danger {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, #dc2626, #b91c1c);
+      color: #fff;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 2px 8px rgba(220,38,38,0.3);
+    }
+    .btn-danger:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(220,38,38,0.4);
+    }
+    .noceus-empty {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-secondary);
+    }
+    .noceus-empty .empty-icon {
+      font-size: 3rem;
+      margin-bottom: 16px;
+    }
+    .noceus-empty .empty-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+    .noceus-empty .empty-subtitle {
+      font-size: 0.9rem;
+    }
+    /* Action Required - No CEUs Started block */
+    .dash-action-item.dash-action-danger {
+      background: linear-gradient(135deg, rgba(220,38,38,0.08) 0%, rgba(220,38,38,0.03) 100%);
+      border: 1px solid rgba(220,38,38,0.25);
+    }
+    .dash-action-item.dash-action-danger:hover {
+      background: linear-gradient(135deg, rgba(220,38,38,0.12) 0%, rgba(220,38,38,0.06) 100%);
+      border-color: rgba(220,38,38,0.4);
+    }
+    .dash-action-item.dash-action-danger .dash-action-icon {
+      color: #dc2626;
+    }
+    .action-provider-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .action-provider-chip {
+      background: rgba(0,0,0,0.05);
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+    .action-more-link {
+      color: #dc2626;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .action-download-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #dc2626;
+      color: #fff;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 10px;
+      transition: all 0.2s;
+    }
+    .action-download-btn:hover {
+      background: #b91c1c;
+    }
 
     /* ─ Welcome Banner (Slim info bar) ─ */
     .welcome-banner {
@@ -3846,6 +4039,12 @@
         <div class="lbl">Needs Attention</div>
         <div class="stat-sublbl">Deadline approaching or overdue</div>
       </div>
+      <div class="stat-card not-started has-tooltip has-providers" onclick="showNoCEUsView()">
+        <div class="tooltip">Providers who have logged 0 CEU hours - need follow-up</div>
+        <div class="num" id="notStartedCount">0</div>
+        <div class="lbl">Not Started</div>
+        <div class="stat-sublbl">0 CEU hours logged</div>
+      </div>
     </div>
 
 <!-- ── Tab: Overview ──────────────────────────────────────────────────── -->
@@ -4102,8 +4301,23 @@
           <span class="dash-action-text"><strong>7</strong> providers need platform credentials</span>
           <span class="dash-action-arrow">→</span>
         </div>
-        
-        
+
+        <div class="dash-action-item dash-action-danger" onclick="showNoCEUsView()" id="noCEUsActionBlock">
+          <span class="dash-action-icon">⚠️</span>
+          <div class="dash-action-content">
+            <span class="dash-action-text"><strong id="noCEUsActionCount">0</strong> providers have not logged any CEU hours</span>
+            <div class="dash-action-subtext">Follow up with these providers to begin CE coursework</div>
+            <div class="action-provider-list" id="noCEUsProviderPreview">
+              <!-- Dynamically populated -->
+            </div>
+            <button class="action-download-btn" onclick="event.stopPropagation(); exportNoCEUProviders()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download List
+            </button>
+          </div>
+          <span class="dash-action-arrow">→</span>
+        </div>
+
       </div>
     </div>
 
@@ -4216,6 +4430,7 @@
     <div class="view-tabs">
       <button class="view-toggle active" onclick="showProviderView('all')">All Providers <span class="view-count">33</span></button>
       <button class="view-toggle" onclick="showProviderView('table')">Table View</button>
+      <button class="view-toggle no-ceus-tab" onclick="showProviderView('noceus')">No CEUs <span class="view-count danger" id="noCEUsCount">0</span></button>
       <button class="view-toggle" onclick="showProviderView('priority')">By Priority <span class="view-count ">0</span></button>
       <button class="view-toggle" onclick="showProviderView('kanban')">Kanban</button>
       <button class="view-toggle" onclick="showProviderView('deadline')">By Deadline <span class="view-count ">2</span></button>
@@ -4237,6 +4452,7 @@
           <button onclick="exportNoLogins(); closeExportDropdown()">🔑 No CEU Logins (7)</button>
           <button onclick="exportComplete(); closeExportDropdown()">✅ CEUs Complete (4)</button>
           <button onclick="exportAtRisk(); closeExportDropdown()">⚠️ At Risk (0)</button>
+          <button onclick="exportNoCEUProviders(); closeExportDropdown()" id="exportNoCEUsBtn">🚫 No CEUs Started (<span id="exportNoCEUsCount">0</span>)</button>
           <div class="dropdown-divider"></div>
           <div class="dropdown-label">Other Exports</div>
           <button onclick="exportFilteredResults(); closeExportDropdown()">Filtered Results (CSV)</button>
@@ -4302,6 +4518,7 @@
         <option value="status">Sort: Risk First</option>
         <option value="status-asc">Sort: Complete First</option>
         <option value="deadline">Sort: Deadline (Soonest)</option>
+        <option value="pct-asc">Sort: % Complete (Low → High)</option>
       </select>
       <label class="creds-toggle">
         <input type="checkbox" id="noCredsFilter" onchange="filterCards()">
@@ -5380,9 +5597,37 @@
     </div>
   </div>
 
+  <!-- No CEUs View -->
+  <div class="provider-view" id="provider-noceus">
+    <div class="noceus-view-header">
+      <div class="noceus-info">
+        <h3 class="noceus-title">Providers with No CEUs Started</h3>
+        <p class="noceus-subtitle">These providers have 0 hours logged and require CEU hours. Sorted by renewal deadline (most urgent first).</p>
+      </div>
+      <button class="btn btn-danger" onclick="exportNoCEUProviders()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download No CEU List
+      </button>
+    </div>
+    <div class="cards-grid" id="noCEUsCardsGrid">
+      <!-- Dynamically populated by JS -->
+    </div>
+    <div class="noceus-empty" id="noCEUsEmpty" style="display:none">
+      <div class="empty-icon">🎉</div>
+      <div class="empty-title">All providers have started their CEUs!</div>
+      <div class="empty-subtitle">No providers currently have 0 hours logged.</div>
+    </div>
+  </div>
+
   <!-- Table View -->
   <div class="provider-view" id="provider-table">
     <div class="table-view-container">
+      <div class="table-filter-row">
+        <label class="table-filter-checkbox" id="tableNoCEUsFilterLabel">
+          <input type="checkbox" id="tableNoCEUsFilter" onchange="filterTableNoCEUs()">
+          <span>Show only providers with no CEUs</span>
+        </label>
+      </div>
       <table class="provider-table" id="providerTable">
         <thead>
           <tr>
@@ -11887,7 +12132,8 @@ Call log:
     needsCEUs: [{"name":"Ashley Grout, NP","type":"NP","state":"Florida","hoursRequired":24,"hoursCompleted":45,"hoursRemaining":6,"renewalDeadline":"04/30/2027","daysUntilDeadline":406},{"name":"Catherine Herrington, MD","type":"MD","state":"Texas","hoursRequired":48,"hoursCompleted":7,"hoursRemaining":41,"renewalDeadline":"05/31/2027","daysUntilDeadline":437},{"name":"Doron Stember, MD","type":"MD","state":"Texas","hoursRequired":48,"hoursCompleted":0,"hoursRemaining":48,"renewalDeadline":"","daysUntilDeadline":""},{"name":"Lindsay Burden, NP","type":"NP","state":"West Virginia","hoursRequired":24,"hoursCompleted":0,"hoursRemaining":24,"renewalDeadline":"06/30/2027","daysUntilDeadline":467},{"name":"Tim Mack, NP","type":"NP","state":"New Mexico","hoursRequired":50,"hoursCompleted":25,"hoursRemaining":40,"renewalDeadline":"05/31/2026","daysUntilDeadline":72},{"name":"Bryce Hanley, RN","type":"RN","state":"Tennessee","hoursRequired":10,"hoursCompleted":0,"hoursRemaining":10,"renewalDeadline":"09/30/2026","daysUntilDeadline":194}],
     complete: [{"name":"Bill Carbonneau, NP","type":"NP","state":"Florida","hoursCompleted":109,"renewalDeadline":"07/31/2026"},{"name":"Bryana Anderson, NP","type":"NP","state":"New Mexico","hoursCompleted":219.5,"renewalDeadline":"06/30/2027"},{"name":"Martin Van Dongen, NP","type":"NP","state":"Michigan","hoursCompleted":96,"renewalDeadline":"03/01/2028"},{"name":"Priya Chaudhari, NP","type":"NP","state":"Florida","hoursCompleted":69,"renewalDeadline":"04/30/2026"}],
     noLogins: [{"name":"Megan Ryan-Riffle, NP","type":"NP","states":""},{"name":"Danielle Board, NP","type":"NP","states":""},{"name":"Ashley Escoe, NP","type":"NP","states":""},{"name":"Brooklyn Kimble, RN","type":"RN","states":""},{"name":"Daniel Fis, RN","type":"RN","states":""},{"name":"Brittany Alexander, RN","type":"RN","states":""},{"name":"Lauren Dovin, RN","type":"RN","states":""}],
-    atRisk: []
+    atRisk: [],
+    noCEUs: [{"name":"Doron Stember, MD","type":"MD","state":"Texas","platform":"CE Broker","hoursRequired":48,"hoursCompleted":0,"pctComplete":"0%","renewalDate":"","daysUntilRenewal":"","credentialsOnFile":"No"},{"name":"Lindsay Burden, NP","type":"NP","state":"West Virginia","platform":"CE Broker","hoursRequired":24,"hoursCompleted":0,"pctComplete":"0%","renewalDate":"06/30/2027","daysUntilRenewal":467,"credentialsOnFile":"No"},{"name":"Bryce Hanley, RN","type":"RN","state":"Tennessee","platform":"CE Broker","hoursRequired":10,"hoursCompleted":0,"pctComplete":"0%","renewalDate":"09/30/2026","daysUntilRenewal":194,"credentialsOnFile":"No"}]
   };
 
   function globalSearchHandler(e) {
@@ -12018,7 +12264,7 @@ Call log:
     providersTab.querySelectorAll('.view-toggle').forEach(b => b.classList.remove('active'));
     document.getElementById('provider-' + name)?.classList.add('active');
     const btns = providersTab.querySelectorAll('.view-toggle');
-    const labels = ['all','table','priority','kanban','deadline','state','type','favorites','aanp','stats','timeline'];
+    const labels = ['all','table','priority','kanban','deadline','state','type','favorites','aanp','stats','timeline','noceus'];
     btns[labels.indexOf(name)]?.classList.add('active');
     // Initialize timeline when selected
     if (name === 'timeline' && typeof updateTimeline === 'function') {
@@ -12028,6 +12274,97 @@ Call log:
     if (name === 'favorites') {
       updateFavoritesView();
     }
+    // Update No CEUs view when selected
+    if (name === 'noceus') {
+      populateNoCEUsView();
+    }
+  }
+
+  // ── No CEUs View Functions ──
+  function showNoCEUsView() {
+    // Switch to providers tab first
+    const providersTab = document.querySelector('[onclick="switchTab(\'providers\')"]');
+    if (providersTab) {
+      switchTab('providers');
+    }
+    // Then show the noceus view
+    showProviderView('noceus');
+  }
+
+  function populateNoCEUsView() {
+    const grid = document.getElementById('noCEUsCardsGrid');
+    const emptyState = document.getElementById('noCEUsEmpty');
+    if (!grid) return;
+
+    // Get all provider cards with 0 completed hours and required > 0
+    const allCards = document.querySelectorAll('#provider-all .provider-card');
+    const noCEUsCards = [];
+
+    allCards.forEach(card => {
+      const completed = parseInt(card.dataset.completed) || 0;
+      const required = parseInt(card.dataset.required) || 0;
+      if (completed === 0 && required > 0) {
+        noCEUsCards.push(card.cloneNode(true));
+      }
+    });
+
+    // Sort by days until renewal (ascending), then by hours required (descending)
+    noCEUsCards.sort((a, b) => {
+      const daysA = parseInt(a.dataset.days) || 9999;
+      const daysB = parseInt(b.dataset.days) || 9999;
+      if (daysA !== daysB) return daysA - daysB;
+      const reqA = parseInt(a.dataset.required) || 0;
+      const reqB = parseInt(b.dataset.required) || 0;
+      return reqB - reqA;
+    });
+
+    // Clear and populate grid
+    grid.innerHTML = '';
+    noCEUsCards.forEach(card => grid.appendChild(card));
+
+    // Show/hide empty state
+    if (noCEUsCards.length === 0) {
+      grid.style.display = 'none';
+      emptyState.style.display = 'flex';
+    } else {
+      grid.style.display = 'grid';
+      emptyState.style.display = 'none';
+    }
+  }
+
+  function filterTableNoCEUs() {
+    const checkbox = document.getElementById('tableNoCEUsFilter');
+    const table = document.getElementById('providerTable');
+    const label = document.getElementById('tableNoCEUsFilterLabel');
+    if (!table || !checkbox) return;
+
+    const isChecked = checkbox.checked;
+    const rows = table.querySelectorAll('tbody tr');
+
+    // Toggle active class on label for visual feedback
+    if (label) label.classList.toggle('active', isChecked);
+
+    // Highlight % Complete column header when filter is active
+    const headers = table.querySelectorAll('thead th');
+    headers.forEach(th => {
+      if (th.textContent.includes('Progress') || th.textContent.includes('%')) {
+        th.classList.toggle('filter-active', isChecked);
+      }
+    });
+
+    rows.forEach(row => {
+      if (!isChecked) {
+        row.style.display = '';
+        return;
+      }
+      // Get progress cell (usually 5th column - index 4)
+      const progressCell = row.cells[4];
+      if (progressCell) {
+        const progressText = progressCell.textContent.trim();
+        const progressValue = parseFloat(progressText) || 0;
+        row.style.display = progressValue === 0 ? '' : 'none';
+      }
+    });
   }
 
   // ── Table Sorting ──
@@ -12142,7 +12479,85 @@ Call log:
   document.addEventListener('DOMContentLoaded', function() {
     updatePinButtons();
     updatePinnedCount();
+    initNoCEUsUI();
   });
+
+  // ── Initialize No CEUs UI ──
+  function initNoCEUsUI() {
+    const noCEUsCount = EXPORT_DATA.noCEUs ? EXPORT_DATA.noCEUs.length : 0;
+
+    // Update stat card count
+    const notStartedCount = document.getElementById('notStartedCount');
+    if (notStartedCount) notStartedCount.textContent = noCEUsCount;
+
+    // Update tab badge count
+    const noCEUsTabCount = document.getElementById('noCEUsCount');
+    if (noCEUsTabCount) noCEUsTabCount.textContent = noCEUsCount;
+
+    // Update action block count
+    const noCEUsActionCount = document.getElementById('noCEUsActionCount');
+    if (noCEUsActionCount) noCEUsActionCount.textContent = noCEUsCount;
+
+    // Update export dropdown count
+    const exportNoCEUsCount = document.getElementById('exportNoCEUsCount');
+    if (exportNoCEUsCount) exportNoCEUsCount.textContent = noCEUsCount;
+
+    // Update action block visibility and preview
+    const noCEUsActionBlock = document.getElementById('noCEUsActionBlock');
+    if (noCEUsActionBlock) {
+      if (noCEUsCount === 0) {
+        noCEUsActionBlock.style.display = 'none';
+      } else {
+        noCEUsActionBlock.style.display = '';
+        // Populate provider preview (first 3 + "more" link)
+        const previewEl = document.getElementById('noCEUsProviderPreview');
+        if (previewEl && EXPORT_DATA.noCEUs) {
+          const first3 = EXPORT_DATA.noCEUs.slice(0, 3).map(p => p.name);
+          let previewText = first3.join(', ');
+          if (noCEUsCount > 3) {
+            previewText += ` <span class="more-link">+${noCEUsCount - 3} more</span>`;
+          }
+          previewEl.innerHTML = previewText;
+        }
+      }
+    }
+
+    // Toggle stat card active state
+    const notStartedCard = document.querySelector('.stat-card.not-started');
+    if (notStartedCard) {
+      notStartedCard.classList.toggle('has-providers', noCEUsCount > 0);
+    }
+
+    // Add "No CEUs" badges to provider cards with 0 completed hours
+    addNoCEUsBadges();
+  }
+
+  function addNoCEUsBadges() {
+    const allCards = document.querySelectorAll('#provider-all .provider-card');
+    allCards.forEach(card => {
+      const completed = parseInt(card.dataset.completed) || 0;
+      const required = parseInt(card.dataset.required) || 0;
+
+      if (completed === 0 && required > 0) {
+        // Add badge if not already present
+        const headerRight = card.querySelector('.agg-card-header');
+        if (headerRight && !headerRight.querySelector('.no-ceu-badge')) {
+          const badge = document.createElement('span');
+          badge.className = 'no-ceu-badge';
+          badge.innerHTML = '⚠ No CEUs Started';
+          headerRight.appendChild(badge);
+        }
+
+        // Add empty-bar class to progress bar track
+        const barTrack = card.querySelector('.agg-bar-track');
+        if (barTrack) barTrack.classList.add('empty-bar');
+
+        // Add agg-empty class to progress bar fill
+        const barFill = card.querySelector('.agg-bar-fill');
+        if (barFill) barFill.classList.add('agg-empty');
+      }
+    });
+  }
 
   // ── Credential Tracker Filter ──
   function filterCredTracker(category) {
@@ -12249,10 +12664,13 @@ Call log:
       headers.map(h => {
         const key = h.toLowerCase().replace(/ /g, '');
         const keyMap = {
-          'name': 'name', 'type': 'type', 'state': 'state', 'status': 'status',
+          'name': 'name', 'providername': 'name', 'type': 'type', 'credentialtype': 'type',
+          'state': 'state', 'status': 'status', 'ceuplatform': 'platform', 'platform': 'platform',
           'hoursrequired': 'hoursRequired', 'hourscompleted': 'hoursCompleted',
           'hoursremaining': 'hoursRemaining', 'renewaldeadline': 'renewalDeadline',
-          'daysuntildeadline': 'daysUntilDeadline', 'states': 'states'
+          'renewaldate': 'renewalDate', 'daysuntildeadline': 'daysUntilDeadline',
+          'daysuntilrenewal': 'daysUntilRenewal', '%complete': 'pctComplete', 'pctcomplete': 'pctComplete',
+          'platformcredentialsonfile': 'credentialsOnFile', 'states': 'states'
         };
         const val = row[keyMap[key]] ?? '';
         return '"' + String(val).replace(/"/g, '""') + '"';
@@ -12299,6 +12717,16 @@ Call log:
     downloadCSV(EXPORT_DATA.atRisk,
       ['Name', 'Type', 'State', 'Hours Remaining', 'Renewal Deadline', 'Days Until Deadline'],
       'at-risk-providers');
+  }
+
+  function exportNoCEUProviders() {
+    if (!EXPORT_DATA.noCEUs || EXPORT_DATA.noCEUs.length === 0) {
+      alert('No providers with 0 CEU hours found');
+      return;
+    }
+    downloadCSV(EXPORT_DATA.noCEUs,
+      ['Provider Name', 'Credential Type', 'State', 'CEU Platform', 'Hours Required', 'Hours Completed', '% Complete', 'Renewal Date', 'Days Until Renewal', 'Platform Credentials On File'],
+      'no-ceu-providers');
   }
 
   // ── Export Dropdown Functions ──
@@ -12609,6 +13037,14 @@ Call log:
         const deadlineA = parseInt(a.dataset.deadline) || 9999;
         const deadlineB = parseInt(b.dataset.deadline) || 9999;
         const statusOrder = { 'At Risk': 0, 'In Progress': 1, 'Complete': 2, 'Unknown': 3 };
+        // Calculate percentage for pct-asc sort
+        const completedA = parseInt(a.dataset.completed) || 0;
+        const requiredA = parseInt(a.dataset.required) || 0;
+        const pctA = requiredA > 0 ? (completedA / requiredA) * 100 : 100;
+        const completedB = parseInt(b.dataset.completed) || 0;
+        const requiredB = parseInt(b.dataset.required) || 0;
+        const pctB = requiredB > 0 ? (completedB / requiredB) * 100 : 100;
+
         switch (sortBy) {
           case 'name': return nameA.localeCompare(nameB);
           case 'name-desc': return nameB.localeCompare(nameA);
@@ -12616,6 +13052,7 @@ Call log:
           case 'status-asc': return (statusOrder[statusB] ?? 3) - (statusOrder[statusA] ?? 3);
           case 'deadline': return deadlineA - deadlineB;
           case 'deadline-desc': return deadlineB - deadlineA;
+          case 'pct-asc': return pctA - pctB;
           default: return 0;
         }
       });
