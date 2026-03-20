@@ -1074,9 +1074,16 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
 
       const courseUrl = courseSearchUrl(state, lic.licenseType || info.type);
 
+      const dotTooltip = {
+        Complete: 'Complete - All CEUs done',
+        'In Progress': 'On Track - In progress, deadline far',
+        'At Risk': 'Needs Attention - Deadline approaching!',
+        Unknown: 'Missing Info - Need credentials'
+      }[status] || 'Unknown status';
+
       return `<div class="lic-block ${badgeCls}">
         <div class="lic-header">
-          <span class="lic-dot ${dotCls}"></span>
+          <span class="lic-dot ${dotCls}" title="${dotTooltip}"></span>
           <strong>${escHtml(state)}</strong>
           <span class="lic-type">${escHtml(lic.licenseType || info.type || '')}</span>
           <span class="lic-status-text">${escHtml(status)}</span>
@@ -1089,7 +1096,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
           <div class="bar-track"><div class="bar-fill ${barCls}" style="width:${pct}%"></div></div>
           <span class="bar-label">${lic.hoursCompleted ?? '?'} / ${lic.hoursRequired ?? '?'} hrs <span class="bar-pct">(${pct}%)</span></span>
         </div>
-        ${courseUrl ? `<a class="lic-course-link" href="${courseUrl}" target="_blank" rel="noopener">Search Courses ↗</a>` : ''}
+        ${courseUrl ? `<a class="lic-course-link" href="${courseUrl}" target="_blank" rel="noopener" title="Search courses"></a>` : ''}
       </div>`;
     }).join('');
     }
@@ -1691,8 +1698,8 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       background: var(--accent-primary);
     }
     .stat-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
-    .stat-card .num { font-size: 2rem; font-weight: 800; line-height: 1; color: var(--text-primary); }
-    .stat-card .lbl { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); margin-top: 8px; font-weight: 600; }
+    .stat-card .num { font-size: 2rem; font-weight: 600; line-height: 1; color: var(--text-primary); }
+    .stat-card .lbl { font-size: 0.875rem; letter-spacing: 0; color: var(--text-secondary); margin-top: 8px; font-weight: 500; }
     .stat-card.total::before { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
     .stat-card.total .num { background: linear-gradient(135deg, #6366f1, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
     .stat-card.ok::before { background: var(--status-green-gradient); }
@@ -1703,40 +1710,46 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .stat-card.risk .num { color: var(--status-red); }
     .stat-card.risk { box-shadow: var(--shadow-md), 0 0 0 1px rgba(239,68,68,0.2); }
 
-    /* ─ Welcome Banner ─ */
+    /* ─ Welcome Banner (Slim info bar) ─ */
     .welcome-banner {
-      background: linear-gradient(135deg, #1e3a5f 0%, #1e1b4b 100%);
+      background: linear-gradient(90deg, #1e3a5f 0%, #1e1b4b 100%);
       color: white;
-      padding: 20px 32px;
-      margin: 0 0 24px 0;
-      border-radius: var(--card-border-radius);
+      padding: 10px 20px;
+      margin: 0 0 16px 0;
+      border-radius: 8px;
       display: flex;
       align-items: center;
-      gap: 20px;
-      box-shadow: var(--shadow-lg);
+      gap: 12px;
+      height: 48px;
+      box-shadow: var(--shadow-sm);
     }
-    .welcome-icon { font-size: 2.5rem; }
-    .welcome-content { flex: 1; }
+    .welcome-icon { font-size: 1.2rem; }
+    .welcome-content { flex: 1; display: flex; align-items: center; gap: 8px; }
     .welcome-title {
-      font-size: 1.1rem;
-      font-weight: 700;
-      margin-bottom: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin: 0;
     }
     .welcome-subtitle {
-      font-size: 0.88rem;
-      opacity: 0.9;
-      line-height: 1.5;
+      font-size: 0.78rem;
+      opacity: 0.85;
+      line-height: 1.3;
+      display: -webkit-box;
+      -webkit-line-clamp: 1;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
     }
     .welcome-dismiss {
       background: rgba(255,255,255,0.15);
       border: none;
       color: white;
-      padding: 8px 16px;
-      border-radius: 8px;
+      padding: 5px 12px;
+      border-radius: 6px;
       cursor: pointer;
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       font-weight: 600;
       transition: background 0.15s;
+      white-space: nowrap;
     }
     .welcome-dismiss:hover { background: rgba(255,255,255,0.25); }
 
@@ -2067,7 +2080,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .provider-card {
       background: var(--bg-primary);
       border-radius: var(--card-border-radius);
-      padding: 22px;
+      padding: 24px;
       box-shadow: var(--shadow-md);
       border: 1px solid var(--border-color);
       transition: all var(--transition-smooth);
@@ -2273,7 +2286,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     [data-theme="dark"] .platform-creds-notice { background: rgba(249, 115, 22, 0.2); color: #fdba74; }
 
     .lic-header { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
-    .lic-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+    .lic-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; cursor: help; }
     .dot-green  { background: #16a34a; }
     .dot-yellow { background: #f59e0b; }
     .dot-red    { background: #ef4444; }
@@ -2318,8 +2331,8 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .bar-fill  { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--status-green), #34d399); transition: width .4s cubic-bezier(0.4, 0, 0.2, 1); }
     .bar-fill.partial { background: linear-gradient(90deg, var(--status-amber), #fbbf24); }
     .bar-fill.low     { background: linear-gradient(90deg, var(--status-red), #f87171); }
-    .bar-label { font-size: 0.8rem; color: var(--text-primary); white-space: nowrap; font-weight: 700; min-width: 75px; }
-    .bar-pct { font-size: 0.72rem; color: var(--text-secondary); margin-left: 4px; font-weight: 500; }
+    .bar-label { font-size: 0.72rem; color: var(--text-secondary); white-space: nowrap; font-weight: 600; min-width: 70px; }
+    .bar-pct { font-size: 0.68rem; color: var(--text-secondary); margin-left: 3px; font-weight: 500; opacity: 0.8; }
     [data-theme="dark"] .bar-track { background: #334155; }
     [data-theme="dark"] .bar-label { color: #e2e8f0; }
 
@@ -2362,28 +2375,36 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-top: 10px;
-      font-size: 0.78rem;
+      margin-top: 8px;
+      font-size: 0.72rem;
     }
-    .agg-completed { color: var(--text-secondary); font-weight: 600; }
-    .agg-pct { font-weight: 800; color: var(--text-primary); font-size: 0.95rem; }
-    .agg-remaining { color: var(--status-red); font-weight: 700; }
-    .agg-done { color: var(--status-green); font-weight: 700; }
+    .agg-completed { color: var(--text-secondary); font-weight: 500; }
+    .agg-pct { font-weight: 700; color: var(--text-primary); font-size: 0.82rem; }
+    .agg-remaining { color: var(--status-red); font-weight: 600; font-size: 0.72rem; }
+    .agg-done { color: var(--status-green); font-weight: 600; font-size: 0.72rem; }
     [data-theme="dark"] .card-agg-progress { background: rgba(255,255,255,0.05); border-color: var(--border-color); }
     [data-theme="dark"] .agg-bar-track { background: #1e293b; }
     [data-theme="dark"] .agg-completed { color: #94a3b8; }
     [data-theme="dark"] .agg-remaining { color: #f87171; }
     [data-theme="dark"] .agg-done { color: #34d399; }
 
+    /* Course link - compact icon style */
     .lic-course-link {
-      display: inline-block;
-      margin-top: 8px;
-      font-size: 0.75rem;
-      color: #1d4ed8;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      margin-top: 6px;
+      font-size: 0.7rem;
+      color: #64748b;
       text-decoration: none;
-      font-weight: 500;
+      border: 1px solid #e2e8f0;
+      border-radius: 4px;
+      transition: all 0.15s;
     }
-    .lic-course-link:hover { text-decoration: underline; }
+    .lic-course-link:hover { color: #1d4ed8; border-color: #1d4ed8; background: #eff6ff; }
+    .lic-course-link::before { content: '↗'; }
 
     /* ─ Controls ─ */
     .controls {
@@ -3222,16 +3243,55 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .filter-checkboxes { display: flex; gap: 16px; }
     .filter-checkboxes label { display: flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--text-primary); cursor: pointer; }
     .filter-checkboxes input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
-    .providers-count { display: flex; justify-content: space-between; align-items: center; padding: 0 40px 16px; font-size: 0.85rem; color: var(--text-secondary); }
+    .providers-count { display: flex; align-items: center; gap: 12px; font-size: 0.85rem; color: var(--text-secondary); }
+    .providers-count-row { display: flex; justify-content: space-between; align-items: center; padding: 0 40px 12px; gap: 16px; flex-wrap: wrap; }
 
-    /* ─ View Toggle Buttons ─ */
-    .view-toggle-bar { display: flex; gap: 8px; padding: 20px 40px 0; flex-wrap: wrap; }
-    .view-toggle { padding: 8px 16px; border: 2px solid var(--border-color); border-radius: 8px; background: var(--bg-primary); cursor: pointer; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); transition: all .15s; display: flex; align-items: center; gap: 8px; }
+    /* ─ Quick Filter Pills (compact, above grid) ─ */
+    .quick-filter-pills { display: flex; gap: 6px; align-items: center; }
+    .qf-pill { padding: 4px 10px; border: 1px solid var(--border-color); border-radius: 99px; background: var(--bg-primary); color: var(--text-secondary); font-size: 0.72rem; font-weight: 600; cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; gap: 4px; }
+    .qf-pill:hover { border-color: var(--accent-primary); color: var(--accent-primary); }
+    .qf-pill.active { background: var(--accent-primary); color: #fff; border-color: var(--accent-primary); }
+    .qf-pill-dot { width: 6px; height: 6px; border-radius: 50%; }
+    .qf-pill-dot.urgent { background: var(--status-red); }
+    .qf-pill-dot.complete { background: var(--status-green); }
+    .qf-pill-count { font-size: 0.68rem; opacity: 0.8; }
+    .qf-pill-urgent { border-color: rgba(239,68,68,0.3); color: var(--status-red); }
+    .qf-pill-urgent:hover, .qf-pill-urgent.active { background: var(--status-red); color: #fff; border-color: var(--status-red); }
+    .qf-pill-complete { border-color: rgba(16,185,129,0.3); color: var(--status-green); }
+    .qf-pill-complete:hover, .qf-pill-complete.active { background: var(--status-green); color: #fff; border-color: var(--status-green); }
+
+    /* ─ View Toggle Bar (Consolidated) ─ */
+    .view-toggle-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 16px 40px 12px; flex-wrap: wrap; border-bottom: 1px solid var(--border-color); margin-bottom: 12px; }
+    .view-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+    .view-toggle { padding: 6px 12px; border: 1.5px solid var(--border-color); border-radius: 6px; background: var(--bg-primary); cursor: pointer; font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); transition: all .15s; display: flex; align-items: center; gap: 6px; }
     .view-toggle:hover { border-color: var(--border-dark); color: var(--text-primary); }
     .view-toggle.active { background: var(--accent-blue); color: #fff; border-color: var(--accent-blue); }
-    .view-count { font-size: 0.75rem; padding: 2px 8px; border-radius: 10px; background: rgba(0,0,0,.1); }
+    .view-count { font-size: 0.68rem; padding: 1px 6px; border-radius: 8px; background: rgba(0,0,0,.1); }
     .view-toggle.active .view-count { background: rgba(255,255,255,.2); }
     .view-count.warning { background: var(--status-amber); color: #fff; }
+    .toolbar-actions { display: flex; align-items: center; gap: 8px; }
+
+    /* ─ Export Dropdown ─ */
+    .export-dropdown { position: relative; }
+    .export-dropdown-trigger { padding: 6px 12px; border: 1.5px solid var(--border-color); border-radius: 6px; background: var(--bg-primary); cursor: pointer; font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); transition: all .15s; display: flex; align-items: center; gap: 6px; }
+    .export-dropdown-trigger:hover { border-color: var(--accent-primary); color: var(--accent-primary); }
+    .export-dropdown-trigger svg { opacity: 0.7; }
+    .dropdown-caret { font-size: 0.65rem; opacity: 0.6; }
+    .export-dropdown-menu { position: absolute; top: calc(100% + 4px); right: 0; min-width: 200px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: var(--shadow-lg); z-index: 1000; display: none; overflow: hidden; }
+    .export-dropdown-menu.show { display: block; }
+    .export-dropdown-menu button { display: block; width: 100%; padding: 10px 14px; border: none; background: transparent; text-align: left; font-size: 0.82rem; color: var(--text-primary); cursor: pointer; transition: background 0.1s; }
+    .export-dropdown-menu button:hover:not(:disabled) { background: var(--bg-secondary); }
+    .export-dropdown-menu button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .dropdown-divider { height: 1px; background: var(--border-color); margin: 4px 0; }
+    .dropdown-label { padding: 6px 14px 4px; font-size: 0.7rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+    .bulk-export-item { padding-left: 24px !important; }
+
+    /* ─ Bulk Controls Compact ─ */
+    .bulk-controls-compact { display: flex; align-items: center; gap: 4px; padding-left: 8px; border-left: 1px solid var(--border-color); }
+    .bulk-btn-compact { padding: 5px 6px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--bg-primary); cursor: pointer; color: var(--text-secondary); transition: all 0.15s; display: flex; align-items: center; justify-content: center; }
+    .bulk-btn-compact:hover { border-color: var(--accent-primary); color: var(--accent-primary); }
+    .bulk-btn-compact svg { opacity: 0.7; }
+    .bulk-count-compact { font-size: 0.72rem; font-weight: 600; color: var(--text-secondary); min-width: 16px; text-align: center; }
 
     .license-view, .report-view { display: none; padding: 0 40px 24px; }
     .license-view.active, .report-view.active { display: block; }
@@ -3372,7 +3432,9 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .sc-gray   { background: #f1f5f9; color: #475569; }
     .sc-blue   { background: #dbeafe; color: #1e40af; }
     .sc-orange { background: #fed7aa; color: #9a3412; }
-    .card-plat-tags { display: flex; flex-wrap: wrap; gap: 5px; padding: 8px 12px 4px; border-top: 1px solid #f1f5f9; }
+    /* Platform tags - hidden by default, shown on hover */
+    .card-plat-tags { display: none; flex-wrap: wrap; gap: 5px; padding: 8px 12px 4px; border-top: 1px solid #f1f5f9; }
+    .provider-card:hover .card-plat-tags, .provider-card.expanded .card-plat-tags { display: flex; }
     .card-plat-tag { font-size: 0.68rem; font-weight: 600; padding: 2px 7px; border-radius: 10px; }
     .plat-tag-netce   { background: #ccfbf1; color: #0f766e; }
     .plat-tag-ceufast { background: #ede9fe; color: #6d28d9; }
@@ -4736,6 +4798,41 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .timeline-marker.warning { background: #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,0.3); }
     .timeline-marker.safe { background: #10b981; }
     .timeline-marker.cluster { width: 20px; height: 20px; font-size: 0.65rem; font-weight: 700; color: #fff; display: flex; align-items: center; justify-content: center; }
+    /* Timeline marker tooltips */
+    .timeline-marker::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e293b;
+      color: #fff;
+      font-size: 0.7rem;
+      font-weight: 500;
+      padding: 6px 10px;
+      border-radius: 6px;
+      white-space: nowrap;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.15s, visibility 0.15s;
+      z-index: 100;
+      pointer-events: none;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    .timeline-marker::before {
+      content: '';
+      position: absolute;
+      bottom: calc(100% + 4px);
+      left: 50%;
+      transform: translateX(-50%);
+      border: 4px solid transparent;
+      border-top-color: #1e293b;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.15s, visibility 0.15s;
+      z-index: 100;
+    }
+    .timeline-marker:hover::after, .timeline-marker:hover::before { opacity: 1; visibility: visible; }
     .timeline-today { position: absolute; top: 20px; bottom: 0; width: 2px; background: var(--accent-primary); z-index: 5; }
     .timeline-today::before { content: 'Today'; position: absolute; top: -16px; left: 50%; transform: translateX(-50%); font-size: 0.6rem; font-weight: 600; color: var(--accent-primary); white-space: nowrap; }
 
@@ -4906,14 +5003,14 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
 
   <!-- Main Content Area -->
   <main class="main-content">
-    <!-- ── Welcome Banner ─────────────────────────────────────────────────── -->
+    <!-- ── Welcome Banner (Slim) ────────────────────────────────────────────── -->
     <div class="welcome-banner" id="welcomeBanner">
       <div class="welcome-icon">📊</div>
       <div class="welcome-content">
-        <div class="welcome-title">Welcome to the CEU Compliance Tracker</div>
-        <div class="welcome-subtitle">Track continuing education requirements and renewal deadlines for all clinical team members in one place. This dashboard updates automatically every night with the latest data from CE Broker and other platforms.</div>
+        <div class="welcome-title">CEU Compliance Tracker</div>
+        <div class="welcome-subtitle">— Track CE requirements and deadlines. Updates nightly from CE Broker.</div>
       </div>
-      <button class="welcome-dismiss" onclick="dismissWelcome()">Got it</button>
+      <button class="welcome-dismiss" onclick="dismissWelcome()">Dismiss</button>
     </div>
 
     <!-- ── Daily Briefing Banner ──────────────────────────────────────────── -->
@@ -4965,9 +5062,10 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
           ${timelineMonths.map(m => `<div class="timeline-month${m.isCurrent ? ' current' : ''}">${m.label}</div>`).join('')}
         </div>
         <div class="timeline-markers">
-          ${timelineDeadlines.map(d => `
-            <div class="timeline-marker ${d.urgency}" style="left: ${d.pct}%" title="${escHtml(d.name)}: ${d.days} days (${escHtml(d.date)})"></div>
-          `).join('')}
+          ${timelineDeadlines.map(d => {
+            const statusLabel = d.urgency === 'urgent' ? 'Urgent' : d.urgency === 'warning' ? 'Soon' : 'OK';
+            return `<div class="timeline-marker ${d.urgency}" style="left: ${d.pct}%" data-tooltip="${escHtml(d.name)} · ${escHtml(d.date)} · ${statusLabel}"></div>`;
+          }).join('')}
         </div>
         <div class="timeline-today" style="left: ${(1/365) * 100}%"></div>
       </div>
@@ -5031,15 +5129,6 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
         <div class="num">${atRisk}</div>
         <div class="lbl">Needs Attention</div>
       </div>
-    </div>
-
-    <!-- ── Status Legend ──────────────────────────────────────────────────── -->
-    <div class="status-legend">
-      <span class="legend-title">Status Guide:</span>
-      <div class="legend-item"><span class="legend-dot green"></span> Complete - All CEUs done</div>
-      <div class="legend-item"><span class="legend-dot yellow"></span> On Track - In progress, deadline far</div>
-      <div class="legend-item"><span class="legend-dot red"></span> Needs Attention - Deadline soon!</div>
-      <div class="legend-item"><span class="legend-dot gray"></span> Missing Info - Need credentials</div>
     </div>
 
 <!-- ── Tab: Overview ──────────────────────────────────────────────────── -->
@@ -5297,26 +5386,46 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     '</div>';
   })()}
 
-  <!-- View Toggle Bar -->
+  <!-- View Toggle Bar (Consolidated) -->
   <div class="view-toggle-bar">
-    <button class="view-toggle active" onclick="showProviderView('all')">All Providers <span class="view-count">${providerEntries.length}</span></button>
-    <button class="view-toggle" onclick="showProviderView('priority')">By Priority <span class="view-count ${atRiskCount > 0 ? 'warning' : ''}">${atRiskCount}</span></button>
-    <button class="view-toggle" onclick="showProviderView('kanban')">Kanban Board</button>
-    <button class="view-toggle" onclick="showProviderView('deadline')">By Deadline <span class="view-count ${deadlineProviders30.length > 0 ? 'warning' : ''}">${deadlineProviders30.length + deadlineProviders60.length + deadlineProviders90.length}</span></button>
-    <button class="view-toggle" onclick="showProviderView('state')">By State</button>
-    <button class="view-toggle" onclick="showProviderView('type')">By Type</button>
-    <button class="view-toggle" onclick="showProviderView('favorites')">Pinned <span class="view-count" id="pinnedCount">0</span></button>
-    <button class="view-toggle" onclick="showProviderView('aanp')">AANP Cert <span class="view-count">${aanpCertData.length}</span></button>
-    <button class="view-toggle" onclick="showProviderView('stats')">State Stats</button>
-    <button class="view-toggle" onclick="showProviderView('timeline')">Timeline</button>
-    <button class="export-btn" onclick="exportMissingCredentials()">Export Missing Creds</button>
-    <button class="export-btn" onclick="exportFilteredResults()">Export Filtered</button>
-    <div class="bulk-controls">
-      <button class="bulk-btn" onclick="selectAllVisible()" title="Select all visible providers">Select All</button>
-      <button class="bulk-btn" onclick="clearSelection()" title="Clear selection">Clear</button>
-      <span class="bulk-count" id="bulkCount">0 selected</span>
-      <button class="export-btn bulk-export-btn" onclick="exportSelectedCSV()" id="exportSelectedCSV" disabled>Export CSV</button>
-      <button class="export-btn bulk-export-btn pdf-btn" onclick="exportSelectedPDF()" id="exportSelectedPDF" disabled>Export PDF</button>
+    <div class="view-tabs">
+      <button class="view-toggle active" onclick="showProviderView('all')">All Providers <span class="view-count">${providerEntries.length}</span></button>
+      <button class="view-toggle" onclick="showProviderView('priority')">By Priority <span class="view-count ${atRiskCount > 0 ? 'warning' : ''}">${atRiskCount}</span></button>
+      <button class="view-toggle" onclick="showProviderView('kanban')">Kanban</button>
+      <button class="view-toggle" onclick="showProviderView('deadline')">By Deadline <span class="view-count ${deadlineProviders30.length > 0 ? 'warning' : ''}">${deadlineProviders30.length + deadlineProviders60.length + deadlineProviders90.length}</span></button>
+      <button class="view-toggle" onclick="showProviderView('state')">By State</button>
+      <button class="view-toggle" onclick="showProviderView('type')">By Type</button>
+      <button class="view-toggle" onclick="showProviderView('favorites')">Pinned <span class="view-count" id="pinnedCount">0</span></button>
+      <button class="view-toggle" onclick="showProviderView('aanp')">AANP</button>
+      <button class="view-toggle" onclick="showProviderView('stats')">Stats</button>
+      <button class="view-toggle" onclick="showProviderView('timeline')">Timeline</button>
+    </div>
+    <div class="toolbar-actions">
+      <div class="export-dropdown">
+        <button class="export-dropdown-trigger" onclick="toggleExportDropdown(event)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export <span class="dropdown-caret">▾</span>
+        </button>
+        <div class="export-dropdown-menu" id="exportDropdownMenu">
+          <button onclick="exportMissingCredentials(); closeExportDropdown()">Missing Credentials</button>
+          <button onclick="exportFilteredResults(); closeExportDropdown()">Filtered Results (CSV)</button>
+          <button onclick="exportToCalendar(); closeExportDropdown()">Calendar (.ics)</button>
+          <button onclick="printComplianceReport(); closeExportDropdown()">Print Report</button>
+          <div class="dropdown-divider"></div>
+          <div class="dropdown-label">Bulk Export (select providers first)</div>
+          <button onclick="exportSelectedCSV(); closeExportDropdown()" id="exportSelectedCSVMenu" class="bulk-export-item" disabled>Selected as CSV</button>
+          <button onclick="exportSelectedPDF(); closeExportDropdown()" id="exportSelectedPDFMenu" class="bulk-export-item" disabled>Selected as PDF</button>
+        </div>
+      </div>
+      <div class="bulk-controls-compact">
+        <button class="bulk-btn-compact" onclick="selectAllVisible()" title="Select all visible">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        </button>
+        <button class="bulk-btn-compact" onclick="clearSelection()" title="Clear selection">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>
+        </button>
+        <span class="bulk-count-compact" id="bulkCount">0</span>
+      </div>
     </div>
   </div>
 
@@ -5328,36 +5437,6 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
 
   <!-- All Providers View -->
   <div class="provider-view active" id="provider-all">
-    <!-- Quick Filters -->
-    <div class="quick-filters">
-      <span class="quick-filter-label">Quick:</span>
-      <button class="quick-filter-btn qf-urgent" onclick="applyQuickFilter('urgent')" id="qf-urgent">
-        Needs Attention <span class="qf-count">${atRiskCount + urgentCount}</span>
-      </button>
-      <button class="quick-filter-btn" onclick="applyQuickFilter('due30')" id="qf-due30">
-        Due in 30 Days <span class="qf-count">${urgentCount}</span>
-      </button>
-      <button class="quick-filter-btn" onclick="applyQuickFilter('due90')" id="qf-due90">
-        Due in 90 Days
-      </button>
-      <button class="quick-filter-btn" onclick="applyQuickFilter('complete')" id="qf-complete">
-        Complete <span class="qf-count">${completeCount}</span>
-      </button>
-      <button class="quick-filter-btn" onclick="applyQuickFilter('all')" id="qf-all">
-        Show All
-      </button>
-      <div style="margin-left: auto; display: flex; gap: 8px;">
-        <button class="calendar-export-btn" onclick="exportToCalendar()" title="Export deadlines to calendar">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          Export Calendar
-        </button>
-        <button class="print-report-btn" onclick="printComplianceReport()" title="Print compliance report">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-          Print Report
-        </button>
-      </div>
-    </div>
-
     <!-- Filter Bar -->
     <div class="providers-filter-bar">
       <input class="search-box" type="text" id="cardSearch" placeholder="Search providers..." oninput="filterCards()" />
@@ -5430,10 +5509,29 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       </div>
     </div>
 
-    <!-- Provider Count -->
-    <div class="providers-count">
-      <span id="providerFilterCount">${providerEntries.length} of ${providerEntries.length} providers</span>
-      <button class="reset-btn" onclick="resetProviderFilters()">Reset</button>
+    <!-- Provider Count + Quick Filter Pills -->
+    <div class="providers-count-row">
+      <div class="providers-count">
+        <span id="providerFilterCount">${providerEntries.length} of ${providerEntries.length} providers</span>
+        <button class="reset-btn" onclick="resetProviderFilters()">Reset</button>
+      </div>
+      <div class="quick-filter-pills">
+        <button class="qf-pill qf-pill-urgent" onclick="applyQuickFilter('urgent')" id="qf-urgent" title="Show providers needing attention">
+          <span class="qf-pill-dot urgent"></span>Attention <span class="qf-pill-count">${atRiskCount + urgentCount}</span>
+        </button>
+        <button class="qf-pill" onclick="applyQuickFilter('due30')" id="qf-due30" title="Due within 30 days">
+          30d <span class="qf-pill-count">${urgentCount}</span>
+        </button>
+        <button class="qf-pill" onclick="applyQuickFilter('due90')" id="qf-due90" title="Due within 90 days">
+          90d
+        </button>
+        <button class="qf-pill qf-pill-complete" onclick="applyQuickFilter('complete')" id="qf-complete" title="Show complete providers">
+          <span class="qf-pill-dot complete"></span>Done <span class="qf-pill-count">${completeCount}</span>
+        </button>
+        <button class="qf-pill qf-pill-all" onclick="applyQuickFilter('all')" id="qf-all" title="Show all providers">
+          All
+        </button>
+      </div>
     </div>
 
     <!-- All Providers Cards Grid -->
@@ -7506,18 +7604,36 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     URL.revokeObjectURL(url);
   }
 
+  // ── Export Dropdown Functions ──
+  function toggleExportDropdown(event) {
+    event.stopPropagation();
+    const menu = document.getElementById('exportDropdownMenu');
+    menu.classList.toggle('show');
+  }
+  function closeExportDropdown() {
+    const menu = document.getElementById('exportDropdownMenu');
+    if (menu) menu.classList.remove('show');
+  }
+  // Close dropdown when clicking outside
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.export-dropdown')) {
+      closeExportDropdown();
+    }
+  });
+
   // ── Bulk Selection Functions ──
   function updateBulkSelection() {
     const checkboxes = document.querySelectorAll('.bulk-select-cb:checked');
     const count = checkboxes.length;
     const countEl = document.getElementById('bulkCount');
-    const csvBtn = document.getElementById('exportSelectedCSV');
-    const pdfBtn = document.getElementById('exportSelectedPDF');
-
-    countEl.textContent = count + ' selected';
+    // Update compact count (just the number)
+    countEl.textContent = count;
     countEl.classList.toggle('has-selection', count > 0);
-    csvBtn.disabled = count === 0;
-    pdfBtn.disabled = count === 0;
+    // Update dropdown menu items
+    const csvMenuBtn = document.getElementById('exportSelectedCSVMenu');
+    const pdfMenuBtn = document.getElementById('exportSelectedPDFMenu');
+    if (csvMenuBtn) csvMenuBtn.disabled = count === 0;
+    if (pdfMenuBtn) pdfMenuBtn.disabled = count === 0;
 
     // Toggle selected class on cards
     document.querySelectorAll('.provider-card').forEach(card => {
@@ -8427,7 +8543,8 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
   let activeQuickFilter = 'all';
   function applyQuickFilter(filter) {
     activeQuickFilter = filter;
-    document.querySelectorAll('.quick-filter-btn').forEach(btn => btn.classList.remove('active'));
+    // Support both old .quick-filter-btn and new .qf-pill classes
+    document.querySelectorAll('.quick-filter-btn, .qf-pill').forEach(btn => btn.classList.remove('active'));
     const activeBtn = document.getElementById('qf-' + filter);
     if (activeBtn) activeBtn.classList.add('active');
 
