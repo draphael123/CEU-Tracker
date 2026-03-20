@@ -10619,55 +10619,30 @@
 
   <!-- Credential Gaps View -->
   <div class="platform-view" id="platform-gaps">
-    <div class="credential-gaps-grid">
-      <!-- Missing CE Broker -->
+    <div class="credential-gaps-grid" style="grid-template-columns: 1fr;">
+      <!-- No Platform Credentials At All -->
       <div class="cred-gap-card">
-        <div class="cred-gap-header cred-gap-cebroker">
-          <span class="cred-gap-icon">🔑</span>
-          <span class="cred-gap-title">Missing Platform Credentials</span>
-          <span class="cred-gap-count">21</span>
+        <div class="cred-gap-header cred-gap-cebroker" style="background: linear-gradient(135deg, #dc2626, #ef4444);">
+          <span class="cred-gap-icon">⚠️</span>
+          <span class="cred-gap-title">No Platform Credentials</span>
+          <span class="cred-gap-count">7</span>
         </div>
         <div class="cred-gap-body">
-          <div class="cred-gap-subtitle">With some platform access (14)</div>
-          <div class="cred-gap-list">
-            <span class="cred-gap-chip" onclick="openProvider('Hilary Morgan, RN')">Hilary Morgan, RN <small>(RN)</small></span><span class="cred-gap-chip" onclick="openProvider('Liz Gloor, NP')">Liz Gloor, NP <small>(NP)</small></span><span class="cred-gap-chip" onclick="openProvider('Mackinzie Johnson, RN')">Mackinzie Johnson, RN <small>(RN)</small></span><span class="cred-gap-chip" onclick="openProvider('Rachel Razi, NP')">Rachel Razi, NP <small>(NP)</small></span><span class="cred-gap-chip" onclick="openProvider('Terray Humphrey, NP')">Terray Humphrey, NP <small>(NP)</small></span><span class="cred-gap-chip" onclick="openProvider('Tzvi Doron, DO')">Tzvi Doron, DO <small>(DO)</small></span><span class="cred-gap-chip" onclick="openProvider('Vivien Lee, NP')">Vivien Lee, NP <small>(NP)</small></span><span class="cred-gap-chip" onclick="openProvider('Victor Lopez, NP')">Victor Lopez, NP <small>(NP)</small></span><span class="cred-gap-chip" onclick="openProvider('Camryn Burden, RN')">Camryn Burden, RN <small>(RN)</small></span><span class="cred-gap-chip" onclick="openProvider('Alexis Foster-Horton, NP')">Alexis Foster-Horton, NP <small>(NP)</small></span><span class="cred-gap-chip" onclick="openProvider('Michele Foster, NP')">Michele Foster, NP <small>(NP)</small></span><span class="cred-gap-chip" onclick="openProvider('DeAnna Maher, NP')">DeAnna Maher, NP <small>(NP)</small></span><span class="cred-gap-chip" onclick="openProvider('Skye Sauls, NP')">Skye Sauls, NP <small>(NP)</small></span><span class="cred-gap-chip" onclick="openProvider('Shelby Bailey, RN')">Shelby Bailey, RN <small>(RN)</small></span>
+          <div class="cred-gap-subtitle">These providers have no CE platform credentials on file and cannot be tracked</div>
+          <div class="cred-gap-list" style="margin-top: 12px;">
+            <span class="cred-gap-chip cred-gap-chip-none" onclick="openProvider('Megan Ryan-Riffle, NP')">Megan Ryan-Riffle, NP <small>(NP)</small></span>
+            <span class="cred-gap-chip cred-gap-chip-none" onclick="openProvider('Danielle Board, NP')">Danielle Board, NP <small>(NP)</small></span>
+            <span class="cred-gap-chip cred-gap-chip-none" onclick="openProvider('Ashley Escoe, NP')">Ashley Escoe, NP <small>(NP)</small></span>
+            <span class="cred-gap-chip cred-gap-chip-none" onclick="openProvider('Brooklyn Kimble, RN')">Brooklyn Kimble, RN <small>(RN)</small></span>
+            <span class="cred-gap-chip cred-gap-chip-none" onclick="openProvider('Daniel Fis, RN')">Daniel Fis, RN <small>(RN)</small></span>
+            <span class="cred-gap-chip cred-gap-chip-none" onclick="openProvider('Brittany Alexander, RN')">Brittany Alexander, RN <small>(RN)</small></span>
+            <span class="cred-gap-chip cred-gap-chip-none" onclick="openProvider('Lauren Dovin, RN')">Lauren Dovin, RN <small>(RN)</small></span>
           </div>
-          <div class="cred-gap-subtitle" style="margin-top: 12px;">No credentials at all (7)</div>
-          <div class="cred-gap-list">
-            <span class="cred-gap-chip cred-gap-chip-none" onclick="openProvider('Megan Ryan-Riffle, NP')">Megan Ryan-Riffle, NP <small>(NP)</small></span><span class="cred-gap-chip cred-gap-chip-none" onclick="openProvider('Danielle Board, NP')">Danielle Board, NP <small>(NP)</small></span><span class="cred-gap-chip cred-gap-chip-none" onclick="openProvider('Ashley Escoe, NP')">Ashley Escoe, NP <small>(NP)</small></span><span class="cred-gap-chip cred-gap-chip-none" onclick="openProvider('Brooklyn Kimble, RN')">Brooklyn Kimble, RN <small>(RN)</small></span><span class="cred-gap-chip cred-gap-chip-none" onclick="openProvider('Daniel Fis, RN')">Daniel Fis, RN <small>(RN)</small></span><span class="cred-gap-chip cred-gap-chip-none" onclick="openProvider('Brittany Alexander, RN')">Brittany Alexander, RN <small>(RN)</small></span><span class="cred-gap-chip cred-gap-chip-none" onclick="openProvider('Lauren Dovin, RN')">Lauren Dovin, RN <small>(RN)</small></span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Missing NetCE -->
-      <div class="cred-gap-card">
-        <div class="cred-gap-header cred-gap-netce">
-          <span class="cred-gap-icon">📚</span>
-          <span class="cred-gap-title">Missing NetCE Credentials</span>
-          <span class="cred-gap-count">21</span>
-        </div>
-        <div class="cred-gap-body">
-          <div class="cred-gap-subtitle">Have other platform access (14)</div>
-          <div class="cred-gap-list">
-            <span class="cred-gap-chip" onclick="openProvider('Ashley Grout, NP')">Ashley Grout, NP <small>(NP)</small></span><span class="cred-gap-chip" onclick="openProvider('Bryce Amos, NP')">Bryce Amos, NP <small>(NP)</small></span><span class="cred-gap-chip" onclick="openProvider('Catherine Herrington, MD')">Catherine Herrington, MD <small>(MD)</small></span><span class="cred-gap-chip" onclick="openProvider('Lindsay Burden, NP')">Lindsay Burden, NP <small>(NP)</small></span><span class="cred-gap-chip" onclick="openProvider('Liz Gloor, NP')">Liz Gloor, NP <small>(NP)</small></span><span class="cred-gap-chip" onclick="openProvider('Priya Chaudhari, NP')">Priya Chaudhari, NP <small>(NP)</small></span><span class="cred-gap-chip" onclick="openProvider('Rachel Razi, NP')">Rachel Razi, NP <small>(NP)</small></span><span class="cred-gap-chip" onclick="openProvider('Summer Denny, NP')">Summer Denny, NP <small>(NP)</small></span><span class="cred-gap-chip" onclick="openProvider('Victor Lopez, NP')">Victor Lopez, NP <small>(NP)</small></span><span class="cred-gap-chip" onclick="openProvider('Camryn Burden, RN')">Camryn Burden, RN <small>(RN)</small></span><span class="cred-gap-chip" onclick="openProvider('Michele Foster, NP')">Michele Foster, NP <small>(NP)</small></span><span class="cred-gap-chip" onclick="openProvider('DeAnna Maher, NP')">DeAnna Maher, NP <small>(NP)</small></span><span class="cred-gap-chip" onclick="openProvider('Bryce Hanley, RN')">Bryce Hanley, RN <small>(RN)</small></span><span class="cred-gap-chip" onclick="openProvider('Shelby Bailey, RN')">Shelby Bailey, RN <small>(RN)</small></span>
-          </div>
-          <div class="cred-gap-subtitle" style="margin-top: 12px;">No credentials at all (7)</div>
-          <div class="cred-gap-list">
-            <span class="cred-gap-chip cred-gap-chip-none" onclick="openProvider('Megan Ryan-Riffle, NP')">Megan Ryan-Riffle, NP <small>(NP)</small></span><span class="cred-gap-chip cred-gap-chip-none" onclick="openProvider('Danielle Board, NP')">Danielle Board, NP <small>(NP)</small></span><span class="cred-gap-chip cred-gap-chip-none" onclick="openProvider('Ashley Escoe, NP')">Ashley Escoe, NP <small>(NP)</small></span><span class="cred-gap-chip cred-gap-chip-none" onclick="openProvider('Brooklyn Kimble, RN')">Brooklyn Kimble, RN <small>(RN)</small></span><span class="cred-gap-chip cred-gap-chip-none" onclick="openProvider('Daniel Fis, RN')">Daniel Fis, RN <small>(RN)</small></span><span class="cred-gap-chip cred-gap-chip-none" onclick="openProvider('Brittany Alexander, RN')">Brittany Alexander, RN <small>(RN)</small></span><span class="cred-gap-chip cred-gap-chip-none" onclick="openProvider('Lauren Dovin, RN')">Lauren Dovin, RN <small>(RN)</small></span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Have Both -->
-      <div class="cred-gap-card">
-        <div class="cred-gap-header cred-gap-complete">
-          <span class="cred-gap-icon">✓</span>
-          <span class="cred-gap-title">Have Both CE Broker & NetCE</span>
-          <span class="cred-gap-count">5</span>
-        </div>
-        <div class="cred-gap-body">
-          <div class="cred-gap-list">
-            <span class="cred-gap-chip cred-gap-chip-complete" onclick="openProvider('Bill Carbonneau, NP')">Bill Carbonneau, NP <small>(NP)</small></span><span class="cred-gap-chip cred-gap-chip-complete" onclick="openProvider('Bryana Anderson, NP')">Bryana Anderson, NP <small>(NP)</small></span><span class="cred-gap-chip cred-gap-chip-complete" onclick="openProvider('Doron Stember, MD')">Doron Stember, MD <small>(MD)</small></span><span class="cred-gap-chip cred-gap-chip-complete" onclick="openProvider('Martin Van Dongen, NP')">Martin Van Dongen, NP <small>(NP)</small></span><span class="cred-gap-chip cred-gap-chip-complete" onclick="openProvider('Tim Mack, NP')">Tim Mack, NP <small>(NP)</small></span>
+          <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
+            <button class="btn btn-danger" onclick="exportNoPlatformCredentials()" style="width: 100%;">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-right: 6px;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+              Download No Credentials List
+            </button>
           </div>
         </div>
       </div>
@@ -12703,6 +12678,29 @@ Call log:
     downloadCSV(EXPORT_DATA.noLogins,
       ['Name', 'Type', 'States'],
       'no-ceu-logins');
+  }
+
+  function exportNoPlatformCredentials() {
+    const noPlatformProviders = [
+      { name: 'Megan Ryan-Riffle, NP', type: 'NP' },
+      { name: 'Danielle Board, NP', type: 'NP' },
+      { name: 'Ashley Escoe, NP', type: 'NP' },
+      { name: 'Brooklyn Kimble, RN', type: 'RN' },
+      { name: 'Daniel Fis, RN', type: 'RN' },
+      { name: 'Brittany Alexander, RN', type: 'RN' },
+      { name: 'Lauren Dovin, RN', type: 'RN' }
+    ];
+    if (noPlatformProviders.length === 0) { alert('All providers have platform credentials'); return; }
+    const csv = 'Provider Name,Credential Type,Status\n' + noPlatformProviders.map(p =>
+      '"' + p.name + '","' + p.type + '","No Platform Credentials"'
+    ).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'no-platform-credentials-' + new Date().toISOString().split('T')[0] + '.csv';
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   function exportComplete() {
