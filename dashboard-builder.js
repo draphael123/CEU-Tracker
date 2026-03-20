@@ -4709,6 +4709,8 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .kanban-card.kanban-warning { border-left-color: #f59e0b; }
     .kanban-card.kanban-progress-card { border-left-color: #3b82f6; }
     .kanban-card.kanban-complete-card { border-left-color: #16a34a; }
+    .kanban-card.kanban-no-creds { border-left-color: #8b5cf6; background: #faf5ff; }
+    .kanban-no-creds-label { font-size: 0.75rem; color: #7c3aed; background: #ede9fe; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
 
     /* ─ Lazy Loading ─ */
     .load-sentinel { height: 1px; width: 100%; }
@@ -5921,7 +5923,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
         <div class="kanban-column-header">
           <span class="kanban-column-icon">📚</span>
           <span class="kanban-column-title">Needs CEUs</span>
-          <span class="kanban-column-count">${priorityGroups.critical.length + priorityGroups.attention.length}</span>
+          <span class="kanban-column-count">${priorityGroups.critical.length + priorityGroups.attention.length + trulyNoCredentialsProviders.length}</span>
         </div>
         <div class="kanban-cards">
           ${[...priorityGroups.critical, ...priorityGroups.attention].map(p => {
@@ -5934,7 +5936,16 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
                 (daysText ? '<span class="kanban-days">' + daysText + '</span>' : '') +
               '</div>' +
             '</div>';
-          }).join('') || '<div class="kanban-empty">No providers need CEUs</div>'}
+          }).join('')}
+          ${trulyNoCredentialsProviders.map(name => {
+            return '<div class="kanban-card kanban-no-creds" onclick="openProvider(\'' + escHtml(name).replace(/'/g, '&#39;') + '\')">' +
+              '<div class="kanban-card-name">' + escHtml(name) + '</div>' +
+              '<div class="kanban-card-meta">' +
+                '<span class="kanban-no-creds-label">No CEU logins</span>' +
+              '</div>' +
+            '</div>';
+          }).join('')}
+          ${priorityGroups.critical.length + priorityGroups.attention.length + trulyNoCredentialsProviders.length === 0 ? '<div class="kanban-empty">No providers need CEUs</div>' : ''}
         </div>
       </div>
 
