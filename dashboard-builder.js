@@ -402,6 +402,16 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     warning: [],  // Deadlines within 60 days
     info: []      // Missing credentials
   };
+
+  // ── Priority Groups (for Priority View) ─────────────────────────────────
+  const priorityGroups = {
+    critical: [],    // At Risk status
+    attention: [],   // Deadline within 60 days, not complete
+    onTrack: [],     // In Progress, plenty of time
+    complete: [],    // All complete
+    unknown: []      // No data/credentials needed
+  };
+
   for (const [name, info] of Object.entries(providerMap)) {
     const worstStatus = info.licenses.some(l => getS(l) === 'At Risk') ? 'At Risk'
                       : info.licenses.some(l => getS(l) === 'In Progress') ? 'In Progress'
@@ -410,6 +420,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     const earliestDeadline = Math.min(...info.licenses.map(l => daysUntil(parseDate(l.renewalDeadline)) ?? 9999));
     const hoursNeeded = info.licenses.reduce((sum, l) => sum + (l.hoursRemaining || 0), 0);
 
+    // Action items (existing logic)
     if (worstStatus === 'At Risk') {
       actionItems.critical.push({ name, info, deadline: earliestDeadline, hoursNeeded, reason: 'At Risk - CE requirements behind schedule' });
     } else if (earliestDeadline >= 0 && earliestDeadline <= 30 && worstStatus !== 'Complete') {
@@ -417,7 +428,28 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     } else if (earliestDeadline > 30 && earliestDeadline <= 60 && worstStatus !== 'Complete') {
       actionItems.warning.push({ name, info, deadline: earliestDeadline, hoursNeeded, reason: 'Deadline within 60 days' });
     }
+
+    // Priority groups (for Priority View)
+    if (worstStatus === 'At Risk') {
+      priorityGroups.critical.push({ name, info, deadline: earliestDeadline, hoursNeeded, status: worstStatus });
+    } else if (worstStatus === 'Complete') {
+      priorityGroups.complete.push({ name, info, deadline: earliestDeadline, hoursNeeded, status: worstStatus });
+    } else if (worstStatus === 'Unknown' || noCredentialsProviders.includes(name)) {
+      priorityGroups.unknown.push({ name, info, deadline: earliestDeadline, hoursNeeded, status: worstStatus });
+    } else if (earliestDeadline >= 0 && earliestDeadline <= 60) {
+      priorityGroups.attention.push({ name, info, deadline: earliestDeadline, hoursNeeded, status: worstStatus });
+    } else {
+      priorityGroups.onTrack.push({ name, info, deadline: earliestDeadline, hoursNeeded, status: worstStatus });
+    }
   }
+
+  // Sort priority groups by deadline
+  priorityGroups.critical.sort((a, b) => a.deadline - b.deadline);
+  priorityGroups.attention.sort((a, b) => a.deadline - b.deadline);
+  priorityGroups.onTrack.sort((a, b) => a.deadline - b.deadline);
+  priorityGroups.complete.sort((a, b) => a.name.localeCompare(b.name));
+  priorityGroups.unknown.sort((a, b) => a.name.localeCompare(b.name));
+
   // Add missing credentials to info
   for (const p of noCredentialsProviders) {
     if (!actionItems.critical.find(a => a.name === p) && !actionItems.urgent.find(a => a.name === p)) {
@@ -1152,6 +1184,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
 
     return `<div class="provider-card ${cardBorderCls} ${criticalCls} card-clickable"
         data-provider="${escHtml(name)}"
+        data-name="${escHtml(name)}"
         data-status="${worstStatus}"
         data-states="${escHtml(statesList)}"
         data-deadline="${earliestDeadline}"
@@ -1164,7 +1197,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       ${unknownBanner}
       <div class="card-top">
         <input type="checkbox" class="bulk-select-cb" onclick="event.stopPropagation(); updateBulkSelection()" title="Select for bulk export">
-        <button class="fav-btn" onclick="event.stopPropagation(); toggleFavorite('${escHtml(name).replace(/'/g, '&#39;')}')" title="Pin to favorites">☆</button>
+        <button class="pin-btn" data-provider="${escHtml(name)}" onclick="event.stopPropagation(); togglePinProvider('${escHtml(name).replace(/'/g, '&#39;')}', event)" title="Pin provider">☆</button>
         <div class="avatar" style="background:${
         worstStatus === 'Complete'    ? '#10b981'
       : worstStatus === 'In Progress' ? '#f59e0b'
@@ -1206,6 +1239,67 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
   const haveBoth = providers
     .filter(p => p.username && p.password && p.platforms?.some(plat => plat.platform === 'NetCE'))
     .map(p => ({ name: p.name, type: p.type }));
+
+  // ── Credential Categories for Filtering ───────────────────────────────────
+  // CE Broker Only: Have CE Broker credentials but no platform credentials
+  const ceBrokerOnly = providers
+    .filter(p => p.username && p.password && (!p.platforms || p.platforms.length === 0))
+    .map(p => ({ name: p.name, type: p.type }));
+
+  // Platform Only: Have platform credentials but no CE Broker
+  const platformOnly = providers
+    .filter(p => (!p.username || !p.password) && p.platforms && p.platforms.length > 0 && p.noCredentials !== true)
+    .map(p => ({ name: p.name, type: p.type, platforms: p.platforms.map(pl => pl.platform) }));
+
+  // Both: Have CE Broker AND at least one platform
+  const haveCEBrokerAndPlatform = providers
+    .filter(p => p.username && p.password && p.platforms && p.platforms.length > 0)
+    .map(p => ({ name: p.name, type: p.type, platforms: p.platforms.map(pl => pl.platform) }));
+
+  // No Credentials: Marked as noCredentials or truly have nothing
+  const noCredsAtAll = providers
+    .filter(p => p.noCredentials === true || ((!p.username || !p.password) && (!p.platforms || p.platforms.length === 0)))
+    .map(p => ({ name: p.name, type: p.type }));
+
+  // Accounts with no activity: Have credentials but never successfully logged in
+  const accountsNoActivity = healthSummary.credentials
+    .filter(c => c.lastSuccess === null && c.consecutiveFailures > 0)
+    .map(c => ({
+      providerName: c.providerName,
+      platform: c.platform,
+      failures: c.consecutiveFailures,
+      lastError: c.lastError
+    }));
+
+  // Providers with credentials but no course history (unused credentials)
+  const providersWithCreds = providers.filter(p =>
+    (p.username && p.password) || (p.platforms && p.platforms.length > 0)
+  );
+  const hasCredentialsNoCourses = providersWithCreds
+    .filter(p => {
+      const history = courseHistory[p.name];
+      const hasCourses = history && history.courses && history.courses.length > 0;
+      return !hasCourses;
+    })
+    .map(p => ({
+      name: p.name,
+      type: p.type,
+      hasCEBroker: !!(p.username && p.password),
+      platforms: p.platforms ? p.platforms.map(pl => pl.platform) : []
+    }));
+
+  // Providers with no CEU history at all (regardless of credential status)
+  const noCEUHistory = providers
+    .filter(p => {
+      const history = courseHistory[p.name];
+      return !history || !history.courses || history.courses.length === 0;
+    })
+    .map(p => ({
+      name: p.name,
+      type: p.type,
+      hasCredentials: (p.username && p.password) || (p.platforms && p.platforms.length > 0),
+      noCredentials: p.noCredentials === true
+    }));
 
   // ── Split providers into clinicians and RNs ──────────────────────────────
   const providerEntries = Object.entries(providerMap);
@@ -3003,11 +3097,10 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .card-arrow { color: #94a3b8; font-size: 1rem; transition: color .15s; }
     .card-clickable:hover .card-arrow { color: #1d4ed8; }
     /* ─ Favorite Button ─ */
-    .fav-btn { position: absolute; top: 8px; right: 8px; background: none; border: none; font-size: 1.2rem; color: #cbd5e1; cursor: pointer; padding: 4px; z-index: 10; transition: color 0.2s, transform 0.2s; }
-    .fav-btn:hover { color: #f59e0b; transform: scale(1.2); }
-    .fav-btn.favorited { color: #f59e0b; }
-    .fav-btn.favorited::after { content: '★'; position: absolute; top: 4px; left: 4px; }
-    .fav-btn.favorited { color: transparent; }
+    .fav-btn, .pin-btn { position: absolute; top: 8px; right: 8px; background: none; border: none; font-size: 1.2rem; color: #cbd5e1; cursor: pointer; padding: 4px; z-index: 10; transition: color 0.2s, transform 0.2s; }
+    .fav-btn:hover, .pin-btn:hover { color: #f59e0b; transform: scale(1.2); }
+    .fav-btn.favorited, .pin-btn.pinned { color: #f59e0b; }
+    .pin-btn.pinned { font-size: 1.3rem; text-shadow: 0 0 4px rgba(245, 158, 11, 0.5); }
     .provider-card { position: relative; }
     /* ─ Stats Cards ─ */
     .stats-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; padding: 0 40px 24px; }
@@ -3644,6 +3737,122 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     [data-theme="dark"] .health-all-good { background: rgba(5, 150, 105, 0.2); }
     [data-theme="dark"] .health-all-good-text { color: #34d399; }
 
+    /* ─ Credential Tracker Section ─ */
+    .cred-tracker-summary { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; padding: 16px; background: var(--bg-secondary); border-radius: 12px; border: 1px solid var(--border-color); }
+    .cred-summary-stat { flex: 1; min-width: 100px; text-align: center; padding: 12px 8px; border-radius: 8px; }
+    .cred-summary-num { display: block; font-size: 1.75rem; font-weight: 800; }
+    .cred-summary-label { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    .cred-summary-total { background: #f1f5f9; }
+    .cred-summary-total .cred-summary-num { color: #334155; }
+    .cred-summary-total .cred-summary-label { color: #64748b; }
+    .cred-summary-configured { background: #dbeafe; }
+    .cred-summary-configured .cred-summary-num { color: #1d4ed8; }
+    .cred-summary-configured .cred-summary-label { color: #1e40af; }
+    .cred-summary-nocreds { background: #fef2f2; }
+    .cred-summary-nocreds .cred-summary-num { color: #dc2626; }
+    .cred-summary-nocreds .cred-summary-label { color: #b91c1c; }
+    .cred-summary-nocourses { background: #fef3c7; }
+    .cred-summary-nocourses .cred-summary-num { color: #d97706; }
+    .cred-summary-nocourses .cred-summary-label { color: #b45309; }
+    .cred-summary-nohistory { background: #e2e8f0; }
+    .cred-summary-nohistory .cred-summary-num { color: #475569; }
+    .cred-summary-nohistory .cred-summary-label { color: #64748b; }
+
+    .cred-tracker-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+    .cred-filter-btn { padding: 8px 16px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px; }
+    .cred-filter-btn:hover { background: var(--bg-tertiary); border-color: var(--text-secondary); }
+    .cred-filter-btn.active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+    .cred-filter-btn.cred-filter-warning { border-color: #f59e0b; }
+    .cred-filter-btn.cred-filter-warning.active { background: #f59e0b; border-color: #f59e0b; }
+    .cred-filter-btn.cred-filter-danger { border-color: #ef4444; }
+    .cred-filter-btn.cred-filter-danger.active { background: #ef4444; border-color: #ef4444; }
+    .cred-filter-btn.cred-filter-info { border-color: #06b6d4; }
+    .cred-filter-btn.cred-filter-info.active { background: #06b6d4; border-color: #06b6d4; }
+    .cred-filter-btn.cred-filter-orange { border-color: #ea580c; }
+    .cred-filter-btn.cred-filter-orange.active { background: #ea580c; border-color: #ea580c; }
+    .cred-filter-count { background: rgba(0,0,0,0.15); padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; }
+    .cred-filter-btn.active .cred-filter-count { background: rgba(255,255,255,0.25); }
+
+    .cred-tracker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 20px; }
+    .cred-tracker-card { border-radius: 12px; overflow: hidden; background: var(--bg-secondary); border: 1px solid var(--border-color); }
+    .cred-tracker-card.hidden { display: none; }
+    .cred-tracker-header { display: flex; align-items: center; gap: 12px; padding: 16px 20px; }
+    .cred-tracker-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.75rem; color: #fff; }
+    .cred-header-cebroker { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+    .cred-header-cebroker .cred-tracker-icon { background: rgba(255,255,255,0.2); }
+    .cred-header-platform { background: linear-gradient(135deg, #06b6d4, #0891b2); }
+    .cred-header-platform .cred-tracker-icon { background: rgba(255,255,255,0.2); }
+    .cred-header-complete { background: linear-gradient(135deg, #10b981, #059669); }
+    .cred-header-complete .cred-tracker-icon { background: rgba(255,255,255,0.2); }
+    .cred-header-danger { background: linear-gradient(135deg, #ef4444, #dc2626); }
+    .cred-header-danger .cred-tracker-icon { background: rgba(255,255,255,0.2); }
+    .cred-header-warning { background: linear-gradient(135deg, #f59e0b, #d97706); }
+    .cred-header-warning .cred-tracker-icon { background: rgba(255,255,255,0.2); }
+    .cred-header-info { background: linear-gradient(135deg, #06b6d4, #0284c7); }
+    .cred-header-info .cred-tracker-icon { background: rgba(255,255,255,0.2); }
+    .cred-header-dark { background: linear-gradient(135deg, #475569, #334155); }
+    .cred-header-dark .cred-tracker-icon { background: rgba(255,255,255,0.2); }
+    .cred-tracker-title { flex: 1; font-weight: 700; color: #fff; font-size: 0.95rem; }
+    .cred-tracker-count { background: rgba(255,255,255,0.2); color: #fff; padding: 4px 12px; border-radius: 16px; font-weight: 700; font-size: 0.85rem; }
+
+    .cred-tracker-body { padding: 16px 20px; }
+    .cred-tracker-desc { font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px; }
+    .cred-tracker-note { font-size: 0.8rem; color: var(--text-primary); padding: 8px 12px; background: #fef3c7; border-radius: 6px; margin-bottom: 12px; border-left: 3px solid #f59e0b; }
+    .cred-tracker-note.cred-note-good { background: #d1fae5; border-left-color: #10b981; }
+    .cred-tracker-note.cred-note-danger { background: #fef2f2; border-left-color: #ef4444; }
+    .cred-tracker-note.cred-note-warning { background: #fef3c7; border-left-color: #f59e0b; }
+
+    .cred-tracker-list { display: flex; flex-direction: column; gap: 6px; max-height: 200px; overflow-y: auto; }
+    .cred-tracker-chip { display: inline-block; padding: 6px 12px; background: var(--bg-tertiary); border-radius: 6px; font-size: 0.85rem; cursor: pointer; transition: background 0.2s; margin: 2px; }
+    .cred-tracker-chip:hover { background: var(--border-color); }
+    .cred-tracker-chip.cred-chip-danger { background: #fef2f2; color: #dc2626; }
+    .cred-tracker-chip.cred-chip-danger:hover { background: #fecaca; }
+    .cred-tracker-chip small { opacity: 0.7; }
+
+    .cred-tracker-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: var(--bg-tertiary); border-radius: 8px; cursor: pointer; transition: all 0.2s; }
+    .cred-tracker-item:hover { background: var(--border-color); transform: translateX(4px); }
+    .cred-tracker-item.cred-item-good { border-left: 3px solid #10b981; }
+    .cred-tracker-item.cred-item-warning { border-left: 3px solid #f59e0b; background: #fffbeb; }
+    .cred-tracker-item.cred-item-danger { border-left: 3px solid #ef4444; background: #fef2f2; }
+    .cred-tracker-item.cred-item-info { border-left: 3px solid #06b6d4; background: #ecfeff; }
+    .cred-tracker-name { font-weight: 600; color: var(--text-primary); font-size: 0.9rem; }
+    .cred-tracker-name small { font-weight: 400; opacity: 0.7; }
+    .cred-tracker-platforms { font-size: 0.75rem; color: var(--text-secondary); text-align: right; }
+
+    .cred-tracker-status-badge { font-size: 0.7rem; font-weight: 700; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.3px; }
+    .cred-badge-danger { background: #fecaca; color: #dc2626; }
+    .cred-badge-warning { background: #fef3c7; color: #d97706; }
+    .cred-badge-info { background: #cffafe; color: #0891b2; }
+    .cred-badge-cebroker { background: #e0e7ff; color: #6366f1; }
+
+    .cred-tracker-note.cred-note-info { background: #ecfeff; border-left-color: #06b6d4; }
+    .cred-tracker-note.cred-note-dark { background: #f1f5f9; border-left-color: #475569; }
+
+    .cred-tracker-none { font-size: 0.85rem; color: var(--text-secondary); font-style: italic; padding: 12px; text-align: center; }
+    .cred-tracker-none.cred-none-good { color: #059669; background: #d1fae5; border-radius: 8px; font-style: normal; font-weight: 600; }
+
+    [data-theme="dark"] .cred-tracker-summary { background: var(--bg-tertiary); }
+    [data-theme="dark"] .cred-summary-total { background: rgba(100, 116, 139, 0.2); }
+    [data-theme="dark"] .cred-summary-configured { background: rgba(59, 130, 246, 0.2); }
+    [data-theme="dark"] .cred-summary-nocreds { background: rgba(239, 68, 68, 0.2); }
+    [data-theme="dark"] .cred-summary-nocourses { background: rgba(245, 158, 11, 0.2); }
+    [data-theme="dark"] .cred-summary-nohistory { background: rgba(100, 116, 139, 0.2); }
+    [data-theme="dark"] .cred-tracker-note { background: rgba(245, 158, 11, 0.15); }
+    [data-theme="dark"] .cred-tracker-note.cred-note-good { background: rgba(16, 185, 129, 0.15); }
+    [data-theme="dark"] .cred-tracker-note.cred-note-danger { background: rgba(239, 68, 68, 0.15); }
+    [data-theme="dark"] .cred-tracker-note.cred-note-warning { background: rgba(245, 158, 11, 0.15); }
+    [data-theme="dark"] .cred-tracker-note.cred-note-info { background: rgba(6, 182, 212, 0.15); }
+    [data-theme="dark"] .cred-tracker-note.cred-note-dark { background: rgba(71, 85, 105, 0.2); }
+    [data-theme="dark"] .cred-tracker-chip.cred-chip-danger { background: rgba(239, 68, 68, 0.2); }
+    [data-theme="dark"] .cred-tracker-item.cred-item-warning { background: rgba(245, 158, 11, 0.15); }
+    [data-theme="dark"] .cred-tracker-item.cred-item-danger { background: rgba(239, 68, 68, 0.15); }
+    [data-theme="dark"] .cred-tracker-item.cred-item-info { background: rgba(6, 182, 212, 0.15); }
+    [data-theme="dark"] .cred-tracker-none.cred-none-good { background: rgba(16, 185, 129, 0.2); }
+    [data-theme="dark"] .cred-badge-danger { background: rgba(239, 68, 68, 0.3); }
+    [data-theme="dark"] .cred-badge-warning { background: rgba(245, 158, 11, 0.3); }
+    [data-theme="dark"] .cred-badge-info { background: rgba(6, 182, 212, 0.3); }
+    [data-theme="dark"] .cred-badge-cebroker { background: rgba(99, 102, 241, 0.3); }
+
     /* ─ Help Page ─ */
     .help-page { padding: 24px 40px; max-width: 1000px; }
     .help-header { margin-bottom: 32px; }
@@ -4239,6 +4448,70 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .favorites-hint { font-size: 0.85rem; color: var(--status-amber); opacity: 0.8; }
     .favorites-cards { padding: 0; }
     .empty-favorites { text-align: center; padding: 60px 20px; color: var(--text-secondary); font-size: 1rem; background: var(--bg-secondary); border-radius: 12px; }
+
+    /* ─ Priority View ─ */
+    .priority-view-header { padding: 16px 20px; background: var(--bg-secondary); border-radius: 12px; margin-bottom: 20px; }
+    .priority-view-header h3 { margin: 0 0 4px; font-size: 1.2rem; color: var(--text-primary); }
+    .priority-view-subtitle { margin: 0; font-size: 0.85rem; color: var(--text-secondary); }
+    .priority-groups { display: flex; flex-direction: column; gap: 20px; }
+    .priority-group { background: var(--bg-primary); border-radius: 12px; box-shadow: var(--shadow-sm); overflow: hidden; }
+    .priority-group-header { display: flex; align-items: center; gap: 12px; padding: 16px 20px; cursor: pointer; user-select: none; transition: background 0.15s; }
+    .priority-group-header:hover { background: var(--bg-tertiary); }
+    .priority-icon { font-size: 1.2rem; }
+    .priority-label { font-weight: 700; font-size: 1rem; color: var(--text-primary); }
+    .priority-count { background: var(--bg-tertiary); color: var(--text-secondary); padding: 3px 10px; border-radius: 99px; font-size: 0.8rem; font-weight: 700; }
+    .priority-desc { font-size: 0.82rem; color: var(--text-secondary); margin-left: auto; }
+    .priority-cards { padding: 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+    .empty-priority { padding: 24px; text-align: center; color: var(--text-secondary); font-size: 0.9rem; }
+    .priority-critical { border-left: 4px solid #ef4444; }
+    .priority-critical .priority-group-header { background: linear-gradient(90deg, rgba(239,68,68,0.08) 0%, transparent 100%); }
+    .priority-critical .priority-count { background: #fef2f2; color: #ef4444; }
+    .priority-attention { border-left: 4px solid #f59e0b; }
+    .priority-attention .priority-group-header { background: linear-gradient(90deg, rgba(245,158,11,0.08) 0%, transparent 100%); }
+    .priority-attention .priority-count { background: #fffbeb; color: #d97706; }
+    .priority-ontrack { border-left: 4px solid #3b82f6; }
+    .priority-ontrack .priority-group-header { background: linear-gradient(90deg, rgba(59,130,246,0.08) 0%, transparent 100%); }
+    .priority-ontrack .priority-count { background: #eff6ff; color: #2563eb; }
+    .priority-complete { border-left: 4px solid #16a34a; }
+    .priority-complete .priority-group-header { background: linear-gradient(90deg, rgba(22,163,74,0.08) 0%, transparent 100%); }
+    .priority-complete .priority-count { background: #f0fdf4; color: #16a34a; }
+    .priority-unknown { border-left: 4px solid #64748b; }
+    .priority-unknown .priority-group-header { background: linear-gradient(90deg, rgba(100,116,139,0.08) 0%, transparent 100%); }
+    .priority-unknown .priority-count { background: #f1f5f9; color: #64748b; }
+    .priority-group.empty-group { opacity: 0.6; }
+    .collapsible.priority-group .priority-group-header .collapse-icon { transition: transform 0.2s; }
+    .collapsible.priority-group.collapsed .priority-group-header .collapse-icon { transform: rotate(-90deg); }
+
+    /* ─ Kanban Board ─ */
+    .kanban-header { padding: 16px 20px; background: var(--bg-secondary); border-radius: 12px; margin-bottom: 20px; }
+    .kanban-header h3 { margin: 0 0 4px; font-size: 1.2rem; color: var(--text-primary); }
+    .kanban-subtitle { margin: 0; font-size: 0.85rem; color: var(--text-secondary); }
+    .kanban-board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; min-height: 500px; }
+    @media (max-width: 1024px) { .kanban-board { grid-template-columns: 1fr; } }
+    .kanban-column { background: var(--bg-secondary); border-radius: 12px; display: flex; flex-direction: column; min-height: 400px; }
+    .kanban-column-header { padding: 16px 20px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border-color); }
+    .kanban-column-icon { font-size: 1.1rem; }
+    .kanban-column-title { font-weight: 700; font-size: 0.95rem; color: var(--text-primary); flex: 1; }
+    .kanban-column-count { background: var(--bg-tertiary); color: var(--text-secondary); padding: 3px 10px; border-radius: 99px; font-size: 0.8rem; font-weight: 700; }
+    .kanban-cards { flex: 1; padding: 12px; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; max-height: 600px; }
+    .kanban-card { background: var(--bg-primary); border-radius: 8px; padding: 14px 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.06); cursor: pointer; transition: all 0.15s; border-left: 3px solid transparent; }
+    .kanban-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .kanban-card-name { font-weight: 600; font-size: 0.9rem; color: var(--text-primary); margin-bottom: 6px; }
+    .kanban-card-meta { display: flex; gap: 10px; flex-wrap: wrap; }
+    .kanban-hours { font-size: 0.78rem; color: var(--text-secondary); background: var(--bg-tertiary); padding: 2px 8px; border-radius: 4px; }
+    .kanban-days { font-size: 0.78rem; color: var(--text-secondary); }
+    .kanban-done-badge { font-size: 0.78rem; color: #16a34a; font-weight: 600; }
+    .kanban-empty { padding: 40px 20px; text-align: center; color: var(--text-secondary); font-size: 0.9rem; }
+    .kanban-needs .kanban-column-header { background: linear-gradient(90deg, rgba(239,68,68,0.1) 0%, transparent 100%); }
+    .kanban-needs .kanban-column-count { background: #fef2f2; color: #ef4444; }
+    .kanban-progress .kanban-column-header { background: linear-gradient(90deg, rgba(245,158,11,0.1) 0%, transparent 100%); }
+    .kanban-progress .kanban-column-count { background: #fffbeb; color: #d97706; }
+    .kanban-done .kanban-column-header { background: linear-gradient(90deg, rgba(22,163,74,0.1) 0%, transparent 100%); }
+    .kanban-done .kanban-column-count { background: #f0fdf4; color: #16a34a; }
+    .kanban-card.kanban-critical { border-left-color: #ef4444; }
+    .kanban-card.kanban-warning { border-left-color: #f59e0b; }
+    .kanban-card.kanban-progress-card { border-left-color: #3b82f6; }
+    .kanban-card.kanban-complete-card { border-left-color: #16a34a; }
 
     /* ─ Lazy Loading ─ */
     .load-sentinel { height: 1px; width: 100%; }
@@ -5091,10 +5364,12 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
   <!-- View Toggle Bar -->
   <div class="view-toggle-bar">
     <button class="view-toggle active" onclick="showProviderView('all')">All Providers <span class="view-count">${providerEntries.length}</span></button>
+    <button class="view-toggle" onclick="showProviderView('priority')">By Priority <span class="view-count ${atRiskCount > 0 ? 'warning' : ''}">${atRiskCount}</span></button>
+    <button class="view-toggle" onclick="showProviderView('kanban')">Kanban Board</button>
     <button class="view-toggle" onclick="showProviderView('deadline')">By Deadline <span class="view-count ${deadlineProviders30.length > 0 ? 'warning' : ''}">${deadlineProviders30.length + deadlineProviders60.length + deadlineProviders90.length}</span></button>
     <button class="view-toggle" onclick="showProviderView('state')">By State</button>
     <button class="view-toggle" onclick="showProviderView('type')">By Type</button>
-    <button class="view-toggle" onclick="showProviderView('favorites')">Pinned <span class="view-count">0</span></button>
+    <button class="view-toggle" onclick="showProviderView('favorites')">Pinned <span class="view-count" id="pinnedCount">0</span></button>
     <button class="view-toggle" onclick="showProviderView('aanp')">AANP Cert <span class="view-count">${aanpCertData.length}</span></button>
     <button class="view-toggle" onclick="showProviderView('stats')">State Stats</button>
     <button class="view-toggle" onclick="showProviderView('timeline')">Timeline</button>
@@ -5338,10 +5613,169 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
   <div class="provider-view" id="provider-favorites">
     <div class="favorites-header">
       <span class="favorites-title">Pinned Providers</span>
-      <span class="favorites-hint">Click the star on any provider card to pin them here for quick access</span>
+      <span class="favorites-hint">Click the ⭐ star on any provider card to pin them here for quick access</span>
     </div>
-    <div class="cards-grid favorites-cards">
-      <div class="empty-favorites">No pinned providers. Click the star on any provider card to pin them here.</div>
+    <div class="cards-grid favorites-cards" id="favoritesGrid">
+      <div class="empty-favorites">No pinned providers yet. Click the ⭐ star on any provider card to pin them here.</div>
+    </div>
+  </div>
+
+  <!-- Priority View (Grouped by Status) -->
+  <div class="provider-view" id="provider-priority">
+    <div class="priority-view-header">
+      <h3>Providers by Priority</h3>
+      <p class="priority-view-subtitle">Organized by compliance status - expand/collapse each section</p>
+    </div>
+    <div class="priority-groups">
+      <!-- Critical: At Risk -->
+      <div class="priority-group collapsible priority-critical ${priorityGroups.critical.length === 0 ? 'empty-group' : ''}">
+        <div class="priority-group-header" onclick="togglePriorityGroup(this)">
+          <span class="collapse-icon">▼</span>
+          <span class="priority-icon">🚨</span>
+          <span class="priority-label">Critical - At Risk</span>
+          <span class="priority-count">${priorityGroups.critical.length}</span>
+          <span class="priority-desc">Providers behind on CE requirements</span>
+        </div>
+        <div class="priority-cards collapsible-content">
+          ${priorityGroups.critical.length > 0
+            ? priorityGroups.critical.map(p => buildProviderCard([p.name, p.info])).join('')
+            : '<div class="empty-priority">No providers at risk</div>'}
+        </div>
+      </div>
+
+      <!-- Needs Attention: Deadline within 60 days -->
+      <div class="priority-group collapsible priority-attention ${priorityGroups.attention.length === 0 ? 'empty-group' : ''}">
+        <div class="priority-group-header" onclick="togglePriorityGroup(this)">
+          <span class="collapse-icon">▼</span>
+          <span class="priority-icon">⚠️</span>
+          <span class="priority-label">Needs Attention</span>
+          <span class="priority-count">${priorityGroups.attention.length}</span>
+          <span class="priority-desc">Deadline within 60 days</span>
+        </div>
+        <div class="priority-cards collapsible-content">
+          ${priorityGroups.attention.length > 0
+            ? priorityGroups.attention.map(p => buildProviderCard([p.name, p.info])).join('')
+            : '<div class="empty-priority">No providers need immediate attention</div>'}
+        </div>
+      </div>
+
+      <!-- On Track: In Progress, plenty of time -->
+      <div class="priority-group collapsible priority-ontrack">
+        <div class="priority-group-header" onclick="togglePriorityGroup(this)">
+          <span class="collapse-icon">▼</span>
+          <span class="priority-icon">📈</span>
+          <span class="priority-label">On Track</span>
+          <span class="priority-count">${priorityGroups.onTrack.length}</span>
+          <span class="priority-desc">In progress with plenty of time</span>
+        </div>
+        <div class="priority-cards collapsible-content">
+          ${priorityGroups.onTrack.length > 0
+            ? priorityGroups.onTrack.map(p => buildProviderCard([p.name, p.info])).join('')
+            : '<div class="empty-priority">No providers in this category</div>'}
+        </div>
+      </div>
+
+      <!-- Complete -->
+      <div class="priority-group collapsible priority-complete collapsed">
+        <div class="priority-group-header" onclick="togglePriorityGroup(this)">
+          <span class="collapse-icon">▼</span>
+          <span class="priority-icon">✅</span>
+          <span class="priority-label">Complete</span>
+          <span class="priority-count">${priorityGroups.complete.length}</span>
+          <span class="priority-desc">All requirements met</span>
+        </div>
+        <div class="priority-cards collapsible-content">
+          ${priorityGroups.complete.length > 0
+            ? priorityGroups.complete.map(p => buildProviderCard([p.name, p.info])).join('')
+            : '<div class="empty-priority">No providers have completed all requirements</div>'}
+        </div>
+      </div>
+
+      <!-- Unknown/Needs Credentials -->
+      <div class="priority-group collapsible priority-unknown collapsed">
+        <div class="priority-group-header" onclick="togglePriorityGroup(this)">
+          <span class="collapse-icon">▼</span>
+          <span class="priority-icon">❓</span>
+          <span class="priority-label">Needs Setup</span>
+          <span class="priority-count">${priorityGroups.unknown.length}</span>
+          <span class="priority-desc">Missing CE Broker credentials</span>
+        </div>
+        <div class="priority-cards collapsible-content">
+          ${priorityGroups.unknown.length > 0
+            ? priorityGroups.unknown.map(p => buildProviderCard([p.name, p.info])).join('')
+            : '<div class="empty-priority">All providers have credentials configured</div>'}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Kanban Board View -->
+  <div class="provider-view" id="provider-kanban">
+    <div class="kanban-header">
+      <h3>Kanban Board</h3>
+      <p class="kanban-subtitle">Visual workflow view of provider compliance status</p>
+    </div>
+    <div class="kanban-board">
+      <!-- Needs CEUs Column -->
+      <div class="kanban-column kanban-needs">
+        <div class="kanban-column-header">
+          <span class="kanban-column-icon">📚</span>
+          <span class="kanban-column-title">Needs CEUs</span>
+          <span class="kanban-column-count">${priorityGroups.critical.length + priorityGroups.attention.length}</span>
+        </div>
+        <div class="kanban-cards">
+          ${[...priorityGroups.critical, ...priorityGroups.attention].map(p => {
+            const hoursText = p.hoursNeeded > 0 ? p.hoursNeeded + 'h needed' : '';
+            const daysText = p.deadline < 9999 ? p.deadline + 'd left' : '';
+            return '<div class="kanban-card kanban-' + (p.status === 'At Risk' ? 'critical' : 'warning') + '" onclick="openProvider(\'' + escHtml(p.name).replace(/'/g, '&#39;') + '\')">' +
+              '<div class="kanban-card-name">' + escHtml(p.name) + '</div>' +
+              '<div class="kanban-card-meta">' +
+                (hoursText ? '<span class="kanban-hours">' + hoursText + '</span>' : '') +
+                (daysText ? '<span class="kanban-days">' + daysText + '</span>' : '') +
+              '</div>' +
+            '</div>';
+          }).join('') || '<div class="kanban-empty">No providers need CEUs</div>'}
+        </div>
+      </div>
+
+      <!-- In Progress Column -->
+      <div class="kanban-column kanban-progress">
+        <div class="kanban-column-header">
+          <span class="kanban-column-icon">⏳</span>
+          <span class="kanban-column-title">In Progress</span>
+          <span class="kanban-column-count">${priorityGroups.onTrack.length}</span>
+        </div>
+        <div class="kanban-cards">
+          ${priorityGroups.onTrack.map(p => {
+            const hoursText = p.hoursNeeded > 0 ? p.hoursNeeded + 'h needed' : '';
+            const daysText = p.deadline < 9999 ? p.deadline + 'd left' : '';
+            return '<div class="kanban-card kanban-progress-card" onclick="openProvider(\'' + escHtml(p.name).replace(/'/g, '&#39;') + '\')">' +
+              '<div class="kanban-card-name">' + escHtml(p.name) + '</div>' +
+              '<div class="kanban-card-meta">' +
+                (hoursText ? '<span class="kanban-hours">' + hoursText + '</span>' : '') +
+                (daysText ? '<span class="kanban-days">' + daysText + '</span>' : '') +
+              '</div>' +
+            '</div>';
+          }).join('') || '<div class="kanban-empty">No providers in progress</div>'}
+        </div>
+      </div>
+
+      <!-- Complete Column -->
+      <div class="kanban-column kanban-done">
+        <div class="kanban-column-header">
+          <span class="kanban-column-icon">✅</span>
+          <span class="kanban-column-title">Complete</span>
+          <span class="kanban-column-count">${priorityGroups.complete.length}</span>
+        </div>
+        <div class="kanban-cards">
+          ${priorityGroups.complete.map(p => {
+            return '<div class="kanban-card kanban-complete-card" onclick="openProvider(\'' + escHtml(p.name).replace(/'/g, '&#39;') + '\')">' +
+              '<div class="kanban-card-name">' + escHtml(p.name) + '</div>' +
+              '<div class="kanban-card-meta"><span class="kanban-done-badge">✓ All done</span></div>' +
+            '</div>';
+          }).join('') || '<div class="kanban-empty">No providers complete</div>'}
+        </div>
+      </div>
     </div>
   </div>
 
@@ -5969,6 +6403,216 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
         <span class="health-all-good-text">All credentials are healthy</span>
       </div>
       `}
+    </div>
+
+    <!-- Credential Tracker Section -->
+    <div class="status-section">
+      <h2 class="status-section-title">
+        <span class="status-icon">📋</span>
+        Credential Tracker
+      </h2>
+
+      <!-- Summary Stats -->
+      <div class="cred-tracker-summary">
+        <div class="cred-summary-stat cred-summary-total">
+          <span class="cred-summary-num">${providers.length}</span>
+          <span class="cred-summary-label">Total Providers</span>
+        </div>
+        <div class="cred-summary-stat cred-summary-configured">
+          <span class="cred-summary-num">${haveCEBrokerAndPlatform.length + ceBrokerOnly.length + platformOnly.length}</span>
+          <span class="cred-summary-label">Have Some Credentials</span>
+        </div>
+        <div class="cred-summary-stat cred-summary-nocreds">
+          <span class="cred-summary-num">${noCredsAtAll.length}</span>
+          <span class="cred-summary-label">Need Credentials</span>
+        </div>
+        <div class="cred-summary-stat cred-summary-nocourses">
+          <span class="cred-summary-num">${hasCredentialsNoCourses.length}</span>
+          <span class="cred-summary-label">Unused Credentials</span>
+        </div>
+        <div class="cred-summary-stat cred-summary-nohistory">
+          <span class="cred-summary-num">${noCEUHistory.length}</span>
+          <span class="cred-summary-label">No CEU History</span>
+        </div>
+      </div>
+
+      <!-- Filter Buttons -->
+      <div class="cred-tracker-filters">
+        <button class="cred-filter-btn active" onclick="filterCredTracker('all')">All <span class="cred-filter-count">${providers.length}</span></button>
+        <button class="cred-filter-btn" onclick="filterCredTracker('cebroker-only')">CE Broker Only <span class="cred-filter-count">${ceBrokerOnly.length}</span></button>
+        <button class="cred-filter-btn" onclick="filterCredTracker('platform-only')">Platform Only <span class="cred-filter-count">${platformOnly.length}</span></button>
+        <button class="cred-filter-btn" onclick="filterCredTracker('both')">Fully Configured <span class="cred-filter-count">${haveCEBrokerAndPlatform.length}</span></button>
+        <button class="cred-filter-btn cred-filter-warning" onclick="filterCredTracker('no-creds')">No Credentials <span class="cred-filter-count">${noCredsAtAll.length}</span></button>
+        <button class="cred-filter-btn cred-filter-info" onclick="filterCredTracker('unused')">Unused Credentials <span class="cred-filter-count">${hasCredentialsNoCourses.length}</span></button>
+        <button class="cred-filter-btn cred-filter-danger" onclick="filterCredTracker('no-history')">No CEU History <span class="cred-filter-count">${noCEUHistory.length}</span></button>
+        <button class="cred-filter-btn cred-filter-orange" onclick="filterCredTracker('no-activity')">Login Failures <span class="cred-filter-count">${accountsNoActivity.length}</span></button>
+      </div>
+
+      <!-- Credential Tracker Grid -->
+      <div class="cred-tracker-grid" id="credTrackerGrid">
+
+        <!-- No Credentials At All - PRIORITY -->
+        <div class="cred-tracker-card cred-cat-no-creds" data-category="no-creds">
+          <div class="cred-tracker-header cred-header-danger">
+            <span class="cred-tracker-icon">!</span>
+            <span class="cred-tracker-title">No Credentials At All</span>
+            <span class="cred-tracker-count">${noCredsAtAll.length}</span>
+          </div>
+          <div class="cred-tracker-body">
+            <div class="cred-tracker-desc">Providers with no login credentials in the system - cannot track compliance</div>
+            <div class="cred-tracker-note cred-note-danger"><strong>Action Required:</strong> Submit CE Broker login credentials to begin tracking</div>
+            <div class="cred-tracker-list">
+              ${noCredsAtAll.length > 0 ? noCredsAtAll.map(p => {
+                const safeName = escHtml(p.name).replace(/'/g, '&#39;');
+                return '<div class="cred-tracker-item cred-item-danger" onclick="openProvider(\'' + safeName + '\')">' +
+                  '<span class="cred-tracker-name">' + escHtml(p.name) + '</span>' +
+                  '<span class="cred-tracker-status-badge cred-badge-danger">Needs All Credentials</span>' +
+                '</div>';
+              }).join('') : '<span class="cred-tracker-none cred-none-good">All providers have credentials configured</span>'}
+            </div>
+          </div>
+        </div>
+
+        <!-- No CEU History -->
+        <div class="cred-tracker-card cred-cat-no-history" data-category="no-history">
+          <div class="cred-tracker-header cred-header-dark">
+            <span class="cred-tracker-icon">0</span>
+            <span class="cred-tracker-title">No CEU History</span>
+            <span class="cred-tracker-count">${noCEUHistory.length}</span>
+          </div>
+          <div class="cred-tracker-body">
+            <div class="cred-tracker-desc">Providers with no recorded CEU courses in the system</div>
+            <div class="cred-tracker-note cred-note-dark"><strong>Status:</strong> No courses scraped yet - may need credential setup or first scrape</div>
+            <div class="cred-tracker-list">
+              ${noCEUHistory.length > 0 ? noCEUHistory.map(p => {
+                const safeName = escHtml(p.name).replace(/'/g, '&#39;');
+                const statusBadge = p.noCredentials ? 'No Credentials' : (p.hasCredentials ? 'Has Credentials' : 'Partial Credentials');
+                const badgeClass = p.noCredentials ? 'cred-badge-danger' : (p.hasCredentials ? 'cred-badge-info' : 'cred-badge-warning');
+                return '<div class="cred-tracker-item" onclick="openProvider(\'' + safeName + '\')">' +
+                  '<span class="cred-tracker-name">' + escHtml(p.name) + ' <small>(' + p.type + ')</small></span>' +
+                  '<span class="cred-tracker-status-badge ' + badgeClass + '">' + statusBadge + '</span>' +
+                '</div>';
+              }).join('') : '<span class="cred-tracker-none cred-none-good">All providers have CEU history</span>'}
+            </div>
+          </div>
+        </div>
+
+        <!-- Unused Credentials (Have Creds, No Courses) -->
+        <div class="cred-tracker-card cred-cat-unused" data-category="unused">
+          <div class="cred-tracker-header cred-header-info">
+            <span class="cred-tracker-icon">?</span>
+            <span class="cred-tracker-title">Unused Credentials</span>
+            <span class="cred-tracker-count">${hasCredentialsNoCourses.length}</span>
+          </div>
+          <div class="cred-tracker-body">
+            <div class="cred-tracker-desc">Providers with credentials configured but no courses taken/scraped</div>
+            <div class="cred-tracker-note cred-note-info"><strong>Check:</strong> Verify credentials work and courses are being tracked</div>
+            <div class="cred-tracker-list">
+              ${hasCredentialsNoCourses.length > 0 ? hasCredentialsNoCourses.map(p => {
+                const safeName = escHtml(p.name).replace(/'/g, '&#39;');
+                const credList = [];
+                if (p.hasCEBroker) credList.push('CE Broker');
+                credList.push(...p.platforms);
+                return '<div class="cred-tracker-item cred-item-info" onclick="openProvider(\'' + safeName + '\')">' +
+                  '<span class="cred-tracker-name">' + escHtml(p.name) + ' <small>(' + p.type + ')</small></span>' +
+                  '<span class="cred-tracker-platforms">Has: ' + escHtml(credList.join(', ')) + '</span>' +
+                '</div>';
+              }).join('') : '<span class="cred-tracker-none cred-none-good">All credentialed providers have course history</span>'}
+            </div>
+          </div>
+        </div>
+
+        <!-- Login Failures (No Activity) -->
+        <div class="cred-tracker-card cred-cat-no-activity" data-category="no-activity">
+          <div class="cred-tracker-header cred-header-warning">
+            <span class="cred-tracker-icon">X</span>
+            <span class="cred-tracker-title">Login Failures</span>
+            <span class="cred-tracker-count">${accountsNoActivity.length}</span>
+          </div>
+          <div class="cred-tracker-body">
+            <div class="cred-tracker-desc">Credentials configured but never successfully logged in</div>
+            <div class="cred-tracker-note cred-note-warning"><strong>Action:</strong> Verify credentials are correct or account is active</div>
+            <div class="cred-tracker-list">
+              ${accountsNoActivity.length > 0 ? accountsNoActivity.map(a => {
+                const safeName = escHtml(a.providerName).replace(/'/g, '&#39;');
+                return '<div class="cred-tracker-item cred-item-warning" onclick="openProvider(\'' + safeName + '\')">' +
+                  '<span class="cred-tracker-name">' + escHtml(a.providerName) + '</span>' +
+                  '<span class="cred-tracker-platforms">' + escHtml(a.platform) + ' - ' + a.failures + ' failed attempts</span>' +
+                '</div>';
+              }).join('') : '<span class="cred-tracker-none cred-none-good">All logins successful</span>'}
+            </div>
+          </div>
+        </div>
+
+        <!-- Platform Only (No CE Broker) -->
+        <div class="cred-tracker-card cred-cat-platform-only" data-category="platform-only">
+          <div class="cred-tracker-header cred-header-platform">
+            <span class="cred-tracker-icon">PL</span>
+            <span class="cred-tracker-title">Platform Only (No CE Broker)</span>
+            <span class="cred-tracker-count">${platformOnly.length}</span>
+          </div>
+          <div class="cred-tracker-body">
+            <div class="cred-tracker-desc">Have platform credentials but missing CE Broker login</div>
+            <div class="cred-tracker-note"><strong>Needs:</strong> CE Broker credentials for compliance tracking</div>
+            <div class="cred-tracker-list">
+              ${platformOnly.length > 0 ? platformOnly.map(p => {
+                const safeName = escHtml(p.name).replace(/'/g, '&#39;');
+                const platList = p.platforms.join(', ');
+                return '<div class="cred-tracker-item" onclick="openProvider(\'' + safeName + '\')">' +
+                  '<span class="cred-tracker-name">' + escHtml(p.name) + ' <small>(' + p.type + ')</small></span>' +
+                  '<span class="cred-tracker-platforms">' + escHtml(platList) + '</span>' +
+                '</div>';
+              }).join('') : '<span class="cred-tracker-none">None</span>'}
+            </div>
+          </div>
+        </div>
+
+        <!-- CE Broker Only -->
+        <div class="cred-tracker-card cred-cat-cebroker-only" data-category="cebroker-only">
+          <div class="cred-tracker-header cred-header-cebroker">
+            <span class="cred-tracker-icon">CE</span>
+            <span class="cred-tracker-title">CE Broker Only</span>
+            <span class="cred-tracker-count">${ceBrokerOnly.length}</span>
+          </div>
+          <div class="cred-tracker-body">
+            <div class="cred-tracker-desc">Have CE Broker login but no platform credentials configured</div>
+            <div class="cred-tracker-note"><strong>Needs:</strong> Platform credentials (NetCE, CEUfast, AANP, etc.)</div>
+            <div class="cred-tracker-list">
+              ${ceBrokerOnly.length > 0 ? ceBrokerOnly.map(p => {
+                const safeName = escHtml(p.name).replace(/'/g, '&#39;');
+                return '<div class="cred-tracker-item" onclick="openProvider(\'' + safeName + '\')">' +
+                  '<span class="cred-tracker-name">' + escHtml(p.name) + ' <small>(' + p.type + ')</small></span>' +
+                  '<span class="cred-tracker-status-badge cred-badge-cebroker">CE Broker Only</span>' +
+                '</div>';
+              }).join('') : '<span class="cred-tracker-none">None</span>'}
+            </div>
+          </div>
+        </div>
+
+        <!-- Fully Configured -->
+        <div class="cred-tracker-card cred-cat-both" data-category="both">
+          <div class="cred-tracker-header cred-header-complete">
+            <span class="cred-tracker-icon">OK</span>
+            <span class="cred-tracker-title">Fully Configured</span>
+            <span class="cred-tracker-count">${haveCEBrokerAndPlatform.length}</span>
+          </div>
+          <div class="cred-tracker-body">
+            <div class="cred-tracker-desc">Have both CE Broker and platform credentials</div>
+            <div class="cred-tracker-note cred-note-good"><strong>Status:</strong> No additional credentials needed</div>
+            <div class="cred-tracker-list">
+              ${haveCEBrokerAndPlatform.length > 0 ? haveCEBrokerAndPlatform.map(p => {
+                const safeName = escHtml(p.name).replace(/'/g, '&#39;');
+                const platList = p.platforms.join(', ');
+                return '<div class="cred-tracker-item cred-item-good" onclick="openProvider(\'' + safeName + '\')">' +
+                  '<span class="cred-tracker-name">' + escHtml(p.name) + ' <small>(' + p.type + ')</small></span>' +
+                  '<span class="cred-tracker-platforms">' + escHtml(platList) + '</span>' +
+                '</div>';
+              }).join('') : '<span class="cred-tracker-none">None</span>'}
+            </div>
+          </div>
+        </div>
+
+      </div>
     </div>
 
     <!-- Recent Errors Section -->
@@ -6750,11 +7394,15 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     providersTab.querySelectorAll('.view-toggle').forEach(b => b.classList.remove('active'));
     document.getElementById('provider-' + name)?.classList.add('active');
     const btns = providersTab.querySelectorAll('.view-toggle');
-    const labels = ['all','deadline','state','type','favorites','actions','aanp','stats','timeline'];
+    const labels = ['all','priority','kanban','deadline','state','type','favorites','aanp','stats','timeline'];
     btns[labels.indexOf(name)]?.classList.add('active');
     // Initialize timeline when selected
     if (name === 'timeline' && typeof updateTimeline === 'function') {
       updateTimeline();
+    }
+    // Update favorites view when selected
+    if (name === 'favorites') {
+      updateFavoritesView();
     }
   }
 
@@ -6762,6 +7410,113 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
   function toggleStateGroup(header) {
     const group = header.closest('.collapsible');
     if (group) group.classList.toggle('collapsed');
+  }
+
+  function togglePriorityGroup(header) {
+    const group = header.closest('.collapsible');
+    if (group) group.classList.toggle('collapsed');
+  }
+
+  // ── Favorites/Pinned Providers ──
+  let pinnedProviders = JSON.parse(localStorage.getItem('pinnedProviders') || '[]');
+
+  function togglePinProvider(name, event) {
+    if (event) event.stopPropagation();
+    const idx = pinnedProviders.indexOf(name);
+    if (idx > -1) {
+      pinnedProviders.splice(idx, 1);
+    } else {
+      pinnedProviders.push(name);
+    }
+    localStorage.setItem('pinnedProviders', JSON.stringify(pinnedProviders));
+    updatePinButtons();
+    updatePinnedCount();
+  }
+
+  function updatePinButtons() {
+    document.querySelectorAll('.pin-btn').forEach(btn => {
+      const name = btn.dataset.provider;
+      const isPinned = pinnedProviders.includes(name);
+      btn.classList.toggle('pinned', isPinned);
+      btn.innerHTML = isPinned ? '★' : '☆';
+      btn.title = isPinned ? 'Unpin provider' : 'Pin provider';
+    });
+  }
+
+  function updatePinnedCount() {
+    const countEl = document.getElementById('pinnedCount');
+    if (countEl) countEl.textContent = pinnedProviders.length;
+  }
+
+  function updateFavoritesView() {
+    const grid = document.getElementById('favoritesGrid');
+    if (!grid) return;
+
+    if (pinnedProviders.length === 0) {
+      grid.innerHTML = '<div class="empty-favorites">No pinned providers yet. Click the ⭐ star on any provider card to pin them here.</div>';
+      return;
+    }
+
+    // Clone pinned provider cards from the all providers grid
+    const allGrid = document.getElementById('allCardsGrid');
+    if (!allGrid) return;
+
+    const pinnedCards = [];
+    allGrid.querySelectorAll('.provider-card').forEach(card => {
+      const name = card.dataset.name;
+      if (pinnedProviders.includes(name)) {
+        pinnedCards.push(card.cloneNode(true));
+      }
+    });
+
+    if (pinnedCards.length === 0) {
+      grid.innerHTML = '<div class="empty-favorites">No pinned providers yet. Click the ⭐ star on any provider card to pin them here.</div>';
+      return;
+    }
+
+    grid.innerHTML = '';
+    pinnedCards.forEach(card => grid.appendChild(card));
+
+    // Re-attach click handlers
+    grid.querySelectorAll('.provider-card').forEach(card => {
+      card.onclick = () => openProvider(card.dataset.name);
+    });
+    grid.querySelectorAll('.pin-btn').forEach(btn => {
+      btn.onclick = (e) => togglePinProvider(btn.dataset.provider, e);
+    });
+    updatePinButtons();
+  }
+
+  // Initialize pin buttons on page load
+  document.addEventListener('DOMContentLoaded', function() {
+    updatePinButtons();
+    updatePinnedCount();
+  });
+
+  // ── Credential Tracker Filter ──
+  function filterCredTracker(category) {
+    const grid = document.getElementById('credTrackerGrid');
+    if (!grid) return;
+    const cards = grid.querySelectorAll('.cred-tracker-card');
+    const btns = document.querySelectorAll('.cred-filter-btn');
+
+    // Update active button
+    btns.forEach(b => b.classList.remove('active'));
+    event.target.closest('.cred-filter-btn').classList.add('active');
+
+    // Show/hide cards based on filter
+    cards.forEach(card => {
+      if (category === 'all') {
+        card.classList.remove('hidden');
+      } else {
+        const cardCategory = card.getAttribute('data-category');
+        if (cardCategory === category) {
+          card.classList.remove('hidden');
+        } else {
+          card.classList.add('hidden');
+        }
+      }
+    });
   }
 
   // ── Toggle Advanced Filters ──
