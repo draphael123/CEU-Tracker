@@ -541,8 +541,8 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
                    : info.licenses.some(l => getS(l) === 'In Progress') ? 'In Progress'
                    : info.licenses.every(l => getS(l) === 'Complete')   ? 'Complete'
                    : 'Unknown';
-    const ovCls   = { Complete:'status-complete','In Progress':'status-progress','At Risk':'status-risk',Unknown:'status-unknown' }[worstSt] || 'status-unknown';
-    const ovLabel = { Complete:'✓ Complete','In Progress':'◷ In Progress','At Risk':'⚠ At Risk',Unknown:'— Unknown' }[worstSt] || worstSt;
+    const ovCls   = { Complete:'status-complete','In Progress':'status-progress','At Risk':'status-risk',Unknown:'status-creds-needed' }[worstSt] || 'status-creds-needed';
+    const ovLabel = { Complete:'✓ Complete','In Progress':'◷ In Progress','At Risk':'⚠ At Risk',Unknown:'🔑 Credentials Needed' }[worstSt] || worstSt;
 
     const licCards = info.licenses.map(lic => {
       const st      = getS(lic);
@@ -665,7 +665,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
           <div class="detail-prog-track">
             <div class="detail-prog-fill ${barCls}" style="width:${pct}%"></div>
           </div>
-          <span class="detail-prog-label">${lic.hoursCompleted ?? '?'} / ${lic.hoursRequired ?? '?'} hrs (${pct}%)</span>
+          <span class="detail-prog-label">${lic.hoursCompleted ?? '—'} / ${lic.hoursRequired ?? '—'} hrs (${pct}%)</span>
         </div>
         ${saRows
           ? `<table class="detail-sa-table">
@@ -1131,7 +1131,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
           <span class="lic-dot ${dotCls}" title="${dotTooltip}"></span>
           <strong>${escHtml(state)}</strong>
           <span class="lic-type">${escHtml(lic.licenseType || info.type || '')}</span>
-          <span class="lic-status-text">${escHtml(status)}</span>
+          <span class="lic-status-text">${status === 'Unknown' ? 'Credentials Needed' : escHtml(status)}</span>
         </div>
         <div class="lic-deadline">
           <span class="deadline-label">Renewal:</span>
@@ -1139,7 +1139,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
         </div>
         <div class="lic-bar-row">
           <div class="bar-track"><div class="bar-fill ${barCls}" style="width:${pct}%"></div></div>
-          <span class="bar-label">${lic.hoursCompleted ?? '?'} / ${lic.hoursRequired ?? '?'} hrs <span class="bar-pct">(${pct}%)</span></span>
+          <span class="bar-label">${lic.hoursCompleted ?? '—'} / ${lic.hoursRequired ?? '—'} hrs <span class="bar-pct">(${pct}%)</span></span>
         </div>
         ${courseUrl ? `<a class="lic-course-link" href="${courseUrl}" target="_blank" rel="noopener" title="Search courses"></a>` : ''}
       </div>`;
@@ -1558,6 +1558,169 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     renewalDeadline: p.renewalDeadline || '',
     daysUntilDeadline: daysUntil(parseDate(p.renewalDeadline)) ?? ''
   }));
+
+  // ── Urgency List Data (sorted by priority) ─────────────────────────────────
+  const urgencyList = flat.map(p => {
+    const days = daysUntil(parseDate(p.renewalDeadline));
+    const hoursRemaining = p.hoursRemaining || 0;
+    const needsCreds = trulyNoCredentialsProviders.includes(p.providerName);
+    let urgency = 'ok';
+    let urgencyOrder = 99;
+    if (needsCreds) {
+      urgency = 'no-creds';
+      urgencyOrder = 50;
+    } else if (days !== null && days < 0 && hoursRemaining > 0) {
+      urgency = 'overdue';
+      urgencyOrder = 0;
+    } else if (days !== null && days <= 14 && hoursRemaining > 0) {
+      urgency = 'critical';
+      urgencyOrder = 1;
+    } else if (days !== null && days <= 30 && hoursRemaining > 0) {
+      urgency = 'urgent';
+      urgencyOrder = 2;
+    } else if (days !== null && days <= 60 && hoursRemaining > 0) {
+      urgency = 'warning';
+      urgencyOrder = 3;
+    } else if (hoursRemaining > 0) {
+      urgency = 'needs-hours';
+      urgencyOrder = 4;
+    } else {
+      urgency = 'ok';
+      urgencyOrder = 99;
+    }
+    return {
+      name: p.providerName,
+      type: p.providerType || '',
+      state: p.state || '',
+      hoursRemaining,
+      hoursRequired: p.hoursRequired || 0,
+      hoursCompleted: p.hoursCompleted || 0,
+      deadline: p.renewalDeadline || '',
+      days: days,
+      urgency,
+      urgencyOrder
+    };
+  }).sort((a, b) => {
+    if (a.urgencyOrder !== b.urgencyOrder) return a.urgencyOrder - b.urgencyOrder;
+    if (a.days !== b.days) return (a.days ?? 9999) - (b.days ?? 9999);
+    return a.name.localeCompare(b.name);
+  });
+
+  const urgencyNeedsAction = urgencyList.filter(p => p.urgencyOrder < 50);
+  const urgencyNoCreds = urgencyList.filter(p => p.urgency === 'no-creds');
+
+  // ── Compliance Scorecard Data ────────────────────────────────────────────
+  const complianceByType = {};
+  const complianceByState = {};
+  for (const p of flat) {
+    const type = p.providerType || 'Other';
+    const state = p.state || 'Unknown';
+    const status = getStatus(p.hoursRemaining, daysUntil(parseDate(p.renewalDeadline)), p.hoursRequired);
+    const isCompliant = status === 'Complete';
+    // By type
+    if (!complianceByType[type]) complianceByType[type] = { total: 0, compliant: 0 };
+    complianceByType[type].total++;
+    if (isCompliant) complianceByType[type].compliant++;
+    // By state
+    if (!complianceByState[state]) complianceByState[state] = { total: 0, compliant: 0 };
+    complianceByState[state].total++;
+    if (isCompliant) complianceByState[state].compliant++;
+  }
+  const scorecardByType = Object.entries(complianceByType)
+    .map(([type, data]) => ({ type, ...data, pct: Math.round((data.compliant / data.total) * 100) }))
+    .sort((a, b) => a.pct - b.pct);
+  const scorecardByState = Object.entries(complianceByState)
+    .map(([state, data]) => ({ state, ...data, pct: Math.round((data.compliant / data.total) * 100) }))
+    .sort((a, b) => a.pct - b.pct);
+  const overallCompliance = flat.length > 0 ? Math.round((flat.filter(p => getStatus(p.hoursRemaining, daysUntil(parseDate(p.renewalDeadline)), p.hoursRequired) === 'Complete').length / flat.length) * 100) : 0;
+
+  // ── Build 12-Month Timeline Data ───────────────────────────────────────────
+  const renewalNow = new Date();
+  const renewalMonthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const renewalMonths = [];
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(renewalNow.getFullYear(), renewalNow.getMonth() + i, 1);
+    renewalMonths.push({
+      month: renewalMonthNames[d.getMonth()],
+      year: d.getFullYear(),
+      key: d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'),
+      providers: []
+    });
+  }
+  // Assign providers to their renewal months
+  for (const p of flat) {
+    const deadline = parseDate(p.renewalDeadline);
+    if (!deadline) continue;
+    const deadlineKey = deadline.getFullYear() + '-' + String(deadline.getMonth() + 1).padStart(2, '0');
+    const monthObj = renewalMonths.find(m => m.key === deadlineKey);
+    if (monthObj) {
+      const days = daysUntil(deadline);
+      const status = getStatus(p.hoursRemaining, days, p.hoursRequired);
+      let urgency = 'ok';
+      if (status === 'Complete') urgency = 'complete';
+      else if (days !== null && days <= 14) urgency = 'critical';
+      else if (days !== null && days <= 30) urgency = 'urgent';
+      else if (days !== null && days <= 60) urgency = 'warning';
+      else if (p.hoursRemaining > 0) urgency = 'needs';
+      monthObj.providers.push({
+        name: p.providerName,
+        type: p.providerType || 'Unknown',
+        day: deadline.getDate(),
+        hours: p.hoursRemaining || 0,
+        urgency,
+        status
+      });
+    }
+  }
+  // Sort providers within each month by day
+  for (const m of renewalMonths) {
+    m.providers.sort((a, b) => a.day - b.day);
+  }
+  // Pre-compute timeline HTML to avoid template literal issues
+  const renewalTimelineHtml = renewalMonths.map((m, idx) => {
+    const isCurrentMonth = idx === 0;
+    const hasProviders = m.providers.length > 0;
+    const providerList = m.providers.map(p => {
+      const urgCls = 'tl-' + p.urgency;
+      return '<div class="tl-provider ' + urgCls + '" onclick="openProvider(\'' + escHtml(p.name).replace(/'/g, "\\'") + '\')">' +
+        '<span class="tl-day">' + p.day + '</span>' +
+        '<span class="tl-name">' + escHtml(p.name.split(',')[0]) + '</span>' +
+        '<span class="tl-hours">' + (p.urgency === 'complete' ? '✓' : p.hours + 'h') + '</span>' +
+      '</div>';
+    }).join('');
+    return '<div class="tl-month' + (isCurrentMonth ? ' tl-current' : '') + (hasProviders ? ' has-renewals' : '') + '">' +
+      '<div class="tl-month-header">' +
+        '<span class="tl-month-name">' + m.month + '</span>' +
+        '<span class="tl-month-year">' + m.year + '</span>' +
+        (hasProviders ? '<span class="tl-month-count">' + m.providers.length + '</span>' : '') +
+      '</div>' +
+      '<div class="tl-month-body">' +
+        (hasProviders ? providerList : '<div class="tl-empty">No renewals</div>') +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  // ── Pre-compute Table View Rows ────────────────────────────────────────────
+  const tableViewRows = providerEntries.map(([name, info]) => {
+    const lic = info.licenses[0] || {};
+    const status = getStatus(lic.hoursRemaining, daysUntil(parseDate(lic.renewalDeadline)), lic.hoursRequired);
+    const pct = lic.hoursRequired > 0 ? Math.min(100, Math.round(((lic.hoursCompleted || 0) / lic.hoursRequired) * 100)) : 0;
+    const days = daysUntil(parseDate(lic.renewalDeadline));
+    const statusCls = status === 'Complete' ? 'tbl-complete' : status === 'At Risk' ? 'tbl-risk' : status === 'In Progress' ? 'tbl-progress' : 'tbl-unknown';
+    const barCls = pct >= 100 ? 'bar-complete' : pct >= 50 ? 'bar-progress' : 'bar-low';
+    const needsCreds = trulyNoCredentialsProviders.includes(name);
+    const daysCls = days !== null && days <= 30 ? 'days-urgent' : days !== null && days <= 60 ? 'days-warning' : '';
+    return '<tr class="' + statusCls + '" onclick="openProvider(\'' + escHtml(name).replace(/'/g, "\\'") + '\')">' +
+      '<td class="tbl-name">' + escHtml(name) + '</td>' +
+      '<td>' + escHtml(info.type || '—') + '</td>' +
+      '<td>' + escHtml(lic.state || '—') + '</td>' +
+      '<td><span class="tbl-status ' + statusCls + '">' + (needsCreds ? '🔑 Credentials Needed' : status) + '</span></td>' +
+      '<td><div class="tbl-progress-wrap"><div class="tbl-bar"><div class="tbl-fill ' + barCls + '" style="width:' + pct + '%"></div></div><span class="tbl-pct">' + pct + '%</span></div></td>' +
+      '<td class="tbl-hours">' + (needsCreds ? '—' : (lic.hoursRemaining || 0) + 'h') + '</td>' +
+      '<td>' + escHtml(lic.renewalDeadline || '—') + '</td>' +
+      '<td class="tbl-days ' + daysCls + '">' + (days !== null ? days + 'd' : '—') + '</td>' +
+    '</tr>';
+  }).join('');
 
   // ── HTML ─────────────────────────────────────────────────────────────────
   const html = `<!DOCTYPE html>
@@ -2622,7 +2785,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .status-risk     { background: linear-gradient(135deg, rgba(239,68,68,0.15), rgba(248,113,113,0.15)); color: var(--status-red); }
     .status-pending  { background: var(--bg-tertiary); color: var(--text-secondary); }
     .status-unknown  { background: var(--bg-tertiary); color: var(--text-secondary); }
-    .status-creds-needed { background: linear-gradient(135deg, rgba(249,115,22,0.15), rgba(251,146,60,0.15)); color: #ea580c; }
+    .status-creds-needed { background: linear-gradient(135deg, rgba(249,115,22,0.15), rgba(251,146,60,0.15)); color: #ea580c; font-weight: 600; border: 1px solid rgba(249,115,22,0.3); }
 
     .data-table { width: 100%; border-collapse: collapse; margin: 0 40px 40px; max-width: calc(100% - 80px); font-size: 0.86rem; background: var(--bg-primary); border-radius: 16px; overflow: hidden; box-shadow: var(--shadow-md); }
     .data-table th, .data-table td { padding: 14px 18px; text-align: left; border-bottom: 1px solid var(--border-color); }
@@ -2632,6 +2795,34 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .data-table tbody tr:hover { background: var(--bg-secondary); }
     .data-table code { background: var(--bg-tertiary); padding: 4px 8px; border-radius: 6px; font-size: 0.82rem; font-weight: 500; }
     .notes-cell { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); font-size: 0.82rem; }
+
+    /* ─ Provider Table View ─ */
+    .table-view-container { padding: 0 40px; overflow-x: auto; }
+    .provider-table { width: 100%; border-collapse: collapse; background: var(--bg-primary); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-md); font-size: 0.85rem; }
+    .provider-table th { padding: 14px 16px; text-align: left; background: linear-gradient(135deg, #1e3a5f, #1e1b4b); color: #fff; font-weight: 600; cursor: pointer; white-space: nowrap; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; user-select: none; }
+    .provider-table th:hover { background: linear-gradient(135deg, #2563eb, #4f46e5); }
+    .provider-table td { padding: 12px 16px; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
+    .provider-table tbody tr { cursor: pointer; transition: background 0.1s; }
+    .provider-table tbody tr:hover { background: var(--bg-secondary); }
+    .provider-table tbody tr.tbl-risk { background: rgba(239,68,68,0.05); }
+    .provider-table tbody tr.tbl-unknown { background: rgba(249,115,22,0.05); }
+    .tbl-name { font-weight: 600; color: var(--text-primary); }
+    .tbl-status { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 0.72rem; font-weight: 600; }
+    .tbl-status.tbl-complete { background: #dcfce7; color: #16a34a; }
+    .tbl-status.tbl-progress { background: #fef3c7; color: #d97706; }
+    .tbl-status.tbl-risk { background: #fee2e2; color: #dc2626; }
+    .tbl-status.tbl-unknown { background: #ffedd5; color: #ea580c; }
+    .tbl-progress-wrap { display: flex; align-items: center; gap: 10px; }
+    .tbl-bar { flex: 1; height: 8px; background: var(--bg-tertiary); border-radius: 4px; overflow: hidden; min-width: 80px; }
+    .tbl-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+    .tbl-fill.bar-complete { background: linear-gradient(90deg, #16a34a, #22c55e); }
+    .tbl-fill.bar-progress { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+    .tbl-fill.bar-low { background: linear-gradient(90deg, #ef4444, #f87171); }
+    .tbl-pct { font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); min-width: 35px; }
+    .tbl-hours { font-weight: 600; }
+    .tbl-days { font-weight: 600; }
+    .tbl-days.days-urgent { color: #dc2626; }
+    .tbl-days.days-warning { color: #d97706; }
 
     .status-pill { display: inline-block; padding: 5px 12px; border-radius: 99px; font-size: .75rem; font-weight: 700; background: var(--bg-tertiary); color: var(--text-secondary); }
     .status-pill.complete { background: var(--status-green-bg); color: var(--status-green); }
@@ -3310,6 +3501,109 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .dash-stat-cost .dash-stat-num { color: #059669; }
     [data-theme="dark"] .dash-stat-cost { border-color: #34d399; }
     [data-theme="dark"] .dash-stat-cost .dash-stat-icon, [data-theme="dark"] .dash-stat-cost .dash-stat-num { color: #34d399; }
+
+    /* ─ Urgency Panel ─ */
+    .urgency-panel { margin: 0 40px 24px; background: var(--bg-primary); border-radius: 16px; box-shadow: var(--shadow-md); overflow: hidden; border: 2px solid var(--border-color); }
+    .urgency-header { padding: 20px 24px; background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 50%, #1e1b4b 100%); display: flex; align-items: center; justify-content: space-between; }
+    .urgency-title { margin: 0; font-size: 1.1rem; font-weight: 700; color: #fff; }
+    .urgency-subtitle { font-size: 0.8rem; color: rgba(255,255,255,0.7); }
+    .urgency-list { max-height: 400px; overflow-y: auto; }
+    .urgency-item { display: flex; align-items: center; gap: 16px; padding: 14px 24px; border-bottom: 1px solid var(--border-color); cursor: pointer; transition: background 0.15s; }
+    .urgency-item:hover { background: var(--bg-secondary); }
+    .urgency-item:last-child { border-bottom: none; }
+    .urgency-icon { font-size: 1.2rem; flex-shrink: 0; }
+    .urgency-info { flex: 1; min-width: 0; }
+    .urgency-name { font-weight: 600; color: var(--text-primary); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .urgency-meta { font-size: 0.75rem; color: var(--text-secondary); }
+    .urgency-progress { display: flex; align-items: center; gap: 8px; flex-shrink: 0; width: 120px; }
+    .urgency-bar { flex: 1; height: 6px; background: var(--bg-tertiary); border-radius: 3px; overflow: hidden; }
+    .urgency-fill { height: 100%; background: linear-gradient(90deg, #3b82f6, #60a5fa); border-radius: 3px; }
+    .urgency-hours { font-size: 0.7rem; color: var(--text-secondary); white-space: nowrap; }
+    .urgency-badge { padding: 4px 10px; border-radius: 6px; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; flex-shrink: 0; }
+    .urgency-overdue { background: #fef2f2; }
+    .urgency-badge.urgency-overdue { background: #dc2626; color: #fff; animation: pulse-urgent 1s ease-in-out infinite; }
+    .urgency-critical { background: #fef2f2; }
+    .urgency-badge.urgency-critical { background: #ef4444; color: #fff; }
+    .urgency-urgent { background: #fff7ed; }
+    .urgency-badge.urgency-urgent { background: #f97316; color: #fff; }
+    .urgency-warning { background: #fffbeb; }
+    .urgency-badge.urgency-warning { background: #eab308; color: #1e1b4b; }
+    .urgency-needs { background: #f0f9ff; }
+    .urgency-badge.urgency-needs { background: #3b82f6; color: #fff; }
+    .urgency-nocreds { background: #faf5ff; }
+    .urgency-badge.urgency-nocreds { background: #7c3aed; color: #fff; }
+    .urgency-creds-needed { font-size: 0.72rem; color: #7c3aed; font-weight: 500; }
+    .urgency-empty { padding: 40px; text-align: center; color: #16a34a; font-size: 1rem; font-weight: 600; }
+    .urgency-more { padding: 14px 24px; text-align: center; color: var(--accent-primary); font-size: 0.85rem; font-weight: 600; cursor: pointer; background: var(--bg-secondary); }
+    .urgency-more:hover { background: var(--bg-tertiary); }
+    @keyframes pulse-urgent { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+
+    /* ─ Compliance Scorecard ─ */
+    .scorecard-panel { margin: 0 40px 24px; background: var(--bg-primary); border-radius: 16px; box-shadow: var(--shadow-md); overflow: hidden; border: 2px solid var(--border-color); }
+    .scorecard-header { padding: 20px 24px; background: linear-gradient(135deg, #0f766e 0%, #134e4a 50%, #064e3b 100%); display: flex; align-items: center; justify-content: space-between; }
+    .scorecard-title { margin: 0; font-size: 1.1rem; font-weight: 700; color: #fff; }
+    .scorecard-overall { display: flex; flex-direction: column; align-items: flex-end; }
+    .overall-pct { font-size: 2rem; font-weight: 800; line-height: 1; }
+    .overall-pct.pct-good { color: #86efac; }
+    .overall-pct.pct-warn { color: #fcd34d; }
+    .overall-pct.pct-bad { color: #fca5a5; }
+    .overall-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; color: rgba(255,255,255,0.7); margin-top: 4px; }
+    .scorecard-grid { display: grid; grid-template-columns: 1fr 1fr; }
+    @media (max-width: 700px) { .scorecard-grid { grid-template-columns: 1fr; } }
+    .scorecard-section { padding: 20px 24px; }
+    .scorecard-section:first-child { border-right: 1px solid var(--border-color); }
+    @media (max-width: 700px) { .scorecard-section:first-child { border-right: none; border-bottom: 1px solid var(--border-color); } }
+    .scorecard-section-title { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); margin-bottom: 16px; }
+    .scorecard-items { display: flex; flex-direction: column; gap: 12px; }
+    .scorecard-item { display: flex; flex-direction: column; gap: 6px; }
+    .sc-label { display: flex; justify-content: space-between; align-items: baseline; }
+    .sc-type { font-size: 0.85rem; font-weight: 600; color: var(--text-primary); }
+    .sc-count { font-size: 0.72rem; color: var(--text-secondary); }
+    .sc-bar-wrap { display: flex; align-items: center; gap: 10px; height: 10px; background: var(--bg-tertiary); border-radius: 5px; overflow: hidden; position: relative; }
+    .sc-bar { height: 100%; border-radius: 5px; transition: width 0.5s ease; }
+    .sc-bar.sc-good { background: linear-gradient(90deg, #16a34a, #22c55e); }
+    .sc-bar.sc-warn { background: linear-gradient(90deg, #d97706, #f59e0b); }
+    .sc-bar.sc-bad { background: linear-gradient(90deg, #dc2626, #ef4444); }
+    .sc-pct { position: absolute; right: 8px; font-size: 0.65rem; font-weight: 700; color: var(--text-primary); text-shadow: 0 0 4px var(--bg-primary), 0 0 8px var(--bg-primary); }
+
+    /* ─ 12-Month Timeline ─ */
+    .timeline-panel { margin: 0 40px 24px; background: var(--bg-primary); border-radius: 16px; box-shadow: var(--shadow-md); overflow: hidden; border: 2px solid var(--border-color); }
+    .timeline-header { padding: 20px 24px; background: linear-gradient(135deg, #4f46e5 0%, #3730a3 50%, #312e81 100%); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .timeline-title { margin: 0; font-size: 1.1rem; font-weight: 700; color: #fff; }
+    .timeline-legend { display: flex; gap: 16px; flex-wrap: wrap; }
+    .tl-legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.7rem; color: rgba(255,255,255,0.9); }
+    .tl-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .tl-dot.tl-complete { background: #22c55e; }
+    .tl-dot.tl-critical { background: #ef4444; }
+    .tl-dot.tl-urgent { background: #f97316; }
+    .tl-dot.tl-warning { background: #eab308; }
+    .tl-dot.tl-needs { background: #3b82f6; }
+    .timeline-scroll { overflow-x: auto; padding: 16px 24px 20px; }
+    .timeline-grid { display: grid; grid-template-columns: repeat(12, minmax(120px, 1fr)); gap: 12px; min-width: max-content; }
+    .tl-month { background: var(--bg-secondary); border-radius: 10px; border: 1px solid var(--border-color); overflow: hidden; min-height: 100px; }
+    .tl-month.tl-current { border-color: #6366f1; border-width: 2px; }
+    .tl-month.has-renewals { background: var(--bg-primary); }
+    .tl-month-header { padding: 10px 12px; background: var(--bg-tertiary); display: flex; align-items: center; gap: 6px; border-bottom: 1px solid var(--border-color); }
+    .tl-current .tl-month-header { background: rgba(99, 102, 241, 0.15); }
+    .tl-month-name { font-size: 0.85rem; font-weight: 700; color: var(--text-primary); }
+    .tl-month-year { font-size: 0.7rem; color: var(--text-secondary); }
+    .tl-month-count { margin-left: auto; background: #6366f1; color: #fff; font-size: 0.65rem; font-weight: 700; padding: 2px 7px; border-radius: 10px; }
+    .tl-month-body { padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+    .tl-empty { text-align: center; padding: 12px 8px; font-size: 0.72rem; color: var(--text-secondary); opacity: 0.6; }
+    .tl-provider { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-radius: 6px; cursor: pointer; transition: all 0.15s; border-left: 3px solid transparent; }
+    .tl-provider:hover { transform: translateX(2px); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .tl-provider.tl-complete { background: #f0fdf4; border-color: #22c55e; }
+    .tl-provider.tl-critical { background: #fef2f2; border-color: #ef4444; animation: pulse-urgent 1.5s infinite; }
+    .tl-provider.tl-urgent { background: #fff7ed; border-color: #f97316; }
+    .tl-provider.tl-warning { background: #fefce8; border-color: #eab308; }
+    .tl-provider.tl-needs { background: #eff6ff; border-color: #3b82f6; }
+    .tl-provider.tl-ok { background: var(--bg-secondary); border-color: var(--border-color); }
+    .tl-day { font-size: 0.65rem; font-weight: 700; color: var(--text-secondary); min-width: 16px; }
+    .tl-name { flex: 1; font-size: 0.72rem; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tl-hours { font-size: 0.65rem; font-weight: 600; color: var(--text-secondary); }
+    .tl-complete .tl-hours { color: #16a34a; }
+    .tl-critical .tl-hours { color: #dc2626; font-weight: 700; }
+    @media (max-width: 768px) { .timeline-grid { grid-template-columns: repeat(6, minmax(100px, 1fr)); } }
 
     .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding: 0 40px 24px; }
     @media (max-width: 900px) { .dashboard-grid { grid-template-columns: 1fr; } }
@@ -5340,6 +5634,107 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     </div>
   </div>
 
+  <!-- Urgency Panel - Sorted by Priority -->
+  <div class="urgency-panel">
+    <div class="urgency-header">
+      <h3 class="urgency-title">🚨 Provider Urgency List</h3>
+      <span class="urgency-subtitle">${urgencyNeedsAction.length} provider${urgencyNeedsAction.length !== 1 ? 's' : ''} need attention • ${urgencyNoCreds.length} missing credentials</span>
+    </div>
+    <div class="urgency-list">
+      ${urgencyNeedsAction.length === 0 && urgencyNoCreds.length === 0
+        ? '<div class="urgency-empty">✓ All providers are on track!</div>'
+        : urgencyList.filter(p => p.urgencyOrder < 99).slice(0, 15).map(p => {
+            const urgencyLabels = {
+              'overdue': { label: 'OVERDUE', cls: 'urgency-overdue', icon: '🔴' },
+              'critical': { label: p.days + 'd LEFT', cls: 'urgency-critical', icon: '🔴' },
+              'urgent': { label: p.days + 'd LEFT', cls: 'urgency-urgent', icon: '🟠' },
+              'warning': { label: p.days + 'd LEFT', cls: 'urgency-warning', icon: '🟡' },
+              'needs-hours': { label: p.hoursRemaining + 'h NEEDED', cls: 'urgency-needs', icon: '📚' },
+              'no-creds': { label: 'NO LOGIN', cls: 'urgency-nocreds', icon: '🔑' }
+            };
+            const u = urgencyLabels[p.urgency] || { label: '', cls: '', icon: '' };
+            const pct = p.hoursRequired > 0 ? Math.round((p.hoursCompleted / p.hoursRequired) * 100) : 0;
+            return `
+            <div class="urgency-item ${u.cls}" onclick="openProvider('${escHtml(p.name).replace(/'/g, "\\'")}')">
+              <span class="urgency-icon">${u.icon}</span>
+              <div class="urgency-info">
+                <span class="urgency-name">${escHtml(p.name)}</span>
+                <span class="urgency-meta">${escHtml(p.type)} • ${escHtml(p.state || 'N/A')}${p.deadline ? ' • Due: ' + escHtml(p.deadline) : ''}</span>
+              </div>
+              ${p.urgency !== 'no-creds' ? `
+              <div class="urgency-progress">
+                <div class="urgency-bar"><div class="urgency-fill" style="width:${pct}%"></div></div>
+                <span class="urgency-hours">${p.hoursCompleted}/${p.hoursRequired}h</span>
+              </div>` : '<div class="urgency-creds-needed">Submit credentials</div>'}
+              <span class="urgency-badge ${u.cls}">${u.label}</span>
+            </div>`;
+          }).join('')
+      }
+      ${urgencyList.filter(p => p.urgencyOrder < 99).length > 15 ? `
+      <div class="urgency-more" onclick="showTab('providers'); setCardFilter('At Risk');">
+        View all ${urgencyList.filter(p => p.urgencyOrder < 99).length} providers →
+      </div>` : ''}
+    </div>
+  </div>
+
+  <!-- Compliance Scorecard -->
+  <div class="scorecard-panel">
+    <div class="scorecard-header">
+      <h3 class="scorecard-title">📊 Team Compliance Scorecard</h3>
+      <div class="scorecard-overall">
+        <span class="overall-pct ${overallCompliance >= 80 ? 'pct-good' : overallCompliance >= 50 ? 'pct-warn' : 'pct-bad'}">${overallCompliance}%</span>
+        <span class="overall-label">Overall Compliance</span>
+      </div>
+    </div>
+    <div class="scorecard-grid">
+      <!-- By Credential Type -->
+      <div class="scorecard-section">
+        <div class="scorecard-section-title">By Credential Type</div>
+        <div class="scorecard-items">
+          ${scorecardByType.map(d => {
+            const barCls = d.pct >= 80 ? 'sc-good' : d.pct >= 50 ? 'sc-warn' : 'sc-bad';
+            return '<div class="scorecard-item">' +
+              '<div class="sc-label"><span class="sc-type">' + escHtml(d.type) + '</span><span class="sc-count">' + d.compliant + '/' + d.total + '</span></div>' +
+              '<div class="sc-bar-wrap"><div class="sc-bar ' + barCls + '" style="width:' + d.pct + '%"></div><span class="sc-pct">' + d.pct + '%</span></div>' +
+            '</div>';
+          }).join('')}
+        </div>
+      </div>
+      <!-- By State -->
+      <div class="scorecard-section">
+        <div class="scorecard-section-title">By State</div>
+        <div class="scorecard-items">
+          ${scorecardByState.map(d => {
+            const barCls = d.pct >= 80 ? 'sc-good' : d.pct >= 50 ? 'sc-warn' : 'sc-bad';
+            return '<div class="scorecard-item">' +
+              '<div class="sc-label"><span class="sc-type">' + escHtml(d.state) + '</span><span class="sc-count">' + d.compliant + '/' + d.total + '</span></div>' +
+              '<div class="sc-bar-wrap"><div class="sc-bar ' + barCls + '" style="width:' + d.pct + '%"></div><span class="sc-pct">' + d.pct + '%</span></div>' +
+            '</div>';
+          }).join('')}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 12-Month Renewal Timeline -->
+  <div class="timeline-panel">
+    <div class="timeline-header">
+      <h3 class="timeline-title">📅 12-Month Renewal Timeline</h3>
+      <div class="timeline-legend">
+        <span class="tl-legend-item"><span class="tl-dot tl-complete"></span>Complete</span>
+        <span class="tl-legend-item"><span class="tl-dot tl-critical"></span>Critical</span>
+        <span class="tl-legend-item"><span class="tl-dot tl-urgent"></span>Urgent</span>
+        <span class="tl-legend-item"><span class="tl-dot tl-warning"></span>Warning</span>
+        <span class="tl-legend-item"><span class="tl-dot tl-needs"></span>Needs CEUs</span>
+      </div>
+    </div>
+    <div class="timeline-scroll">
+      <div class="timeline-grid">
+        ${renewalTimelineHtml}
+      </div>
+    </div>
+  </div>
+
   <!-- Two-Column Layout: Actions + Deadlines -->
   <div class="dashboard-grid">
     <!-- Action Required Column -->
@@ -5574,6 +5969,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
   <div class="view-toggle-bar">
     <div class="view-tabs">
       <button class="view-toggle active" onclick="showProviderView('all')">All Providers <span class="view-count">${providerEntries.length}</span></button>
+      <button class="view-toggle" onclick="showProviderView('table')">Table View</button>
       <button class="view-toggle" onclick="showProviderView('priority')">By Priority <span class="view-count ${atRiskCount > 0 ? 'warning' : ''}">${atRiskCount}</span></button>
       <button class="view-toggle" onclick="showProviderView('kanban')">Kanban</button>
       <button class="view-toggle" onclick="showProviderView('deadline')">By Deadline <span class="view-count ${deadlineProviders30.length > 0 ? 'warning' : ''}">${deadlineProviders30.length + deadlineProviders60.length + deadlineProviders90.length}</span></button>
@@ -5634,7 +6030,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
         <option value="At Risk">At Risk</option>
         <option value="In Progress">In Progress</option>
         <option value="Complete">Complete</option>
-        <option value="Unknown">Unknown</option>
+        <option value="Unknown">Credentials Needed</option>
       </select>
       <select class="filter-select" id="typeFilter" onchange="setProviderTypeFilter(this.value)">
         <option value="all">All Types</option>
@@ -5731,6 +6127,29 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     <div id="loadingIndicator" class="loading-indicator" style="display:none">
       <div class="loading-spinner"></div>
       <span>Loading more providers...</span>
+    </div>
+  </div>
+
+  <!-- Table View -->
+  <div class="provider-view" id="provider-table">
+    <div class="table-view-container">
+      <table class="provider-table" id="providerTable">
+        <thead>
+          <tr>
+            <th onclick="sortProviderTable('name')">Provider ↕</th>
+            <th onclick="sortProviderTable('type')">Type ↕</th>
+            <th onclick="sortProviderTable('state')">State ↕</th>
+            <th onclick="sortProviderTable('status')">Status ↕</th>
+            <th onclick="sortProviderTable('progress')" style="width: 180px;">Progress ↕</th>
+            <th onclick="sortProviderTable('remaining')">Remaining ↕</th>
+            <th onclick="sortProviderTable('deadline')">Deadline ↕</th>
+            <th onclick="sortProviderTable('days')">Days Left ↕</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tableViewRows}
+        </tbody>
+      </table>
     </div>
   </div>
 
@@ -7654,7 +8073,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     providersTab.querySelectorAll('.view-toggle').forEach(b => b.classList.remove('active'));
     document.getElementById('provider-' + name)?.classList.add('active');
     const btns = providersTab.querySelectorAll('.view-toggle');
-    const labels = ['all','priority','kanban','deadline','state','type','favorites','aanp','stats','timeline'];
+    const labels = ['all','table','priority','kanban','deadline','state','type','favorites','aanp','stats','timeline'];
     btns[labels.indexOf(name)]?.classList.add('active');
     // Initialize timeline when selected
     if (name === 'timeline' && typeof updateTimeline === 'function') {
@@ -7664,6 +8083,33 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     if (name === 'favorites') {
       updateFavoritesView();
     }
+  }
+
+  // ── Table Sorting ──
+  let tableSortCol = 'name';
+  let tableSortDir = 1;
+  function sortProviderTable(col) {
+    const table = document.getElementById('providerTable');
+    if (!table) return;
+    const tbody = table.querySelector('tbody');
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    if (tableSortCol === col) tableSortDir *= -1;
+    else { tableSortCol = col; tableSortDir = 1; }
+    const colIdx = { name: 0, type: 1, state: 2, status: 3, progress: 4, remaining: 5, deadline: 6, days: 7 };
+    rows.sort((a, b) => {
+      const aCell = a.cells[colIdx[col]];
+      const bCell = b.cells[colIdx[col]];
+      let aVal = aCell?.textContent?.trim() || '';
+      let bVal = bCell?.textContent?.trim() || '';
+      // Numeric sort for progress, remaining, days
+      if (col === 'progress' || col === 'remaining' || col === 'days') {
+        aVal = parseFloat(aVal) || 9999;
+        bVal = parseFloat(bVal) || 9999;
+        return (aVal - bVal) * tableSortDir;
+      }
+      return aVal.localeCompare(bVal) * tableSortDir;
+    });
+    rows.forEach(r => tbody.appendChild(r));
   }
 
   // ── Toggle Collapsible Groups ──
@@ -9528,6 +9974,36 @@ module.exports = { buildDashboard };
 // Run when executed directly
 if (require.main === module) {
   console.log('Building dashboard...');
-  const outputPath = buildDashboard();
+  // Load the most recent snapshot from history.json to build dashboard
+  let historyData = [];
+  try {
+    historyData = JSON.parse(fs.readFileSync(HISTORY_FILE, 'utf8'));
+  } catch (e) {
+    console.log('No history.json found, using empty data');
+  }
+
+  // Get the most recent snapshot
+  const latestSnapshot = historyData.length > 0 ? historyData[historyData.length - 1] : null;
+
+  // Convert snapshot providers to allProviderRecords format (array of arrays)
+  let allProviderRecords = [];
+  let runResults = [];
+
+  if (latestSnapshot && latestSnapshot.providers) {
+    // Each provider becomes a single-item array containing its record
+    allProviderRecords = latestSnapshot.providers.map(p => [{
+      providerName: p.name,
+      providerType: p.name?.match(/,\s*(NP|MD|DO|RN)/)?.[1] || 'Unknown',
+      state: p.state,
+      hoursRequired: p.hoursRequired,
+      hoursCompleted: p.hoursCompleted,
+      hoursRemaining: p.hoursRemaining,
+      renewalDeadline: p.renewalDeadline,
+      courses: p.courses || []
+    }]);
+    runResults = latestSnapshot.providers.map(p => ({ name: p.name, status: 'success' }));
+  }
+
+  const outputPath = buildDashboard(allProviderRecords, runResults, [], null);
   console.log('Dashboard built:', outputPath);
 }
