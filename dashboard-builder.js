@@ -246,6 +246,13 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     };
   }
 
+  // ── Filter credential gaps to only show providers with NO credentials at all ───
+  // (exclude those who have platform credentials like NetCE, CEUfast, etc.)
+  const trulyNoCredentialsProviders = noCredentialsProviders.filter(name => {
+    const hasPlatformData = platformByProvider[name] && platformByProvider[name].some(p => p.status === 'success');
+    return !hasPlatformData;
+  });
+
   // ── Platform overview data ────────────────────────────────────────────────
   const ALL_PLATFORMS = [
     { name: 'NetCE',              url: 'https://www.netce.com',         slug: 'netce',   desc: 'Online continuing education courses' },
@@ -450,8 +457,8 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
   priorityGroups.complete.sort((a, b) => a.name.localeCompare(b.name));
   priorityGroups.unknown.sort((a, b) => a.name.localeCompare(b.name));
 
-  // Add missing credentials to info
-  for (const p of noCredentialsProviders) {
+  // Add missing credentials to info (only those with no credentials at all)
+  for (const p of trulyNoCredentialsProviders) {
     if (!actionItems.critical.find(a => a.name === p) && !actionItems.urgent.find(a => a.name === p)) {
       actionItems.info.push({ name: p, reason: 'Missing CE credentials' });
     }
@@ -4970,11 +4977,11 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     <div class="quick-summary">
       <div class="quick-summary-icon">📈</div>
       <div class="quick-summary-text">
-        ${atRisk === 0 && noCredentialsProviders.length === 0
+        ${atRisk === 0 && trulyNoCredentialsProviders.length === 0
           ? `<span class="quick-summary-highlight">All ${total} providers are on track!</span> No immediate action needed.`
           : atRisk > 0
             ? `<strong>${complete} of ${total}</strong> providers are on track. <span class="quick-summary-warning">${atRisk} need${atRisk === 1 ? 's' : ''} attention</span> before their renewal deadline${atRisk === 1 ? '' : 's'}.`
-            : `<strong>${complete} of ${total}</strong> providers are on track. ${noCredentialsProviders.length} still need CE Broker credentials.`
+            : `<strong>${complete} of ${total}</strong> providers are on track. ${trulyNoCredentialsProviders.length} still need CE Broker credentials.`
         }
       </div>
     </div>
@@ -5035,77 +5042,6 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       <div class="legend-item"><span class="legend-dot gray"></span> Missing Info - Need credentials</div>
     </div>
 
-    <!-- ── Missing Credentials Section ────────────────────────────────────── -->
-    ${(() => {
-      // Build list of providers with missing credentials for any platform
-      const allPlatforms = ['CE Broker', 'NetCE', 'CEUfast', 'AANP Cert', 'ExclamationCE'];
-      const providersMissingCreds = [];
-
-      for (const provider of providers) {
-        const missingPlatforms = [];
-
-        // Check CE Broker
-        if (!provider.username || !provider.password) {
-          missingPlatforms.push('CE Broker');
-        }
-
-        // Check other platforms - if not configured
-        const configuredPlatforms = (provider.platforms || []).map(p => p.platform);
-        for (const plat of ['NetCE', 'CEUfast', 'AANP Cert', 'ExclamationCE']) {
-          if (!configuredPlatforms.includes(plat)) {
-            missingPlatforms.push(plat);
-          }
-        }
-
-        if (missingPlatforms.length > 0) {
-          providersMissingCreds.push({
-            name: provider.name,
-            type: provider.type || '',
-            missing: missingPlatforms
-          });
-        }
-      }
-
-      // Only show providers missing CE Broker (the critical one)
-      const criticalMissing = providersMissingCreds.filter(p => p.missing.includes('CE Broker'));
-
-      if (criticalMissing.length === 0) return '';
-
-      return `
-    <div class="missing-creds-section">
-      <div class="missing-creds-header">
-        <div class="missing-creds-title">
-          <span class="missing-creds-icon">🔑</span>
-          <span>CE Credentials Needed</span>
-          <span class="missing-creds-count">${criticalMissing.length}</span>
-        </div>
-        <div class="missing-creds-subtitle">These providers need login credentials to track their continuing education compliance</div>
-      </div>
-      <div class="missing-creds-list">
-        ${criticalMissing.map(p => {
-          const missingText = p.missing.length <= 2
-            ? p.missing.join(', ')
-            : p.missing.slice(0, 2).join(', ') + ' +' + (p.missing.length - 2) + ' more';
-          return `<div class="missing-creds-item" onclick="openProvider('${escHtml(p.name).replace(/'/g, '&#39;')}')">
-            <div class="missing-creds-item-main">
-              <span class="missing-creds-name">${escHtml(p.name)}</span>
-              ${p.type ? `<span class="missing-creds-type">${escHtml(p.type)}</span>` : ''}
-            </div>
-            <div class="missing-creds-platforms">Missing: ${escHtml(missingText)}</div>
-          </div>`;
-        }).join('')}
-      </div>
-      <div class="missing-creds-actions">
-        <button class="missing-creds-copy-btn" onclick="copyMissingCredsList()">
-          <span>📋</span> Copy List to Clipboard
-        </button>
-        <button class="missing-creds-export-btn" onclick="exportMissingCredentials()">
-          <span>📥</span> Export as CSV
-        </button>
-      </div>
-    </div>`;
-    })()}
-
 <!-- ── Tab: Overview ──────────────────────────────────────────────────── -->
 <!-- ── Tab: Dashboard (Consolidated Overview) ────────────────────────────── -->
 <div class="tab-panel" id="tab-dashboard">
@@ -5135,7 +5071,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     <div class="dash-stat-card dash-stat-unknown">
       <div class="dash-stat-icon">○</div>
       <div class="dash-stat-content">
-        <div class="dash-stat-num">${noCredentialsProviders.length}</div>
+        <div class="dash-stat-num">${trulyNoCredentialsProviders.length}</div>
         <div class="dash-stat-label">Missing Creds</div>
       </div>
     </div>
@@ -5160,10 +5096,10 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
           <span class="dash-action-text"><strong>${atRisk}</strong> provider${atRisk !== 1 ? 's' : ''} at risk</span>
           <span class="dash-action-arrow">→</span>
         </div>` : ''}
-        ${noCredentialsProviders.length > 0 ? `
+        ${trulyNoCredentialsProviders.length > 0 ? `
         <div class="dash-action-item dash-action-info" onclick="showTab('providers'); document.getElementById('noCredsFilter').checked = true; filterCards();">
           <span class="dash-action-icon">○</span>
-          <span class="dash-action-text"><strong>${noCredentialsProviders.length}</strong> providers need CE Broker credentials</span>
+          <span class="dash-action-text"><strong>${trulyNoCredentialsProviders.length}</strong> providers need CE Broker credentials</span>
           <span class="dash-action-arrow">→</span>
         </div>` : ''}
         ${loginErrors.length > 0 ? `
@@ -5172,7 +5108,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
           <span class="dash-action-text"><strong>${loginErrors.length}</strong> login error${loginErrors.length !== 1 ? 's' : ''}</span>
           <span class="dash-action-arrow">→</span>
         </div>` : ''}
-        ${atRisk === 0 && noCredentialsProviders.length === 0 && loginErrors.length === 0 ? `
+        ${atRisk === 0 && trulyNoCredentialsProviders.length === 0 && loginErrors.length === 0 ? `
         <div class="dash-action-empty">
           <span class="dash-action-icon">✓</span>
           <span class="dash-action-text">No immediate action needed</span>
@@ -5283,7 +5219,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       const days = daysUntil(r.renewalDeadline);
       return days !== null && days > 30 && days <= 60 && r.hoursRemaining > 0;
     });
-    const missingCredsCount = noCredentialsProviders.length;
+    const missingCredsCount = trulyNoCredentialsProviders.length;
     const failedLoginsCount = loginErrors.length;
 
     const hasIssues = criticalProviders.length > 0 || warningProviders.length > 0 || missingCredsCount > 0 || failedLoginsCount > 0;
@@ -5325,7 +5261,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     }
 
     if (missingCredsCount > 0) {
-      const names = noCredentialsProviders.slice(0, 3);
+      const names = trulyNoCredentialsProviders.slice(0, 3);
       const moreCount = missingCredsCount - 3;
       cards += '<div class="action-item-card action-info" onclick="showTab(&quot;platforms&quot;); setTimeout(function(){ showPlatformView(&quot;gaps&quot;); }, 100)">' +
         '<div class="action-item-icon">🔑</div>' +
@@ -5442,6 +5378,13 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       <select class="filter-select" id="stateFilter" onchange="setStateFilter(this.value)">
         <option value="all">All States</option>
         ${allStates.map(s => `<option value="${escHtml(s)}">${escHtml(s)}</option>`).join('')}
+      </select>
+      <select class="filter-select" id="platformFilter" onchange="filterCards()">
+        <option value="all">All Platforms</option>
+        <option value="CE Broker">CE Broker</option>
+        <option value="NetCE">NetCE</option>
+        <option value="CEUfast">CEUfast</option>
+        <option value="AANP Cert">AANP Cert</option>
       </select>
       <select class="filter-select" id="cardSort" onchange="sortCards()">
         <option value="name">Sort: Name (A-Z)</option>
@@ -5984,7 +5927,6 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
   <!-- View Toggle Buttons -->
   <div class="view-toggle-bar">
     <button class="view-toggle active" onclick="showPlatformView('matrix')">Coverage Matrix</button>
-    <button class="view-toggle" onclick="showPlatformView('cards')">Platform Cards</button>
     <button class="view-toggle" onclick="showPlatformView('gaps')">Credential Gaps</button>
   </div>
 
@@ -6089,39 +6031,6 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
             return rows + '</tbody><tfoot><tr><td class="cov-summary-label">Total (' + totalProviders + ' providers)</td>' + footerCells + footerScore + '</tr></tfoot>';
           })()}
       </table>
-    </div>
-  </div>
-
-  <!-- Platform Cards View -->
-  <div class="platform-view" id="platform-cards">
-    <div class="platform-summary-grid">
-      ${['NetCE', 'CEUfast', 'AANP Cert', 'ExclamationCE'].map(plat => {
-        const stats = platformStats[plat] || { providers: [], totalHours: 0 };
-        const results = platformData.filter(p => p.platform === plat);
-        const successCount = results.filter(r => r.status === 'success').length;
-        const failCount = results.filter(r => r.status === 'failed').length;
-        const providerList = [...new Set(stats.providers)].sort();
-        const platSlug = plat === 'NetCE' ? 'netce' : plat === 'CEUfast' ? 'ceufast' : plat === 'AANP Cert' ? 'aanp' : 'excl';
-        const platUrl = plat === 'NetCE' ? 'https://www.netce.com' : plat === 'CEUfast' ? 'https://www.ceufast.com' : plat === 'AANP Cert' ? 'https://www.aanpcert.org' : 'https://www.exclamationce.com';
-        return '<div class="platform-summary-card plat-card-' + platSlug + '">' +
-          '<div class="plat-header">' +
-            '<span class="plat-name">' + escHtml(plat) + '</span>' +
-            '<a href="' + platUrl + '" target="_blank" class="plat-link">↗</a>' +
-          '</div>' +
-          '<div class="plat-stats">' +
-            '<div class="plat-stat"><span class="plat-stat-num">' + providerList.length + '</span><span class="plat-stat-label">Providers</span></div>' +
-            '<div class="plat-stat"><span class="plat-stat-num plat-stat-success">' + successCount + '</span><span class="plat-stat-label">Connected</span></div>' +
-            (failCount > 0 ? '<div class="plat-stat"><span class="plat-stat-num plat-stat-fail">' + failCount + '</span><span class="plat-stat-label">Failed</span></div>' : '') +
-            '<div class="plat-stat"><span class="plat-stat-num">' + Math.round(stats.totalHours) + '</span><span class="plat-stat-label">Total Hours</span></div>' +
-          '</div>' +
-          '<div class="plat-providers-section">' +
-            '<div class="plat-providers-title">Connected Providers</div>' +
-            '<div class="plat-providers-list">' +
-              (providerList.length > 0 ? providerList.map(p => { const safeP = escHtml(p).replace(/'/g, '&#39;'); return '<span class="plat-provider-chip" onclick="openProvider(\'' + safeP + '\')">' + escHtml(p.split(',')[0]) + '</span>'; }).join('') : '<span class="no-providers">No providers configured</span>') +
-            '</div>' +
-          '</div>' +
-        '</div>';
-      }).join('')}
     </div>
   </div>
 
@@ -7346,16 +7255,21 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
-    document.getElementById('tab-' + name)?.classList.add('active');
-    const btns = document.querySelectorAll('.tab-btn');
-    const labels = ['dashboard','providers','platforms','reports','licenses'];
-    btns[labels.indexOf(name)]?.classList.add('active');
+    const tabEl = document.getElementById('tab-' + name);
+    if (tabEl) {
+      tabEl.classList.add('active');
+    } else {
+      console.warn('Tab not found: tab-' + name);
+    }
     // Update sidebar nav
-    document.querySelector('.nav-item[data-tab="' + name + '"]')?.classList.add('active');
+    const navItem = document.querySelector('.nav-item[data-tab="' + name + '"]');
+    if (navItem) {
+      navItem.classList.add('active');
+    }
     if (name === 'reports') initCharts();
     // Close sidebar on mobile after selection
     if (window.innerWidth <= 768) {
-      document.getElementById('sidebar').classList.remove('open');
+      document.getElementById('sidebar')?.classList.remove('open');
     }
   }
 
@@ -7383,7 +7297,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     platformsTab.querySelectorAll('.view-toggle').forEach(b => b.classList.remove('active'));
     document.getElementById('platform-' + name)?.classList.add('active');
     const btns = platformsTab.querySelectorAll('.view-toggle');
-    const labels = ['matrix','cards','gaps'];
+    const labels = ['matrix','gaps'];
     btns[labels.indexOf(name)]?.classList.add('active');
   }
 
@@ -7559,7 +7473,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
 
   // ── Copy Missing Credentials List ──
   function copyMissingCredsList() {
-    const missingCreds = ${JSON.stringify(noCredentialsProviders)};
+    const missingCreds = ${JSON.stringify(trulyNoCredentialsProviders)};
     const text = missingCreds.join('\\n');
     navigator.clipboard.writeText(text).then(() => {
       const btn = document.querySelector('.missing-creds-copy-btn');
@@ -7903,6 +7817,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
   let stateFilter = 'all';
   let cardFilter = 'all';
   let typeFilter = 'all';
+  let platformFilter = 'all';
 
   function setStateFilter(s) {
     stateFilter = s;
@@ -7929,8 +7844,11 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     const grid = document.getElementById('allCardsGrid');
     if (!grid) return;
 
+    // Get platform filter value
+    const platformFilterVal = document.getElementById('platformFilter')?.value || 'all';
+
     // Load all cards if searching or filtering (so all results are available)
-    if (q || noCredsOnly || stateFilter !== 'all' || cardFilter !== 'all' || typeFilter !== 'all') {
+    if (q || noCredsOnly || stateFilter !== 'all' || cardFilter !== 'all' || typeFilter !== 'all' || platformFilterVal !== 'all') {
       if (typeof loadAllCards === 'function' && lazyLoadedCount < ALL_CARDS_HTML.length) {
         loadAllCards();
       }
@@ -7961,13 +7879,29 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       const matchT = typeFilter === 'all' || type === typeFilter;
       const matchC = !noCredsOnly || noCreds;
 
+      // Platform filter - check for platform tags in the card
+      let matchP = platformFilterVal === 'all';
+      if (!matchP) {
+        const platformMap = {
+          'CE Broker': 'cebroker',
+          'NetCE': 'netce',
+          'CEUfast': 'ceufast',
+          'AANP Cert': 'aanp'
+        };
+        const platClass = platformMap[platformFilterVal];
+        if (platClass) {
+          matchP = card.querySelector('.plat-tag-' + platClass) !== null ||
+                   card.querySelector('.access-' + platClass) !== null;
+        }
+      }
+
       // Advanced filter matches
       const matchDeadlineMin = deadlineMin === null || deadline >= deadlineMin;
       const matchDeadlineMax = deadlineMax === null || deadline <= deadlineMax;
       const matchOverdue = !filterOverdue || deadline < 0;
       const matchUrgent = !filterUrgent || (deadline >= 0 && deadline <= 30);
 
-      const visible = matchQ && matchF && matchS && matchT && matchC && matchDeadlineMin && matchDeadlineMax && ((!filterOverdue && !filterUrgent) || matchOverdue || matchUrgent);
+      const visible = matchQ && matchF && matchS && matchT && matchC && matchP && matchDeadlineMin && matchDeadlineMax && ((!filterOverdue && !filterUrgent) || matchOverdue || matchUrgent);
       card.style.display = visible ? '' : 'none';
       if (visible) visibleCount++;
     });
@@ -7983,6 +7917,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     document.getElementById('statusFilter').value = 'all';
     document.getElementById('typeFilter').value = 'all';
     document.getElementById('stateFilter').value = 'all';
+    document.getElementById('platformFilter').value = 'all';
     document.getElementById('cardSort').value = 'name';
     document.getElementById('noCredsFilter').checked = false;
     // Reset advanced filters
@@ -8001,6 +7936,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     stateFilter = 'all';
     cardFilter = 'all';
     typeFilter = 'all';
+    platformFilter = 'all';
     filterCards();
     sortCards();
   }
