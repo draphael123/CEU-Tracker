@@ -1,8 +1,16 @@
 // scraper.js — Playwright login + CE Broker (Propelus) data scraping
 
+const fs = require('fs');
+const path = require('path');
 const { chromium } = require('playwright');
 const { logger, sleep, screenshotOnError } = require('./utils');
 const { recordSuccess, recordFailure } = require('./credential-health');
+
+// ─── Platform Registry ────────────────────────────────────────────────────────
+
+const platformsPath = path.join(__dirname, 'platforms.json');
+const platforms = JSON.parse(fs.readFileSync(platformsPath, 'utf8'));
+const cebrokerConfig = platforms.cebroker;
 
 // ─── Browser Launch ──────────────────────────────────────────────────────────
 
@@ -48,7 +56,7 @@ async function loginProvider(browser, provider) {
         await sleep(1000);
       }
 
-      await page.goto('https://launchpad.cebroker.com/login', {
+      await page.goto(cebrokerConfig.urls.login, {
         waitUntil: 'domcontentloaded',
         timeout: 30000,
       });
@@ -69,7 +77,7 @@ async function loginProvider(browser, provider) {
 
       // Wait for URL to reach the licensees dashboard (handles redirect via /login?redirect_to=...)
       await page.waitForURL(
-        u => u.toString().includes('licensees.cebroker.com') && !u.toString().includes('/login'),
+        u => u.toString().includes(cebrokerConfig.urls.dashboard.replace('https://', '')) && !u.toString().includes('/login'),
         { timeout: 25000 }
       );
       await sleep(2500);
@@ -122,7 +130,7 @@ async function scrapeLicenseData(page, provider) {
     } else {
       for (const licId of licenseIds) {
         // Navigate to that license's overview page
-        const licUrl = `https://licensees.cebroker.com/license/${licId}/overview`;
+        const licUrl = `${cebrokerConfig.urls.dashboard}/license/${licId}/overview`;
         await page.goto(licUrl, { waitUntil: 'domcontentloaded', timeout: 20000 });
         await sleep(2500);
         const rec = await scrapeCurrentLicense(page, provider);
@@ -242,7 +250,7 @@ async function scrapeCurrentLicense(page, provider) {
     const tabLink = page.locator('a:has-text("REQUIREMENTS"), a:has-text("TRANSCRIPT")').first();
     const tabHref = await tabLink.getAttribute('href').catch(() => null);
     if (tabHref) {
-      await page.goto('https://licensees.cebroker.com' + tabHref, {
+      await page.goto(cebrokerConfig.urls.dashboard + tabHref, {
         waitUntil: 'domcontentloaded',
         timeout: 20000,
       });
@@ -317,7 +325,7 @@ async function scrapeCurrentLicense(page, provider) {
     const ovHref = await page.locator('a:has-text("OVERVIEW")').first()
       .getAttribute('href').catch(() => null);
     if (ovHref) {
-      await page.goto('https://licensees.cebroker.com' + ovHref, { waitUntil: 'domcontentloaded', timeout: 20000 });
+      await page.goto(cebrokerConfig.urls.dashboard + ovHref, { waitUntil: 'domcontentloaded', timeout: 20000 });
     } else {
       await page.locator('a:has-text("OVERVIEW")').first().click({ force: true });
     }

@@ -3,11 +3,43 @@
 
 'use strict';
 
+const fs = require('fs');
+const path = require('path');
 const { chromium } = require('playwright');
 const { logger, sleep } = require('./utils');
 const { recordSuccess, recordFailure, getHealthSummary } = require('./credential-health');
 
 const providers = require('./providers.json');
+
+// ─── Platform Registry ────────────────────────────────────────────────────────
+
+const platformsPath = path.join(__dirname, 'platforms.json');
+const platforms = JSON.parse(fs.readFileSync(platformsPath, 'utf8'));
+
+/**
+ * Get platform configuration by display name
+ */
+function getPlatformConfig(displayName) {
+  const nameMap = {
+    'CE Broker': 'cebroker',
+    'NetCE': 'netce',
+    'CEUfast': 'ceufast',
+    'AANP Cert': 'aanpcert',
+    'ExclamationCE': 'exclamationce',
+    'Nursece4less': 'nursece4less',
+    'Nursing CE Central': 'nursingcecentral',
+  };
+  const key = nameMap[displayName];
+  return key ? platforms[key] : null;
+}
+
+/**
+ * Check if a platform is enabled
+ */
+function isPlatformEnabled(displayName) {
+  const config = getPlatformConfig(displayName);
+  return config ? config.status === 'active' : false;
+}
 
 // ─── Configuration ────────────────────────────────────────────────────────────
 
@@ -19,13 +51,14 @@ const LOGIN_TIMEOUT = 20000;  // 20 seconds max per login attempt
  * Test CE Broker login
  */
 async function testCEBrokerLogin(browser, provider) {
+  const platformConfig = getPlatformConfig('CE Broker');
   const context = await browser.newContext({
     viewport: { width: 1280, height: 720 },
   });
   const page = await context.newPage();
 
   try {
-    await page.goto('https://launchpad.cebroker.com/login', {
+    await page.goto(platformConfig.urls.login, {
       waitUntil: 'domcontentloaded',
       timeout: LOGIN_TIMEOUT,
     });
@@ -44,8 +77,9 @@ async function testCEBrokerLogin(browser, provider) {
     await page.click('button[type="submit"]');
 
     // Wait for redirect to dashboard
+    const dashboardHost = platformConfig.urls.dashboard.replace('https://', '');
     await page.waitForURL(
-      u => u.toString().includes('licensees.cebroker.com') && !u.toString().includes('/login'),
+      u => u.toString().includes(dashboardHost) && !u.toString().includes('/login'),
       { timeout: LOGIN_TIMEOUT }
     );
 
@@ -61,11 +95,12 @@ async function testCEBrokerLogin(browser, provider) {
  * Test NetCE login
  */
 async function testNetCELogin(browser, creds) {
+  const platformConfig = getPlatformConfig('NetCE');
   const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
   const page = await context.newPage();
 
   try {
-    await page.goto('https://www.netce.com/login.php', {
+    await page.goto(platformConfig.urls.login, {
       waitUntil: 'domcontentloaded',
       timeout: LOGIN_TIMEOUT,
     });
@@ -95,11 +130,12 @@ async function testNetCELogin(browser, creds) {
  * Test CEUfast login
  */
 async function testCEUfastLogin(browser, creds) {
+  const platformConfig = getPlatformConfig('CEUfast');
   const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
   const page = await context.newPage();
 
   try {
-    await page.goto('https://www.ceufast.com/myaccount/', {
+    await page.goto(platformConfig.urls.login, {
       waitUntil: 'domcontentloaded',
       timeout: LOGIN_TIMEOUT,
     });
@@ -129,11 +165,12 @@ async function testCEUfastLogin(browser, creds) {
  * Test AANP Cert login
  */
 async function testAANPCertLogin(browser, creds) {
+  const platformConfig = getPlatformConfig('AANP Cert');
   const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
   const page = await context.newPage();
 
   try {
-    await page.goto('https://www.aanpcert.org/signin', {
+    await page.goto(platformConfig.urls.login, {
       waitUntil: 'domcontentloaded',
       timeout: LOGIN_TIMEOUT,
     });
@@ -161,11 +198,12 @@ async function testAANPCertLogin(browser, creds) {
  * Test ExclamationCE login
  */
 async function testExclamationCELogin(browser, creds) {
+  const platformConfig = getPlatformConfig('ExclamationCE');
   const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
   const page = await context.newPage();
 
   try {
-    await page.goto('https://www.exclamationce.com/login', {
+    await page.goto(platformConfig.urls.login, {
       waitUntil: 'domcontentloaded',
       timeout: LOGIN_TIMEOUT,
     });
@@ -192,11 +230,12 @@ async function testExclamationCELogin(browser, creds) {
  * Test NurseCE4Less login
  */
 async function testNurseCE4LessLogin(browser, creds) {
+  const platformConfig = getPlatformConfig('Nursece4less');
   const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
   const page = await context.newPage();
 
   try {
-    await page.goto('https://nursece4less.com/my-account/', {
+    await page.goto(platformConfig.urls.login, {
       waitUntil: 'domcontentloaded',
       timeout: LOGIN_TIMEOUT,
     });
@@ -221,11 +260,12 @@ async function testNurseCE4LessLogin(browser, creds) {
  * Test Nursing CE Central login
  */
 async function testNursingCECentralLogin(browser, creds) {
+  const platformConfig = getPlatformConfig('Nursing CE Central');
   const context = await browser.newContext({ viewport: { width: 1280, height: 720 } });
   const page = await context.newPage();
 
   try {
-    await page.goto('https://nursingcecentral.com/my-account/', {
+    await page.goto(platformConfig.urls.login, {
       waitUntil: 'domcontentloaded',
       timeout: LOGIN_TIMEOUT,
     });
@@ -321,6 +361,12 @@ async function main() {
 
     for (const creds of provider.platforms) {
       if (filterPlatform && creds.platform.toLowerCase() !== filterPlatform.toLowerCase()) continue;
+
+      // Skip disabled platforms
+      if (!isPlatformEnabled(creds.platform)) {
+        logger.info(`  Skipping disabled platform: ${creds.platform}`);
+        continue;
+      }
 
       const tester = platformTesters[creds.platform];
       if (!tester) {

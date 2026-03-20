@@ -1,0 +1,88 @@
+{
+  "cebroker": {
+    "name": "CE Broker",
+    "slug": "cebroker",
+    "type": "primary",
+    "description": "Primary CEU compliance tracking",
+    "urls": {
+      "login": "https://launchpad.cebroker.com/login",
+      "dashboard": "https://licensees.cebroker.com"
+    },
+    "authMethod": "two-step",
+    "status": "active"
+  },
+  "netce": {
+    "name": "NetCE",
+    "slug": "netce",
+    "type": "ceu-source",
+    "description": "Online continuing education courses",
+    "urls": {
+      "login": "https://www.netce.com/login.php",
+      "transcript": "https://www.netce.com/transcript.php",
+      "account": "https://www.netce.com/account.php"
+    },
+    "authMethod": "standard",
+    "status": "active"
+  },
+  "ceufast": {
+    "name": "CEUfast",
+    "slug": "ceufast",
+    "type": "ceu-source",
+    "description": "Online CEU courses",
+    "urls": {
+      "login": "https://www.ceufast.com/myaccount/",
+      "orders": "https://www.ceufast.com/myaccount/orders"
+    },
+    "authMethod": "standard",
+    "status": "active"
+  },
+  "aanpcert": {
+    "name": "AANP Cert",
+    "slug": "aanp",
+    "type": "ceu-source",
+    "description": "NP certification & CE tracking",
+    "urls": {
+      "login": "https://www.aanpcert.org/signin",
+      "myce": "https://www.aanpcert.org/myce",
+      "certifications": "https://www.aanpcert.org/mycertifications"
+    },
+    "authMethod": "standard",
+    "status": "active"
+  },
+  "exclamationce": {
+    "name": "ExclamationCE",
+    "slug": "excl",
+    "type": "ceu-source",
+    "description": "CE courses platform",
+    "urls": {
+      "login": "https://www.exclamationce.com/login",
+      "dashboard": "https://www.exclamationce.com/dashboard"
+    },
+    "authMethod": "standard",
+    "status": "active"
+  },
+  "nursece4less": {
+    "name": "Nursece4less",
+    "slug": "nc4l",
+    "type": "ceu-source",
+    "description": "Nursing CE courses",
+    "urls": {
+      "login": "https://nursece4less.com/my-account/",
+      "courses": "https://nursece4less.com/my-account/courses/"
+    },
+    "authMethod": "standard",
+    "status": "disabled"
+  },
+  "nursingcecentral": {
+    "name": "Nursing CE Central",
+    "slug": "ncc",
+    "type": "ceu-source",
+    "description": "Nursing CE courses",
+    "urls": {
+      "login": "https://nursingcecentral.com/my-account/",
+      "courses": "https://nursingcecentral.com/my-account/courses/"
+    },
+    "authMethod": "standard",
+    "status": "active"
+  }
+}

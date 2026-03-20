@@ -2,8 +2,43 @@
 
 'use strict';
 
+const fs = require('fs');
+const path = require('path');
 const { logger, sleep, screenshotOnError } = require('./utils');
 const { recordSuccess, recordFailure } = require('./credential-health');
+
+// ─── Platform Registry ────────────────────────────────────────────────────────
+
+const platformsPath = path.join(__dirname, 'platforms.json');
+const platforms = JSON.parse(fs.readFileSync(platformsPath, 'utf8'));
+
+/**
+ * Get platform configuration by display name (e.g., "NetCE", "AANP Cert")
+ * @param {string} displayName - The platform display name from providers.json
+ * @returns {object|null} Platform config or null if not found
+ */
+function getPlatformConfig(displayName) {
+  const nameMap = {
+    'NetCE': 'netce',
+    'CEUfast': 'ceufast',
+    'AANP Cert': 'aanpcert',
+    'ExclamationCE': 'exclamationce',
+    'Nursece4less': 'nursece4less',
+    'Nursing CE Central': 'nursingcecentral',
+  };
+  const key = nameMap[displayName];
+  return key ? platforms[key] : null;
+}
+
+/**
+ * Check if a platform is enabled
+ * @param {string} displayName - The platform display name
+ * @returns {boolean}
+ */
+function isPlatformEnabled(displayName) {
+  const config = getPlatformConfig(displayName);
+  return config ? config.status === 'active' : false;
+}
 
 // ─── Retry Configuration ──────────────────────────────────────────────────────
 
@@ -121,6 +156,7 @@ async function extractCourseRows(page) {
 
 async function scrapeNetCE(browser, credentials, providerName) {
   const { username, password } = credentials;
+  const platformConfig = getPlatformConfig('NetCE');
   logger.info(`[NetCE] ${providerName} — logging in as ${username}`);
 
   const context = await makeContext(browser);
@@ -128,7 +164,7 @@ async function scrapeNetCE(browser, credentials, providerName) {
 
   try {
     // ── Login ────────────────────────────────────────────────────────────────
-    await page.goto('https://www.netce.com/login.php', {
+    await page.goto(platformConfig.urls.login, {
       waitUntil: 'domcontentloaded', timeout: 30000,
     });
     await sleep(1500);
@@ -143,7 +179,7 @@ async function scrapeNetCE(browser, credentials, providerName) {
 
     // ── Navigate to transcript ────────────────────────────────────────────────
     // Probe confirmed the transcript is at transcript.php (linked from account.php)
-    await page.goto('https://www.netce.com/transcript.php', {
+    await page.goto(platformConfig.urls.transcript, {
       waitUntil: 'domcontentloaded', timeout: 20000,
     });
     await sleep(2000);
@@ -177,9 +213,9 @@ async function scrapeNetCE(browser, credentials, providerName) {
     try {
       // Try common billing/order URLs
       const orderUrls = [
-        'https://www.netce.com/account.php',
-        'https://www.netce.com/orders.php',
-        'https://www.netce.com/order_history.php',
+        platformConfig.urls.account,
+        platformConfig.urls.account.replace('account', 'orders'),
+        platformConfig.urls.account.replace('account', 'order_history'),
       ];
 
       for (const url of orderUrls) {
@@ -253,6 +289,7 @@ async function scrapeNetCE(browser, credentials, providerName) {
 
 async function scrapeCEUfast(browser, credentials, providerName) {
   const { username, password } = credentials;
+  const platformConfig = getPlatformConfig('CEUfast');
   logger.info(`[CEUfast] ${providerName} — logging in as ${username}`);
 
   const context = await makeContext(browser);
@@ -262,7 +299,7 @@ async function scrapeCEUfast(browser, credentials, providerName) {
     // ── Login via the dedicated login page ───────────────────────────────────
     // Navigating to /myaccount/ redirects to Account/Login?ReturnUrl=%2fmyaccount%2f
     // That page has a visible form: input[name="UserName"] + input[name="Password"]
-    await page.goto('https://www.ceufast.com/myaccount/', {
+    await page.goto(platformConfig.urls.login, {
       waitUntil: 'domcontentloaded', timeout: 30000,
     });
     await sleep(1500);
@@ -292,8 +329,8 @@ async function scrapeCEUfast(browser, credentials, providerName) {
     let orders = [];
     try {
       const orderUrls = [
-        'https://www.ceufast.com/myaccount/orders',
-        'https://www.ceufast.com/myaccount/billing',
+        platformConfig.urls.orders,
+        platformConfig.urls.login.replace(/\/$/, '') + '/billing',
       ];
 
       for (const url of orderUrls) {
@@ -365,6 +402,7 @@ async function scrapeCEUfast(browser, credentials, providerName) {
 
 async function scrapeAANPCert(browser, credentials, providerName) {
   const { username, password } = credentials;
+  const platformConfig = getPlatformConfig('AANP Cert');
   logger.info(`[AANP Cert] ${providerName} — logging in as ${username}`);
 
   const context = await makeContext(browser);
@@ -372,7 +410,7 @@ async function scrapeAANPCert(browser, credentials, providerName) {
 
   try {
     // ── Login ────────────────────────────────────────────────────────────────
-    await page.goto('https://www.aanpcert.org/signin', {
+    await page.goto(platformConfig.urls.login, {
       waitUntil: 'domcontentloaded', timeout: 30000,
     });
     await sleep(1500);
@@ -398,7 +436,7 @@ async function scrapeAANPCert(browser, credentials, providerName) {
     await sleep(1500);
 
     // ── Navigate directly to /myce (probe confirmed this URL) ────────────────
-    await page.goto('https://www.aanpcert.org/myce', {
+    await page.goto(platformConfig.urls.myce, {
       waitUntil: 'domcontentloaded', timeout: 20000,
     });
     await sleep(2000);
@@ -407,7 +445,7 @@ async function scrapeAANPCert(browser, credentials, providerName) {
     const body = await page.locator('body').innerText().catch(() => '');
 
     // Also fetch /mycertifications for cert expiry + status
-    await page.goto('https://www.aanpcert.org/mycertifications', {
+    await page.goto(platformConfig.urls.certifications, {
       waitUntil: 'domcontentloaded', timeout: 15000,
     }).catch(() => {});
     await sleep(1500);
@@ -431,7 +469,7 @@ async function scrapeAANPCert(browser, credentials, providerName) {
     const certExpires  = allCertDates.length > 0 ? allCertDates[allCertDates.length - 1] : null;
 
     // Go back to /myce to extract CE hours from the course table
-    await page.goto('https://www.aanpcert.org/myce', {
+    await page.goto(platformConfig.urls.myce, {
       waitUntil: 'domcontentloaded', timeout: 15000,
     }).catch(() => {});
     await sleep(1500);
@@ -513,6 +551,7 @@ async function scrapeAANPCert(browser, credentials, providerName) {
 
 async function scrapeExclamationCE(browser, credentials, providerName) {
   const { username, password } = credentials;
+  const platformConfig = getPlatformConfig('ExclamationCE');
   logger.info(`[ExclamationCE] ${providerName} — logging in as ${username}`);
 
   const context = await makeContext(browser);
@@ -520,7 +559,7 @@ async function scrapeExclamationCE(browser, credentials, providerName) {
 
   try {
     // ── Login ────────────────────────────────────────────────────────────────
-    await page.goto('https://www.exclamationce.com/login', {
+    await page.goto(platformConfig.urls.login, {
       waitUntil: 'domcontentloaded', timeout: 30000,
     });
     await sleep(1500);
@@ -541,12 +580,13 @@ async function scrapeExclamationCE(browser, credentials, providerName) {
 
     // ── Navigate to transcript/completed courses ──────────────────────────────
     // Try common transcript URLs
+    const baseUrl = platformConfig.urls.login.replace('/login', '');
     const transcriptUrls = [
-      'https://www.exclamationce.com/my-courses',
-      'https://www.exclamationce.com/transcript',
-      'https://www.exclamationce.com/completed',
-      'https://www.exclamationce.com/account/courses',
-      'https://www.exclamationce.com/dashboard',
+      baseUrl + '/my-courses',
+      baseUrl + '/transcript',
+      baseUrl + '/completed',
+      baseUrl + '/account/courses',
+      platformConfig.urls.dashboard,
     ];
 
     let courses = [];
@@ -596,6 +636,7 @@ async function scrapeExclamationCE(browser, credentials, providerName) {
 
 async function scrapeNurseCE4Less(browser, credentials, providerName) {
   const { username, password } = credentials;
+  const platformConfig = getPlatformConfig('Nursece4less');
   logger.info(`[NurseCE4Less] ${providerName} — logging in as ${username}`);
 
   const context = await makeContext(browser);
@@ -603,7 +644,7 @@ async function scrapeNurseCE4Less(browser, credentials, providerName) {
 
   try {
     // ── Login ────────────────────────────────────────────────────────────────
-    await page.goto('https://nursece4less.com/my-account/', {
+    await page.goto(platformConfig.urls.login, {
       waitUntil: 'domcontentloaded', timeout: 30000,
     });
     await sleep(1500);
@@ -624,12 +665,13 @@ async function scrapeNurseCE4Less(browser, credentials, providerName) {
 
     // ── Navigate to courses/transcript ──────────────────────────────────────
     // Try common course history URLs for WooCommerce/LearnDash sites
+    const baseUrl = platformConfig.urls.login.replace('/my-account/', '');
     const transcriptUrls = [
-      'https://nursece4less.com/my-account/courses/',
-      'https://nursece4less.com/my-courses/',
-      'https://nursece4less.com/courses/',
-      'https://nursece4less.com/my-account/orders/',
-      'https://nursece4less.com/transcript/',
+      platformConfig.urls.courses,
+      baseUrl + '/my-courses/',
+      baseUrl + '/courses/',
+      baseUrl + '/my-account/orders/',
+      baseUrl + '/transcript/',
     ];
 
     let courses = [];
@@ -702,7 +744,7 @@ async function scrapeNurseCE4Less(browser, credentials, providerName) {
     // ── Extract order costs from /my-account/orders/ ──────────────────────────
     let orders = [];
     try {
-      await page.goto('https://nursece4less.com/my-account/orders/', {
+      await page.goto(baseUrl + '/my-account/orders/', {
         waitUntil: 'domcontentloaded', timeout: 15000,
       });
       await sleep(2000);
@@ -785,6 +827,7 @@ async function scrapeNurseCE4Less(browser, credentials, providerName) {
 
 async function scrapeNursingCECentral(browser, credentials, providerName) {
   const { username, password } = credentials;
+  const platformConfig = getPlatformConfig('Nursing CE Central');
   logger.info(`[Nursing CE Central] ${providerName} — logging in as ${username}`);
 
   const context = await makeContext(browser);
@@ -792,7 +835,7 @@ async function scrapeNursingCECentral(browser, credentials, providerName) {
 
   try {
     // ── Login ────────────────────────────────────────────────────────────────
-    await page.goto('https://nursingcecentral.com/my-account/', {
+    await page.goto(platformConfig.urls.login, {
       waitUntil: 'domcontentloaded', timeout: 30000,
     });
     await sleep(1500);
@@ -812,12 +855,13 @@ async function scrapeNursingCECentral(browser, credentials, providerName) {
     await sleep(1500);
 
     // ── Navigate to courses/transcript ──────────────────────────────────────
+    const baseUrl = platformConfig.urls.login.replace('/my-account/', '');
     const transcriptUrls = [
-      'https://nursingcecentral.com/my-account/courses/',
-      'https://nursingcecentral.com/my-courses/',
-      'https://nursingcecentral.com/my-account/',
-      'https://nursingcecentral.com/transcript/',
-      'https://nursingcecentral.com/completed-courses/',
+      platformConfig.urls.courses,
+      baseUrl + '/my-courses/',
+      platformConfig.urls.login,
+      baseUrl + '/transcript/',
+      baseUrl + '/completed-courses/',
     ];
 
     let courses = [];
@@ -885,7 +929,7 @@ async function scrapeNursingCECentral(browser, credentials, providerName) {
     // ── Extract order costs from /my-account/orders/ ──────────────────────────
     let orders = [];
     try {
-      await page.goto('https://nursingcecentral.com/my-account/orders/', {
+      await page.goto(baseUrl + '/my-account/orders/', {
         waitUntil: 'domcontentloaded', timeout: 15000,
       });
       await sleep(2000);
@@ -991,6 +1035,12 @@ async function runPlatformScrapers(browser, providers) {
     if (!provider.platforms || provider.platforms.length === 0) continue;
 
     for (const creds of provider.platforms) {
+      // Check if platform is enabled in platforms.json
+      if (!isPlatformEnabled(creds.platform)) {
+        logger.info(`[Platform] Skipping disabled platform "${creds.platform}" for ${provider.name}`);
+        continue;
+      }
+
       const scraperFn = scraperMap[creds.platform];
 
       if (!scraperFn) {

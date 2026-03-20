@@ -7,6 +7,11 @@ const { getHealthSummary } = require('./credential-health');
 const { loadCosts, calculateAllProviderSpending, calculateRolling12MonthSpending } = require('./cost-utils');
 const { getAllUpdates } = require('./change-detector');
 
+// ─── Platform Registry ────────────────────────────────────────────────────────
+
+const platformsPath = path.join(__dirname, 'platforms.json');
+const platformsConfig = JSON.parse(fs.readFileSync(platformsPath, 'utf8'));
+
 const OUTPUT_HTML    = path.join(__dirname, 'dashboard.html');
 
 // Load state-specific CE requirements with lookback periods
@@ -253,15 +258,16 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     return !hasPlatformData;
   });
 
-  // ── Platform overview data ────────────────────────────────────────────────
-  const ALL_PLATFORMS = [
-    { name: 'NetCE',              url: 'https://www.netce.com',         slug: 'netce',   desc: 'Online continuing education courses' },
-    { name: 'CEUfast',            url: 'https://www.ceufast.com',       slug: 'ceufast', desc: 'Online CEU courses' },
-    { name: 'AANP Cert',          url: 'https://www.aanpcert.org',      slug: 'aanp',    desc: 'NP certification & CE tracking' },
-    { name: 'AANP',               url: 'https://account.aanp.org',      slug: 'aanp2',   desc: 'AANP member account' },
-    { name: 'ExclamationCE',      url: 'https://exclamationce.com',     slug: 'excl',    desc: 'CE courses platform' },
-    { name: 'Nursing CE Central', url: 'https://nursingcecentral.com',  slug: 'ncc',     desc: 'Nursing CE courses' },
-  ];
+  // ── Platform overview data (loaded from platforms.json) ────────────────────
+  const ALL_PLATFORMS = Object.entries(platformsConfig)
+    .filter(([key, p]) => p.type === 'ceu-source')
+    .map(([key, p]) => ({
+      name: p.name,
+      url: p.urls.login.replace(/\/login.*$|\/signin.*$|\/my-account.*$/, ''),
+      slug: p.slug,
+      desc: p.description,
+      status: p.status,
+    }));
   const platformStats = {};
   for (const pr of platformData) {
     if (!platformStats[pr.platform]) platformStats[pr.platform] = { providers: [], totalHours: 0 };
@@ -6648,102 +6654,62 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
   <!-- Coverage Matrix View -->
   <div class="platform-view active" id="platform-matrix">
     <div class="matrix-intro" style="background: var(--bg-secondary); padding: 16px 20px; border-radius: 12px; margin-bottom: 16px;">
-      <div style="font-weight: 700; margin-bottom: 8px; color: var(--text-primary);">📊 Platform Credentials Overview</div>
+      <div style="font-weight: 700; margin-bottom: 8px; color: var(--text-primary);">📊 Provider Credentials Status</div>
       <div style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5;">
-        This matrix shows which CE tracking platforms each provider is connected to. <strong>CE Broker</strong> is the official state compliance system.
-        Other platforms (NetCE, CEUfast, etc.) are supplemental course providers.
+        This matrix shows which providers have credentials configured for CEU tracking.
       </div>
     </div>
     <div class="matrix-legend">
-      <span class="legend-item"><span class="legend-dot cov-yes"></span> <strong>✓ Connected</strong> - Credentials working</span>
-      <span class="legend-item"><span class="legend-dot cov-fail"></span> <strong>✗ Failed</strong> - Login error</span>
-      <span class="legend-item"><span class="legend-dot cov-no"></span> <strong>— Not Set Up</strong> - No credentials</span>
+      <span class="legend-item"><span class="legend-dot cov-yes"></span> <strong>Has Credentials</strong> - Provider credentials configured</span>
+      <span class="legend-item"><span class="legend-dot cov-no"></span> <strong>No Credentials</strong> - Credentials needed</span>
     </div>
     <div class="matrix-wrap">
       <table class="coverage-matrix">
         <thead>
           <tr>
             <th class="cov-provider-hdr">Provider Name</th>
-            <th class="has-tooltip">CE Broker<div class="tooltip">Official state CE compliance system</div></th>
-            <th class="has-tooltip">NetCE<div class="tooltip">Online CE course platform</div></th>
-            <th class="has-tooltip">CEUfast<div class="tooltip">Fast-track CE courses</div></th>
-            <th class="has-tooltip">AANP Cert<div class="tooltip">AANP certification tracking</div></th>
-            <th class="has-tooltip">ExclamationCE<div class="tooltip">CE course provider</div></th>
-            <th class="has-tooltip">Tracked?<div class="tooltip">Can we track this provider's CEUs?</div></th>
+            <th>Credentials Status</th>
           </tr>
         </thead>
         <tbody>
           ${(() => {
-            const allPlatforms = ['CE Broker', 'NetCE', 'CEUfast', 'AANP Cert', 'ExclamationCE'];
-            const platformTotals = { 'CE Broker': { yes: 0, fail: 0, no: 0 }, 'NetCE': { yes: 0, fail: 0, no: 0 }, 'CEUfast': { yes: 0, fail: 0, no: 0 }, 'AANP Cert': { yes: 0, fail: 0, no: 0 }, 'ExclamationCE': { yes: 0, fail: 0, no: 0 } };
             const totalProviders = providerEntries.length;
+            let hasCredsCount = 0;
+            let noCredsCount = 0;
 
             const rows = providerEntries.map(([name, info]) => {
               const providerPlatforms = platformByProvider[name] || [];
-              const platforms = ['NetCE', 'CEUfast', 'AANP Cert', 'ExclamationCE'];
 
-              // CE Broker status from runResults
+              // Check CE Broker status from runResults
               const cebrokerResult = (runResults || []).find(r => r.name === name);
-              let cebrokerStatus = 'no';
-              let cebrokerCell = '<td class="cov-no">—</td>';
-              if (cebrokerResult) {
-                if (cebrokerResult.status === 'success') {
-                  cebrokerCell = '<td class="cov-yes">✓</td>';
-                  cebrokerStatus = 'yes';
-                  platformTotals['CE Broker'].yes++;
-                } else if (cebrokerResult.status === 'login_error' || cebrokerResult.status === 'failed') {
-                  cebrokerCell = '<td class="cov-fail">✗</td>';
-                  cebrokerStatus = 'fail';
-                  platformTotals['CE Broker'].fail++;
-                } else {
-                  platformTotals['CE Broker'].no++;
-                }
+              const hasCEBroker = cebrokerResult && (cebrokerResult.status === 'success' || cebrokerResult.status === 'login_error' || cebrokerResult.status === 'failed');
+
+              // Check if provider has any platform credentials
+              const hasAnyPlatform = providerPlatforms.length > 0;
+
+              // Provider has credentials if they have CE Broker OR any platform configured
+              const hasCredentials = hasCEBroker || hasAnyPlatform;
+
+              if (hasCredentials) {
+                hasCredsCount++;
               } else {
-                platformTotals['CE Broker'].no++;
+                noCredsCount++;
               }
 
-              // Platform cells
-              let connectedCount = cebrokerStatus === 'yes' ? 1 : 0;
-              const cells = platforms.map(plat => {
-                const result = providerPlatforms.find(p => p.platform === plat);
-                if (!result) {
-                  platformTotals[plat].no++;
-                  return '<td class="cov-no">—</td>';
-                }
-                if (result.status === 'success') {
-                  platformTotals[plat].yes++;
-                  connectedCount++;
-                  const hours = result.hoursEarned !== null ? result.hoursEarned + 'h' : '✓';
-                  return '<td class="cov-yes">' + hours + '</td>';
-                }
-                platformTotals[plat].fail++;
-                return '<td class="cov-fail">✗</td>';
-              }).join('');
-
-              // CEU Coverage indicator (based on CE Broker status)
-              const hasCEUCoverage = cebrokerStatus === 'yes';
-              let rowClass = hasCEUCoverage ? 'cov-row-full' : 'cov-row-none';
-              const scoreCell = hasCEUCoverage
+              const rowClass = hasCredentials ? 'cov-row-full' : 'cov-row-none';
+              const statusCell = hasCredentials
                 ? '<td class="cov-yes" style="text-align:center;font-weight:700;color:#059669;">Yes</td>'
                 : '<td class="cov-no" style="text-align:center;font-weight:700;color:#dc2626;">No</td>';
 
               const safeName = escHtml(name).replace(/'/g, '&#39;');
-              return '<tr class="' + rowClass + '"><td class="cov-provider" onclick="openProvider(\'' + safeName + '\')">' + escHtml(name) + '</td>' + cebrokerCell + cells + scoreCell + '</tr>';
+              return '<tr class="' + rowClass + '"><td class="cov-provider" onclick="openProvider(\'' + safeName + '\')">' + escHtml(name) + '</td>' + statusCell + '</tr>';
             }).join('');
 
             // Summary footer
-            const footerCells = allPlatforms.map(plat => {
-              const t = platformTotals[plat];
-              const pct = totalProviders > 0 ? Math.round((t.yes / totalProviders) * 100) : 0;
-              return '<td><div class="cov-summary-stat"><span class="cov-summary-num sum-green">' + t.yes + '</span><span class="cov-summary-pct">' + pct + '% connected</span></div></td>';
-            }).join('');
+            const hasCredsPct = totalProviders > 0 ? Math.round((hasCredsCount / totalProviders) * 100) : 0;
+            const footerCell = '<td><div class="cov-summary-stat"><span class="cov-summary-num sum-green">' + hasCredsCount + '</span><span class="cov-summary-pct">' + hasCredsPct + '% have credentials</span></div></td>';
 
-            // CEU Coverage summary (count of providers with CE Broker)
-            const cebrokerConnected = platformTotals['CE Broker'].yes;
-            const cebrokerPct = totalProviders > 0 ? Math.round((cebrokerConnected / totalProviders) * 100) : 0;
-            const footerScore = '<td><div class="cov-summary-stat"><span class="cov-summary-num sum-green">' + cebrokerConnected + '</span><span class="cov-summary-pct">' + cebrokerPct + '% covered</span></div></td>';
-
-            return rows + '</tbody><tfoot><tr><td class="cov-summary-label">Total (' + totalProviders + ' providers)</td>' + footerCells + footerScore + '</tr></tfoot>';
+            return rows + '</tbody><tfoot><tr><td class="cov-summary-label">Total (' + totalProviders + ' providers)</td>' + footerCell + '</tr></tfoot>';
           })()}
       </table>
     </div>
