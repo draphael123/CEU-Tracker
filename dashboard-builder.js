@@ -1538,6 +1538,27 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     <td>${r.error ? `<span style="color:#ef4444;font-size:0.8rem">${escHtml(r.error)}</span>` : '<span style="color:#94a3b8">—</span>'}</td>
   </tr>`).join('');
 
+  // ── Pre-compute Export Data (for embedding in JavaScript) ─────────────────
+  const exportDataNoLogins = trulyNoCredentialsProviders.map(name => {
+    const info = providerMap[name];
+    return {
+      name: name,
+      type: info?.type || '',
+      states: [...new Set((info?.licenses || []).map(l => l.state))].join(', ')
+    };
+  });
+  const exportDataAtRisk = flat.filter(p => {
+    const days = daysUntil(parseDate(p.renewalDeadline));
+    return days !== null && days <= 60 && (p.hoursRemaining || 0) > 0;
+  }).map(p => ({
+    name: p.providerName,
+    type: p.providerType || '',
+    state: p.state || '',
+    hoursRemaining: p.hoursRemaining || 0,
+    renewalDeadline: p.renewalDeadline || '',
+    daysUntilDeadline: daysUntil(parseDate(p.renewalDeadline)) ?? ''
+  }));
+
   // ── HTML ─────────────────────────────────────────────────────────────────
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -5568,7 +5589,14 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
           Export <span class="dropdown-caret">▾</span>
         </button>
         <div class="export-dropdown-menu" id="exportDropdownMenu">
-          <button onclick="exportMissingCredentials(); closeExportDropdown()">Missing Credentials</button>
+          <div class="dropdown-label">Quick Exports</div>
+          <button onclick="exportAllProviders(); closeExportDropdown()">📋 All Providers</button>
+          <button onclick="exportNeedsCEUs(); closeExportDropdown()">📚 Needs CEUs (${flat.filter(p => (p.hoursRemaining || 0) > 0).length})</button>
+          <button onclick="exportNoLogins(); closeExportDropdown()">🔑 No CEU Logins (${trulyNoCredentialsProviders.length})</button>
+          <button onclick="exportComplete(); closeExportDropdown()">✅ CEUs Complete (${flat.filter(p => (p.hoursRemaining || 0) <= 0 && p.hoursRequired > 0).length})</button>
+          <button onclick="exportAtRisk(); closeExportDropdown()">⚠️ At Risk (${flat.filter(p => { const days = daysUntil(parseDate(p.renewalDeadline)); return days !== null && days <= 60 && (p.hoursRemaining || 0) > 0; }).length})</button>
+          <div class="dropdown-divider"></div>
+          <div class="dropdown-label">Other Exports</div>
           <button onclick="exportFilteredResults(); closeExportDropdown()">Filtered Results (CSV)</button>
           <button onclick="exportToCalendar(); closeExportDropdown()">Calendar (.ics)</button>
           <button onclick="printComplianceReport(); closeExportDropdown()">Print Report</button>
@@ -7464,6 +7492,40 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     required: p.hoursRequired
   })))};
 
+  // ── Comprehensive Export Data ──
+  const EXPORT_DATA = {
+    allProviders: ${JSON.stringify(flat.map(p => ({
+      name: p.providerName,
+      type: p.providerType || '',
+      state: p.state || '',
+      status: getStatus(p.hoursRemaining, daysUntil(parseDate(p.renewalDeadline)), p.hoursRequired),
+      hoursRequired: p.hoursRequired || 0,
+      hoursCompleted: p.hoursCompleted || 0,
+      hoursRemaining: p.hoursRemaining || 0,
+      renewalDeadline: p.renewalDeadline || '',
+      daysUntilDeadline: daysUntil(parseDate(p.renewalDeadline)) ?? ''
+    })))},
+    needsCEUs: ${JSON.stringify(flat.filter(p => (p.hoursRemaining || 0) > 0).map(p => ({
+      name: p.providerName,
+      type: p.providerType || '',
+      state: p.state || '',
+      hoursRequired: p.hoursRequired || 0,
+      hoursCompleted: p.hoursCompleted || 0,
+      hoursRemaining: p.hoursRemaining || 0,
+      renewalDeadline: p.renewalDeadline || '',
+      daysUntilDeadline: daysUntil(parseDate(p.renewalDeadline)) ?? ''
+    })))},
+    complete: ${JSON.stringify(flat.filter(p => (p.hoursRemaining || 0) <= 0 && p.hoursRequired > 0).map(p => ({
+      name: p.providerName,
+      type: p.providerType || '',
+      state: p.state || '',
+      hoursCompleted: p.hoursCompleted || 0,
+      renewalDeadline: p.renewalDeadline || ''
+    })))},
+    noLogins: ${JSON.stringify(exportDataNoLogins)},
+    atRisk: ${JSON.stringify(exportDataAtRisk)}
+  };
+
   function globalSearchHandler(e) {
     const q = e.target.value.toLowerCase().trim();
     const results = document.getElementById('globalSearchResults');
@@ -7788,6 +7850,64 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     a.download = 'missing-credentials-' + new Date().toISOString().split('T')[0] + '.csv';
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  // ── Quick Export Functions ──
+  function downloadCSV(data, headers, filename) {
+    const csv = headers.join(',') + '\\n' + data.map(row =>
+      headers.map(h => {
+        const key = h.toLowerCase().replace(/ /g, '');
+        const keyMap = {
+          'name': 'name', 'type': 'type', 'state': 'state', 'status': 'status',
+          'hoursrequired': 'hoursRequired', 'hourscompleted': 'hoursCompleted',
+          'hoursremaining': 'hoursRemaining', 'renewaldeadline': 'renewalDeadline',
+          'daysuntildeadline': 'daysUntilDeadline', 'states': 'states'
+        };
+        const val = row[keyMap[key]] ?? '';
+        return '"' + String(val).replace(/"/g, '""') + '"';
+      }).join(',')
+    ).join('\\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename + '-' + new Date().toISOString().split('T')[0] + '.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function exportAllProviders() {
+    downloadCSV(EXPORT_DATA.allProviders,
+      ['Name', 'Type', 'State', 'Status', 'Hours Required', 'Hours Completed', 'Hours Remaining', 'Renewal Deadline', 'Days Until Deadline'],
+      'all-providers');
+  }
+
+  function exportNeedsCEUs() {
+    if (EXPORT_DATA.needsCEUs.length === 0) { alert('No providers currently need CEUs'); return; }
+    downloadCSV(EXPORT_DATA.needsCEUs,
+      ['Name', 'Type', 'State', 'Hours Required', 'Hours Completed', 'Hours Remaining', 'Renewal Deadline', 'Days Until Deadline'],
+      'needs-ceus');
+  }
+
+  function exportNoLogins() {
+    if (EXPORT_DATA.noLogins.length === 0) { alert('All providers have CEU logins configured'); return; }
+    downloadCSV(EXPORT_DATA.noLogins,
+      ['Name', 'Type', 'States'],
+      'no-ceu-logins');
+  }
+
+  function exportComplete() {
+    if (EXPORT_DATA.complete.length === 0) { alert('No providers have completed their CEUs'); return; }
+    downloadCSV(EXPORT_DATA.complete,
+      ['Name', 'Type', 'State', 'Hours Completed', 'Renewal Deadline'],
+      'ceus-complete');
+  }
+
+  function exportAtRisk() {
+    if (EXPORT_DATA.atRisk.length === 0) { alert('No providers are currently at risk'); return; }
+    downloadCSV(EXPORT_DATA.atRisk,
+      ['Name', 'Type', 'State', 'Hours Remaining', 'Renewal Deadline', 'Days Until Deadline'],
+      'at-risk-providers');
   }
 
   // ── Export Dropdown Functions ──
