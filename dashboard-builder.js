@@ -602,19 +602,51 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
             : '');
 
       // ── Completed Courses section ─────────────────────────────────────────
-      const courses = lic.completedCourses || [];
-      const completedSection = courses.length > 0
+      const rawCourses = lic.completedCourses || [];
+
+      // Deduplicate courses: merge exact duplicates (same name+date+hours), keep separate completions
+      const courseKey = c => `${c.name || ''}|${c.date || ''}|${c.hours || 0}`;
+      const deduped = [];
+      const seen = new Set();
+      for (const c of rawCourses) {
+        const key = courseKey(c);
+        if (!seen.has(key)) {
+          seen.add(key);
+          deduped.push(c);
+        }
+      }
+
+      // Check for courses with same name but different dates (legitimate separate completions)
+      const nameCounts = {};
+      for (const c of deduped) {
+        const name = c.name || '';
+        nameCounts[name] = (nameCounts[name] || 0) + 1;
+      }
+
+      // Sort courses by date (most recent first) then by name
+      const sortedCourses = [...deduped].sort((a, b) => {
+        const dateA = a.date ? new Date(a.date) : new Date(0);
+        const dateB = b.date ? new Date(b.date) : new Date(0);
+        if (dateB - dateA !== 0) return dateB - dateA;
+        return (a.name || '').localeCompare(b.name || '');
+      });
+
+      const completedSection = sortedCourses.length > 0
         ? `<div class="drawer-section">
-            <div class="drawer-section-title">Completed Courses (${courses.length})</div>
+            <div class="drawer-section-title">Completed Courses (${sortedCourses.length}${sortedCourses.length !== rawCourses.length ? ` unique` : ''})</div>
             <div class="course-list">
-              ${courses.map(c => `
-                <div class="course-item">
+              ${sortedCourses.map(c => {
+                const isDuplicated = nameCounts[c.name || ''] > 1;
+                return `
+                <div class="course-item${isDuplicated ? ' has-multiple' : ''}">
                   <span class="course-item-name${c.name ? '' : ' unnamed'}">${escHtml(c.name || 'Course name unavailable')}</span>
                   <div class="course-item-meta">
-                    ${c.date ? `<span class="course-item-date">${escHtml(c.date)}</span>` : ''}
+                    ${c.date ? `<span class="course-item-date${isDuplicated ? ' highlight-date' : ''}">${escHtml(c.date)}</span>` : '<span class="course-item-date no-date">No date</span>'}
                     <span class="course-item-hours">${c.hours} hr${c.hours !== 1 ? 's' : ''}</span>
+                    ${c.category ? `<span class="course-item-cat">${escHtml(c.category)}</span>` : ''}
                   </div>
-                </div>`).join('')}
+                </div>`;
+              }).join('')}
             </div>
           </div>`
         : '';
@@ -795,7 +827,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     // Check if login failed
     const failedLogin = loginErrors.find(r => r.name === providerName);
     if (failedLogin) {
-      return { reason: 'Login Failed', detail: failedLogin.error || 'CE Broker login error', icon: '⚠', cls: 'unknown-error', platforms: [] };
+      return { reason: 'Login Failed', detail: failedLogin.error || 'Platform login error', icon: '⚠', cls: 'unknown-error', platforms: [] };
     }
 
     // Get platforms this provider has access to
@@ -864,12 +896,25 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       const monthOffset = timelineMonths.findIndex(m => m.month === monthIdx && m.year === year);
       if (monthOffset === -1) return null;
       const pct = ((monthOffset + (dayOfMonth / daysInMonth)) / 12) * 100;
+      // Get initials for label
+      const initials = r.providerName.split(/[\s,]+/).filter(Boolean).slice(0, 2)
+        .map(w => w[0].toUpperCase()).join('');
+      // Determine status based on provider overall status
+      const providerInfo = providerMap[r.providerName];
+      const status = providerInfo ? (
+        providerInfo.licenses.some(l => getStatus(l) === 'At Risk') ? 'At Risk' :
+        providerInfo.licenses.some(l => getStatus(l) === 'In Progress') ? 'In Progress' :
+        providerInfo.licenses.every(l => getStatus(l) === 'Complete') ? 'Complete' : 'Unknown'
+      ) : 'Unknown';
       return {
         name: r.providerName,
+        initials: initials,
+        state: r.state || '',
         date: r.renewalDeadline,
         days: days,
         pct: pct,
-        urgency: days <= 30 ? 'urgent' : days <= 90 ? 'warning' : 'safe'
+        urgency: days <= 30 ? 'urgent' : days <= 90 ? 'warning' : 'safe',
+        status: status
       };
     })
     .filter(Boolean)
@@ -1019,7 +1064,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
         ${platformBlocks}
         <div class="platform-creds-notice">
           <span class="creds-notice-icon">○</span>
-          <span>Submit CE Broker credentials for license compliance tracking</span>
+          <span>Submit platform credentials for license compliance tracking</span>
         </div>
       `;
     } else {
@@ -1078,7 +1123,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
         Complete: 'Complete - All CEUs done',
         'In Progress': 'On Track - In progress, deadline far',
         'At Risk': 'Needs Attention - Deadline approaching!',
-        Unknown: 'Missing Info - Need credentials'
+        Unknown: 'Missing Credentials'
       }[status] || 'Unknown status';
 
       return `<div class="lic-block ${badgeCls}">
@@ -1709,6 +1754,39 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .stat-card.risk::before { background: var(--status-red-gradient); }
     .stat-card.risk .num { color: var(--status-red); }
     .stat-card.risk { box-shadow: var(--shadow-md), 0 0 0 1px rgba(239,68,68,0.2); }
+    /* Sub-label for stat cards */
+    .stat-sublbl { font-size: 0.7rem; color: var(--text-secondary); opacity: 0.7; margin-top: 4px; }
+    /* Needs Attention card with active risk - pulsing red border */
+    .stat-card.risk.has-risk {
+      background: linear-gradient(135deg, rgba(239,68,68,0.08) 0%, rgba(239,68,68,0.04) 100%);
+      box-shadow: var(--shadow-md), 0 0 0 2px rgba(239,68,68,0.4);
+      animation: pulse-risk 2s ease-in-out infinite;
+    }
+    @keyframes pulse-risk {
+      0%, 100% { box-shadow: var(--shadow-md), 0 0 0 2px rgba(239,68,68,0.4); }
+      50% { box-shadow: var(--shadow-md), 0 0 0 4px rgba(239,68,68,0.2), 0 0 20px rgba(239,68,68,0.15); }
+    }
+    /* Complete card when all providers complete - celebration glow */
+    .stat-card.ok.all-complete {
+      background: linear-gradient(135deg, rgba(16,185,129,0.08) 0%, rgba(16,185,129,0.04) 100%);
+      box-shadow: var(--shadow-md), 0 0 0 2px rgba(16,185,129,0.3), 0 0 20px rgba(16,185,129,0.1);
+    }
+    .celebration-indicator {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 24px;
+      height: 24px;
+      background: var(--status-green);
+      color: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-weight: 700;
+      box-shadow: 0 2px 8px rgba(16,185,129,0.4);
+    }
 
     /* ─ Welcome Banner (Slim info bar) ─ */
     .welcome-banner {
@@ -2104,24 +2182,29 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       border-color: var(--accent-primary);
     }
     .provider-card:hover::after { opacity: 1; }
+    /* Status left-border accent for scannability */
+    .provider-card.card-ok { border-left: 4px solid var(--status-green); }
     .provider-card.card-ok::after { background: var(--status-green-gradient); }
-    .provider-card.card-ok:hover { border-color: var(--status-green); }
+    .provider-card.card-ok:hover { border-color: var(--status-green); border-left-color: var(--status-green); }
+    .provider-card.card-prog { border-left: 4px solid var(--status-amber); }
     .provider-card.card-prog::after { background: var(--status-amber-gradient); }
-    .provider-card.card-prog:hover { border-color: var(--status-amber); }
+    .provider-card.card-prog:hover { border-color: var(--status-amber); border-left-color: var(--status-amber); }
     .provider-card.card-risk {
+      border-left: 4px solid var(--status-red);
       border-color: var(--status-red);
       border-width: 2px;
+      border-left-width: 4px;
       box-shadow: var(--shadow-md), 0 0 0 2px rgba(239,68,68,0.1);
     }
     .provider-card.card-risk::after { background: var(--status-red-gradient); opacity: 1; }
     .provider-card.card-risk.critical-deadline {
-      animation: pulse-risk 2s ease-in-out infinite;
+      animation: pulse-card-risk 2s ease-in-out infinite;
     }
-    @keyframes pulse-risk {
+    @keyframes pulse-card-risk {
       0%, 100% { box-shadow: var(--shadow-md), 0 0 0 2px rgba(239,68,68,0.1); }
       50% { box-shadow: var(--shadow-md), 0 0 0 4px rgba(239,68,68,0.2); }
     }
-    .provider-card.card-unk  { }
+    .provider-card.card-unk { border-left: 4px solid #64748b; }
     .provider-card.card-platform::after { background: linear-gradient(135deg, #3b82f6, #06b6d4); }
     .provider-card.card-error {
       border-color: #f87171;
@@ -2295,7 +2378,19 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .dot-gray   { background: #94a3b8; }
     .lic-header strong { font-size: 0.9rem; }
     .lic-type   { font-size: 0.72rem; color: #64748b; background: #e2e8f0; padding: 1px 7px; border-radius: 99px; }
-    .lic-status-text { margin-left: auto; font-size: 0.75rem; color: #475569; font-weight: 500; }
+    /* License status badges (pill-shaped) */
+    .lic-status-text {
+      margin-left: auto;
+      font-size: 0.68rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 10px;
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
+    }
+    .lic-block.lic-complete .lic-status-text { background: rgba(16,185,129,0.15); color: #059669; }
+    .lic-block.lic-progress .lic-status-text { background: rgba(245,158,11,0.15); color: #d97706; }
+    .lic-block.lic-risk .lic-status-text { background: rgba(239,68,68,0.15); color: #dc2626; }
     [data-theme="dark"] .lic-type { background: #475569; color: #cbd5e1; }
     [data-theme="dark"] .lic-status-text { color: #94a3b8; }
     [data-theme="dark"] .lic-header strong { color: #f1f5f9; }
@@ -2380,7 +2475,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     }
     .agg-completed { color: var(--text-secondary); font-weight: 500; }
     .agg-pct { font-weight: 700; color: var(--text-primary); font-size: 0.82rem; }
-    .agg-remaining { color: var(--status-red); font-weight: 600; font-size: 0.72rem; }
+    .agg-remaining { color: var(--status-red); font-weight: 700; font-size: 0.85rem; text-shadow: 0 0 1px rgba(239,68,68,0.3); }
     .agg-done { color: var(--status-green); font-weight: 600; font-size: 0.72rem; }
     [data-theme="dark"] .card-agg-progress { background: rgba(255,255,255,0.05); border-color: var(--border-color); }
     [data-theme="dark"] .agg-bar-track { background: #1e293b; }
@@ -2785,6 +2880,29 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       background: linear-gradient(135deg, rgba(16,185,129,0.1) 0%, var(--bg-primary) 100%);
       border-color: var(--status-green);
     }
+    /* Collapsed action badge */
+    .action-banner-wrap { position: relative; }
+    .action-badge-collapsed {
+      display: none;
+      margin: 12px 40px;
+      padding: 10px 16px;
+      background: linear-gradient(135deg, rgba(239,68,68,0.1) 0%, var(--bg-primary) 100%);
+      border: 1px solid rgba(239,68,68,0.3);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+      align-items: center;
+      gap: 10px;
+    }
+    .action-badge-collapsed:hover {
+      background: linear-gradient(135deg, rgba(239,68,68,0.15) 0%, var(--bg-primary) 100%);
+      border-color: rgba(239,68,68,0.5);
+    }
+    .action-badge-icon { font-size: 1rem; }
+    .action-badge-text { font-size: 0.82rem; font-weight: 600; color: var(--status-red); flex: 1; }
+    .action-badge-expand { font-size: 0.75rem; color: var(--text-secondary); padding: 4px 10px; background: var(--bg-secondary); border-radius: 6px; }
+    .action-banner-wrap.collapsed .action-banner { display: none; }
+    .action-banner-wrap.collapsed .action-badge-collapsed { display: flex; }
     [data-theme="dark"] .action-item-card {
       background: var(--bg-secondary);
     }
@@ -2931,12 +3049,17 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .nav-badge.warn { background: var(--status-red); color: #fff; box-shadow: 0 2px 6px rgba(239,68,68,0.3); }
     .sidebar-footer { padding: 14px; border-top: 1px solid var(--border-color); }
     .sidebar-stats { display: flex; gap: 10px; }
-    .sidebar-stat { flex: 1; text-align: center; padding: 10px 8px; background: var(--bg-secondary); border-radius: 10px; transition: all var(--transition-fast); }
-    .sidebar-stat:hover { transform: translateY(-2px); box-shadow: var(--shadow-sm); }
-    .sidebar-stat.warn { background: var(--status-red-bg); }
-    .sidebar-stat-num { display: block; font-size: 1.15rem; font-weight: 800; color: var(--text-primary); }
+    .sidebar-stat { flex: 1; text-align: center; padding: 12px 10px; background: var(--bg-secondary); border-radius: 12px; transition: all var(--transition-fast); border: 1px solid var(--border-color); }
+    .sidebar-stat:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+    .sidebar-stat.warn { background: linear-gradient(135deg, rgba(239,68,68,0.15) 0%, rgba(239,68,68,0.05) 100%); border-color: rgba(239,68,68,0.3); }
+    .sidebar-stat.warn.has-risk { animation: pulse-sidebar-risk 2s ease-in-out infinite; }
+    @keyframes pulse-sidebar-risk {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+      50% { box-shadow: 0 0 0 4px rgba(239,68,68,0.2); }
+    }
+    .sidebar-stat-num { display: block; font-size: 1.5rem; font-weight: 800; color: var(--text-primary); line-height: 1; }
     .sidebar-stat.warn .sidebar-stat-num { color: var(--status-red); }
-    .sidebar-stat-label { font-size: 0.68rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; }
+    .sidebar-stat-label { font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 600; letter-spacing: 0.5px; margin-top: 4px; }
     .main-content { flex: 1; margin-left: 200px; min-width: 0; transition: margin-left var(--transition-smooth); }
 
     /* ─ Sidebar Collapse Toggle ─ */
@@ -3565,6 +3688,11 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .course-item-date  { font-size: 0.72rem; color: #94a3b8; }
     .course-item-hours { font-size: 0.75rem; font-weight: 600; color: #16a34a;
                          background: #dcfce7; padding: 1px 7px; border-radius: 99px; }
+    /* Highlight courses that appear multiple times (separate completions) */
+    .course-item.has-multiple { border-left: 3px solid #3b82f6; background: #f0f9ff; }
+    .course-item-date.highlight-date { font-weight: 600; color: #1d4ed8; background: #dbeafe; padding: 1px 6px; border-radius: 4px; }
+    .course-item-date.no-date { color: #cbd5e1; font-style: italic; }
+    .course-item-cat { font-size: 0.68rem; color: #64748b; background: #f1f5f9; padding: 1px 5px; border-radius: 3px; }
 
     /* ─ Chart section ─ */
     .chart-wrap { padding: 28px 40px 40px; }
@@ -4786,16 +4914,23 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .timeline-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
     .timeline-title { font-size: 0.9rem; font-weight: 700; color: var(--text-primary); }
     .timeline-subtitle { font-size: 0.75rem; color: var(--text-secondary); }
-    .timeline-track { position: relative; height: 60px; background: var(--bg-secondary); border-radius: 8px; overflow: hidden; }
+    .timeline-track { position: relative; height: 90px; background: var(--bg-secondary); border-radius: 8px; overflow: visible; }
     .timeline-months { display: flex; position: absolute; top: 0; left: 0; right: 0; height: 20px; border-bottom: 1px solid var(--border-color); }
     .timeline-month { flex: 1; text-align: center; font-size: 0.65rem; font-weight: 600; color: var(--text-secondary); padding-top: 4px; border-right: 1px solid var(--border-color); }
     .timeline-month:last-child { border-right: none; }
     .timeline-month.current { background: rgba(99,102,241,0.1); color: var(--accent-primary); }
     .timeline-markers { position: absolute; top: 24px; left: 0; right: 0; bottom: 0; }
-    .timeline-marker { position: absolute; top: 50%; transform: translate(-50%, -50%); width: 12px; height: 12px; border-radius: 50%; cursor: pointer; transition: all 0.2s; z-index: 1; }
-    .timeline-marker:hover { transform: translate(-50%, -50%) scale(1.5); z-index: 10; }
+    /* Timeline marker wrapper with label */
+    .timeline-marker-wrap { position: absolute; top: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 4px; z-index: 1; }
+    .timeline-marker-wrap:hover { z-index: 20; }
+    .timeline-marker-wrap:hover .timeline-marker { transform: scale(1.4); }
+    .timeline-marker-label { font-size: 0.6rem; font-weight: 600; color: var(--text-secondary); white-space: nowrap; margin-top: 2px; }
+    .timeline-marker { width: 14px; height: 14px; border-radius: 50%; cursor: pointer; transition: all 0.2s; position: relative; }
+    /* Status-based colors (matching provider status) */
     .timeline-marker.urgent { background: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.3); }
     .timeline-marker.warning { background: #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,0.3); }
+    .timeline-marker.complete { background: #10b981; box-shadow: 0 0 0 3px rgba(16,185,129,0.3); }
+    .timeline-marker.unknown { background: #64748b; box-shadow: 0 0 0 3px rgba(100,116,139,0.3); }
     .timeline-marker.safe { background: #10b981; }
     .timeline-marker.cluster { width: 20px; height: 20px; font-size: 0.65rem; font-weight: 700; color: #fff; display: flex; align-items: center; justify-content: center; }
     /* Timeline marker tooltips */
@@ -4807,9 +4942,9 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       transform: translateX(-50%);
       background: #1e293b;
       color: #fff;
-      font-size: 0.7rem;
+      font-size: 0.72rem;
       font-weight: 500;
-      padding: 6px 10px;
+      padding: 8px 12px;
       border-radius: 6px;
       white-space: nowrap;
       opacity: 0;
@@ -4817,7 +4952,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       transition: opacity 0.15s, visibility 0.15s;
       z-index: 100;
       pointer-events: none;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
     }
     .timeline-marker::before {
       content: '';
@@ -4825,7 +4960,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       bottom: calc(100% + 4px);
       left: 50%;
       transform: translateX(-50%);
-      border: 4px solid transparent;
+      border: 5px solid transparent;
       border-top-color: #1e293b;
       opacity: 0;
       visibility: hidden;
@@ -4915,9 +5050,9 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       <div class="last-scraped-value" id="lastScrapedValue" data-iso="${escHtml(runIso)}">${escHtml(runDate)}</div>
       <div class="last-scraped-ago" id="lastScrapedAgo"></div>
       <div class="run-badge">
-        <span class="run-pill ok">✓ ${runResults.filter(r => r.status === 'success').length} CE Broker logins</span>
+        <span class="run-pill ok">✓ ${runResults.filter(r => r.status === 'success').length} successful logins</span>
         ${runResults.filter(r => r.status === 'not_configured').length > 0
-          ? `<span class="run-pill notconfig">○ ${runResults.filter(r => r.status === 'not_configured').length} no CE Broker creds</span>`
+          ? `<span class="run-pill notconfig">○ ${runResults.filter(r => r.status === 'not_configured').length} no credentials</span>`
           : ''}
         ${runResults.filter(r => r.status === 'login_error' || r.status === 'failed').length > 0
           ? `<span class="run-pill fail">✗ ${runResults.filter(r => r.status === 'login_error' || r.status === 'failed').length} login errors</span>`
@@ -4993,7 +5128,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     <div class="sidebar-footer">
       <div class="sidebar-stats">
         <div class="sidebar-stat"><span class="sidebar-stat-num">${complete}</span><span class="sidebar-stat-label">Complete</span></div>
-        <div class="sidebar-stat warn"><span class="sidebar-stat-num">${atRisk}</span><span class="sidebar-stat-label">At Risk</span></div>
+        <div class="sidebar-stat warn${atRisk > 0 ? ' has-risk' : ''}"><span class="sidebar-stat-num">${atRisk}</span><span class="sidebar-stat-label">At Risk</span></div>
       </div>
     </div>
   </aside>
@@ -5008,7 +5143,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       <div class="welcome-icon">📊</div>
       <div class="welcome-content">
         <div class="welcome-title">CEU Compliance Tracker</div>
-        <div class="welcome-subtitle">— Track CE requirements and deadlines. Updates nightly from CE Broker.</div>
+        <div class="welcome-subtitle">— Track CE requirements and deadlines. Updates nightly from connected CE platforms.</div>
       </div>
       <button class="welcome-dismiss" onclick="dismissWelcome()">Dismiss</button>
     </div>
@@ -5063,8 +5198,12 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
         </div>
         <div class="timeline-markers">
           ${timelineDeadlines.map(d => {
-            const statusLabel = d.urgency === 'urgent' ? 'Urgent' : d.urgency === 'warning' ? 'Soon' : 'OK';
-            return `<div class="timeline-marker ${d.urgency}" style="left: ${d.pct}%" data-tooltip="${escHtml(d.name)} · ${escHtml(d.date)} · ${statusLabel}"></div>`;
+            const statusLabel = d.status === 'Complete' ? 'Complete' : d.status === 'At Risk' ? 'Needs Attention' : d.status === 'In Progress' ? 'On Track' : 'Missing Info';
+            const statusClass = d.status === 'Complete' ? 'complete' : d.status === 'At Risk' ? 'urgent' : d.status === 'In Progress' ? 'warning' : 'unknown';
+            return `<div class="timeline-marker-wrap" style="left: ${d.pct}%">
+              <div class="timeline-marker ${statusClass}" data-tooltip="${escHtml(d.name)}${d.state ? ' (' + escHtml(d.state) + ')' : ''} | ${escHtml(d.date)} | ${statusLabel}"></div>
+              <div class="timeline-marker-label">${escHtml(d.initials)}</div>
+            </div>`;
           }).join('')}
         </div>
         <div class="timeline-today" style="left: ${(1/365) * 100}%"></div>
@@ -5079,7 +5218,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
           ? `<span class="quick-summary-highlight">All ${total} providers are on track!</span> No immediate action needed.`
           : atRisk > 0
             ? `<strong>${complete} of ${total}</strong> providers are on track. <span class="quick-summary-warning">${atRisk} need${atRisk === 1 ? 's' : ''} attention</span> before their renewal deadline${atRisk === 1 ? '' : 's'}.`
-            : `<strong>${complete} of ${total}</strong> providers are on track. ${trulyNoCredentialsProviders.length} still need CE Broker credentials.`
+            : `<strong>${complete} of ${total}</strong> providers are on track. ${trulyNoCredentialsProviders.length} still need platform credentials.`
         }
       </div>
     </div>
@@ -5097,7 +5236,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
         </div>
         <div class="getting-started-step">
           <span class="step-number">2</span>
-          <span>Check <strong>"Missing Creds"</strong> providers and collect their CE Broker login credentials</span>
+          <span>Check <strong>"Missing Creds"</strong> providers and collect their platform login credentials</span>
         </div>
         <div class="getting-started-step">
           <span class="step-number">3</span>
@@ -5113,21 +5252,26 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
         <div class="tooltip">Total clinical staff being tracked</div>
         <div class="num">${total}</div>
         <div class="lbl">Team Members</div>
+        <div class="stat-sublbl">Total providers tracked</div>
       </div>
-      <div class="stat-card ok has-tooltip">
+      <div class="stat-card ok has-tooltip${complete === total ? ' all-complete' : ''}">
         <div class="tooltip">All CE requirements met - no action needed</div>
+        ${complete === total ? '<div class="celebration-indicator">✓</div>' : ''}
         <div class="num">${complete}</div>
         <div class="lbl">Complete</div>
+        <div class="stat-sublbl">All CE hours fulfilled</div>
       </div>
       <div class="stat-card prog has-tooltip">
         <div class="tooltip">CEUs remaining but deadline is 60+ days away</div>
         <div class="num">${inProg}</div>
         <div class="lbl">On Track</div>
+        <div class="stat-sublbl">In progress, deadline is far</div>
       </div>
-      <div class="stat-card risk has-tooltip">
+      <div class="stat-card risk has-tooltip${atRisk > 0 ? ' has-risk' : ''}">
         <div class="tooltip">CEUs remaining AND deadline within 60 days - urgent!</div>
         <div class="num">${atRisk}</div>
         <div class="lbl">Needs Attention</div>
+        <div class="stat-sublbl">Deadline approaching or overdue</div>
       </div>
     </div>
 
@@ -5188,7 +5332,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
         ${trulyNoCredentialsProviders.length > 0 ? `
         <div class="dash-action-item dash-action-info" onclick="showTab('providers'); document.getElementById('noCredsFilter').checked = true; filterCards();">
           <span class="dash-action-icon">○</span>
-          <span class="dash-action-text"><strong>${trulyNoCredentialsProviders.length}</strong> providers need CE Broker credentials</span>
+          <span class="dash-action-text"><strong>${trulyNoCredentialsProviders.length}</strong> providers need platform credentials</span>
           <span class="dash-action-arrow">→</span>
         </div>` : ''}
         ${loginErrors.length > 0 ? `
@@ -5283,7 +5427,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     </div>
     <div class="run-summary-stats">
       <div class="run-stat">
-        <span class="run-stat-label">CE Broker</span>
+        <span class="run-stat-label">Platform Logins</span>
         <span class="run-stat-value">${(runResults || []).filter(r => r.status === 'success').length} <span class="run-ok">✓</span></span>
         ${loginErrors.length > 0 ? `<span class="run-stat-value">${loginErrors.length} <span class="run-fail">✗</span></span>` : ''}
         <span class="run-stat-value">${(runResults || []).filter(r => r.status === 'not_configured').length} skipped</span>
@@ -5355,9 +5499,9 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       cards += '<div class="action-item-card action-info" onclick="showTab(&quot;platforms&quot;); setTimeout(function(){ showPlatformView(&quot;gaps&quot;); }, 100)">' +
         '<div class="action-item-icon">🔑</div>' +
         '<div class="action-item-content">' +
-          '<div class="action-item-label">Missing CE Broker Login</div>' +
+          '<div class="action-item-label">Missing Platform Credentials</div>' +
           '<div class="action-item-value">' + missingCredsCount + ' provider' + (missingCredsCount !== 1 ? 's' : '') + '</div>' +
-          '<div class="action-item-detail"><strong>Action:</strong> Request CE Broker username/password from these providers</div>' +
+          '<div class="action-item-detail"><strong>Action:</strong> Request CE platform login credentials from these providers</div>' +
           '<div class="action-item-providers">' + names.map(n => '<span class="action-provider-chip">' + escHtml(n) + '</span>').join('') + (moreCount > 0 ? '<span class="action-provider-chip">+' + moreCount + ' more</span>' : '') + '</div>' +
         '</div>' +
       '</div>';
@@ -5371,22 +5515,39 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
         '<div class="action-item-content">' +
           '<div class="action-item-label">Login Failed</div>' +
           '<div class="action-item-value">' + failedLoginsCount + ' provider' + (failedLoginsCount !== 1 ? 's' : '') + '</div>' +
-          '<div class="action-item-detail"><strong>Action:</strong> Ask providers for updated CE Broker password</div>' +
+          '<div class="action-item-detail"><strong>Action:</strong> Ask providers for updated platform credentials</div>' +
           '<div class="action-item-providers">' + names.map(n => '<span class="action-provider-chip">' + escHtml(n) + '</span>').join('') + (moreCount > 0 ? '<span class="action-provider-chip">+' + moreCount + ' more</span>' : '') + '</div>' +
         '</div>' +
       '</div>';
     }
 
-    return '<div class="action-banner" id="actionBanner">' +
-      '<div class="action-banner-header">' +
-        '<div class="action-banner-title"><span class="action-banner-title-icon">📋</span> Action Required</div>' +
-        '<button class="action-banner-dismiss" onclick="document.getElementById(&quot;actionBanner&quot;).style.display=&quot;none&quot;" title="Dismiss">×</button>' +
+    // Count total issues for collapsed badge
+    const totalIssues = (criticalProviders.length > 0 ? [...new Set(criticalProviders.map(p => p.providerName))].length : 0) +
+                        (warningProviders.length > 0 ? [...new Set(warningProviders.map(p => p.providerName))].length : 0) +
+                        missingCredsCount + failedLoginsCount;
+    const issueTypes = [];
+    if (criticalProviders.length > 0) issueTypes.push('urgent');
+    if (missingCredsCount > 0) issueTypes.push(missingCredsCount + ' missing creds');
+    if (failedLoginsCount > 0) issueTypes.push(failedLoginsCount + ' login errors');
+    const collapsedText = issueTypes.length > 0 ? issueTypes.join(', ') : totalIssues + ' issues';
+
+    return '<div class="action-banner-wrap">' +
+      '<div class="action-banner" id="actionBanner">' +
+        '<div class="action-banner-header">' +
+          '<div class="action-banner-title"><span class="action-banner-title-icon">📋</span> Action Required</div>' +
+          '<button class="action-banner-dismiss" onclick="collapseActionBanner()" title="Minimize">−</button>' +
+        '</div>' +
+        '<div class="action-banner-grid">' + cards + '</div>' +
       '</div>' +
-      '<div class="action-banner-grid">' + cards + '</div>' +
+      '<div class="action-badge-collapsed" id="actionBadgeCollapsed" onclick="expandActionBanner()">' +
+        '<span class="action-badge-icon">⚠</span>' +
+        '<span class="action-badge-text">' + collapsedText + '</span>' +
+        '<span class="action-badge-expand">Show</span>' +
+      '</div>' +
     '</div>';
   })()}
 
-  <!-- View Toggle Bar (Consolidated) -->
+  <!-- View Toggle Bar (Consolidated - 8 tabs max) -->
   <div class="view-toggle-bar">
     <div class="view-tabs">
       <button class="view-toggle active" onclick="showProviderView('all')">All Providers <span class="view-count">${providerEntries.length}</span></button>
@@ -5397,8 +5558,6 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       <button class="view-toggle" onclick="showProviderView('type')">By Type</button>
       <button class="view-toggle" onclick="showProviderView('favorites')">Pinned <span class="view-count" id="pinnedCount">0</span></button>
       <button class="view-toggle" onclick="showProviderView('aanp')">AANP</button>
-      <button class="view-toggle" onclick="showProviderView('stats')">Stats</button>
-      <button class="view-toggle" onclick="showProviderView('timeline')">Timeline</button>
     </div>
     <div class="toolbar-actions">
       <div class="export-dropdown">
@@ -5739,7 +5898,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
           <span class="priority-icon">❓</span>
           <span class="priority-label">Needs Setup</span>
           <span class="priority-count">${priorityGroups.unknown.length}</span>
-          <span class="priority-desc">Missing CE Broker credentials</span>
+          <span class="priority-desc">Missing platform credentials</span>
         </div>
         <div class="priority-cards collapsible-content">
           ${priorityGroups.unknown.length > 0
@@ -6139,7 +6298,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       <div class="cred-gap-card">
         <div class="cred-gap-header cred-gap-cebroker">
           <span class="cred-gap-icon">🔑</span>
-          <span class="cred-gap-title">Missing CE Broker Credentials</span>
+          <span class="cred-gap-title">Missing Platform Credentials</span>
           <span class="cred-gap-count">${missingCEBroker.length}</span>
         </div>
         <div class="cred-gap-body">
@@ -6340,7 +6499,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
           <div class="status-card-value">${escHtml(runDate)}</div>
         </div>
         <div class="status-card status-card-success">
-          <div class="status-card-label">CE Broker Logins</div>
+          <div class="status-card-label">Platform Logins</div>
           <div class="status-card-value">${runResults.filter(r => r.status === 'success').length} / ${runResults.filter(r => r.status !== 'not_configured').length}</div>
           <div class="status-card-sub">successful</div>
         </div>
@@ -6467,7 +6626,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
           </div>
           <div class="cred-tracker-body">
             <div class="cred-tracker-desc">Providers with no login credentials in the system - cannot track compliance</div>
-            <div class="cred-tracker-note cred-note-danger"><strong>Action Required:</strong> Submit CE Broker login credentials to begin tracking</div>
+            <div class="cred-tracker-note cred-note-danger"><strong>Action Required:</strong> Submit platform login credentials to begin tracking</div>
             <div class="cred-tracker-list">
               ${noCredsAtAll.length > 0 ? noCredsAtAll.map(p => {
                 const safeName = escHtml(p.name).replace(/'/g, '&#39;');
@@ -6559,8 +6718,8 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
             <span class="cred-tracker-count">${platformOnly.length}</span>
           </div>
           <div class="cred-tracker-body">
-            <div class="cred-tracker-desc">Have platform credentials but missing CE Broker login</div>
-            <div class="cred-tracker-note"><strong>Needs:</strong> CE Broker credentials for compliance tracking</div>
+            <div class="cred-tracker-desc">Have some platform credentials but not connected to primary compliance system</div>
+            <div class="cred-tracker-note"><strong>Needs:</strong> Additional credentials for full compliance tracking</div>
             <div class="cred-tracker-list">
               ${platformOnly.length > 0 ? platformOnly.map(p => {
                 const safeName = escHtml(p.name).replace(/'/g, '&#39;');
@@ -7196,6 +7355,18 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     localStorage.setItem('ceu-getting-started-dismissed', '1');
   }
 
+  // ── Action Banner Collapse/Expand ──
+  function collapseActionBanner() {
+    const wrap = document.querySelector('.action-banner-wrap');
+    if (wrap) wrap.classList.add('collapsed');
+    localStorage.setItem('ceu-action-banner-collapsed', '1');
+  }
+  function expandActionBanner() {
+    const wrap = document.querySelector('.action-banner-wrap');
+    if (wrap) wrap.classList.remove('collapsed');
+    localStorage.removeItem('ceu-action-banner-collapsed');
+  }
+
   // Restore dismissed states on load
   (function() {
     if (localStorage.getItem('ceu-welcome-dismissed')) {
@@ -7205,6 +7376,10 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     if (localStorage.getItem('ceu-getting-started-dismissed')) {
       const el = document.getElementById('gettingStarted');
       if (el) el.style.display = 'none';
+    }
+    if (localStorage.getItem('ceu-action-banner-collapsed')) {
+      const wrap = document.querySelector('.action-banner-wrap');
+      if (wrap) wrap.classList.add('collapsed');
     }
   })();
 
