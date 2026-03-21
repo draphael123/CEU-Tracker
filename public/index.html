@@ -121,6 +121,38 @@
     .last-scraped-wrap.stale-danger .last-scraped-value,
     .last-scraped-wrap.stale-danger .last-scraped-ago { color: #f87171; }
     .stale-warning-icon { margin-left: 6px; cursor: help; }
+
+    /* ─ Last Scraped Subtitle (in dashboard body) ─ */
+    .last-scraped-subtitle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 40px;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+    .last-scraped-subtitle .last-scraped-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+    .last-scraped-subtitle .last-scraped-value {
+      font-size: 0.8rem;
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+    .last-scraped-subtitle .last-scraped-ago {
+      font-size: 0.72rem;
+      color: var(--text-accent);
+      font-weight: 500;
+    }
+    .last-scraped-subtitle.stale-warning .last-scraped-value,
+    .last-scraped-subtitle.stale-warning .last-scraped-ago { color: #f59e0b; }
+    .last-scraped-subtitle.stale-danger .last-scraped-value,
+    .last-scraped-subtitle.stale-danger .last-scraped-ago { color: #ef4444; }
+
     .theme-toggle {
       background: rgba(255,255,255,0.1);
       border: 1px solid rgba(255,255,255,0.2);
@@ -267,6 +299,43 @@
     }
     .stat-card.not-started.has-providers {
       background: linear-gradient(135deg, rgba(220,38,38,0.08) 0%, rgba(220,38,38,0.03) 100%);
+    }
+    /* Compact stat card (less visual emphasis) */
+    .stat-card.stat-card-compact {
+      padding: 16px 20px;
+      min-width: 100px;
+    }
+    .stat-card.stat-card-compact .num {
+      font-size: 1.5rem;
+    }
+    .stat-card.stat-card-compact .lbl {
+      font-size: 0.75rem;
+    }
+    /* Emphasis stat card (higher visual priority) */
+    .stat-card.stat-card-emphasis {
+      padding: 24px 28px;
+      min-width: 150px;
+    }
+    .stat-card.stat-card-emphasis .num {
+      font-size: 2.5rem;
+    }
+    .stat-card.stat-card-emphasis .lbl {
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+    .stat-card.risk.stat-card-emphasis {
+      border: 2px solid rgba(239,68,68,0.4);
+    }
+    .stat-card.not-started.stat-card-emphasis {
+      border: 2px solid rgba(220,38,38,0.4);
+    }
+    /* Pulse animation for emphasis cards with count > 0 */
+    .stat-card.stat-card-emphasis.has-count {
+      animation: pulse-emphasis 2s ease-in-out infinite;
+    }
+    @keyframes pulse-emphasis {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.02); }
     }
     /* No CEUs badge on provider cards */
     .no-ceu-badge {
@@ -1573,6 +1642,42 @@
       color: var(--text-secondary);
       font-weight: 500;
     }
+    .action-item-buttons {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border-color);
+    }
+    .action-inline-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .action-inline-btn:hover {
+      border-color: var(--accent-primary);
+      color: var(--accent-primary);
+    }
+    .action-inline-btn svg { opacity: 0.7; }
+    .action-inline-btn.action-inline-primary {
+      background: var(--accent-primary);
+      border-color: var(--accent-primary);
+      color: #fff;
+    }
+    .action-inline-btn.action-inline-primary:hover {
+      background: var(--accent-purple);
+      border-color: var(--accent-purple);
+    }
+    .action-inline-btn.action-inline-primary svg { opacity: 1; }
     .action-banner-empty {
       text-align: center;
       padding: 24px;
@@ -1758,6 +1863,48 @@
     .nav-badge { font-size: 0.7rem; padding: 3px 8px; border-radius: 99px; background: var(--bg-tertiary); font-weight: 700; }
     .nav-item.active .nav-badge { background: rgba(255,255,255,.25); }
     .nav-badge.warn { background: var(--status-red); color: #fff; box-shadow: 0 2px 6px rgba(239,68,68,0.3); }
+
+    /* ─ Nav Item Group with Subitems ─ */
+    .nav-item-group { position: relative; }
+    .nav-item-parent { position: relative; }
+    .nav-expand-icon {
+      font-size: 0.65rem;
+      color: var(--text-secondary);
+      transition: transform 0.2s;
+      margin-left: auto;
+    }
+    .nav-item-group.expanded .nav-expand-icon { transform: rotate(90deg); }
+    .nav-subitems {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.25s ease-out;
+      background: var(--bg-secondary);
+      border-radius: 0 0 8px 8px;
+      margin: 0 8px;
+    }
+    .nav-item-group.expanded .nav-subitems { max-height: 200px; }
+    .nav-subitem {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px 10px 24px;
+      width: 100%;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+      transition: all 0.15s;
+      text-align: left;
+    }
+    .nav-subitem:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+    .nav-subitem.active { color: var(--accent-primary); font-weight: 600; background: rgba(99,102,241,0.1); }
+    .nav-subitem-icon { font-size: 0.9rem; width: 20px; text-align: center; }
+    .nav-subitem-label { flex: 1; }
+    /* Hide subitems when sidebar is collapsed */
+    .sidebar.collapsed .nav-subitems { display: none; }
+    .sidebar.collapsed .nav-expand-icon { display: none; }
+
     .sidebar-footer { padding: 14px; border-top: 1px solid var(--border-color); }
     .sidebar-stats { display: flex; gap: 10px; }
     .sidebar-stat { flex: 1; text-align: center; padding: 12px 10px; background: var(--bg-secondary); border-radius: 12px; transition: all var(--transition-fast); border: 1px solid var(--border-color); }
@@ -2211,6 +2358,26 @@
     .view-count { font-size: 0.68rem; padding: 1px 6px; border-radius: 8px; background: rgba(0,0,0,.1); }
     .view-toggle.active .view-count { background: rgba(255,255,255,.2); }
     .view-count.warning { background: var(--status-amber); color: #fff; }
+
+    /* ─ View More Dropdown ─ */
+    .view-more-dropdown { position: relative; display: inline-block; }
+    .view-more-trigger { padding: 6px 10px !important; }
+    .view-more-menu {
+      position: absolute; top: calc(100% + 4px); left: 0; min-width: 140px;
+      background: var(--bg-primary); border: 1px solid var(--border-color);
+      border-radius: 8px; box-shadow: var(--shadow-lg); z-index: 1000;
+      display: none; overflow: hidden; padding: 4px 0;
+    }
+    .view-more-dropdown.open .view-more-menu { display: block; }
+    .view-more-item {
+      display: block !important; width: 100%; padding: 8px 12px !important;
+      border: none !important; border-radius: 0 !important; background: transparent !important;
+      text-align: left; font-size: 0.8rem !important; color: var(--text-primary) !important;
+      cursor: pointer; transition: background 0.1s;
+    }
+    .view-more-item:hover { background: var(--bg-secondary) !important; }
+    .view-more-item.active { background: var(--accent-blue) !important; color: #fff !important; }
+
     .toolbar-actions { display: flex; align-items: center; gap: 8px; }
 
     /* ─ Export Dropdown ─ */
@@ -2234,6 +2401,101 @@
     .bulk-btn-compact:hover { border-color: var(--accent-primary); color: var(--accent-primary); }
     .bulk-btn-compact svg { opacity: 0.7; }
     .bulk-count-compact { font-size: 0.72rem; font-weight: 600; color: var(--text-secondary); min-width: 16px; text-align: center; }
+
+    /* ─ Contextual Bulk Action Bar ─ */
+    .bulk-action-bar {
+      position: fixed;
+      bottom: 0;
+      left: 200px;
+      right: 0;
+      background: var(--bg-primary);
+      border-top: 2px solid var(--accent-primary);
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+      z-index: 500;
+      animation: slideUp 0.2s ease-out;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+    body.sidebar-collapsed .bulk-action-bar { left: 72px; }
+    .bulk-action-info { display: flex; align-items: center; gap: 12px; }
+    .bulk-action-count { font-weight: 700; color: var(--text-primary); font-size: 0.9rem; }
+    .bulk-action-count span { color: var(--accent-primary); font-size: 1.1rem; }
+    .bulk-action-clear {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .bulk-action-clear:hover { border-color: var(--text-primary); color: var(--text-primary); }
+    .bulk-action-buttons { display: flex; gap: 8px; }
+    .bulk-action-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .bulk-action-btn:hover { border-color: var(--accent-primary); color: var(--accent-primary); }
+    .bulk-action-btn svg { opacity: 0.7; }
+    .bulk-action-btn.bulk-action-primary {
+      background: var(--accent-primary);
+      border-color: var(--accent-primary);
+      color: #fff;
+    }
+    .bulk-action-btn.bulk-action-primary:hover {
+      background: var(--accent-purple);
+      border-color: var(--accent-purple);
+    }
+
+    /* ─ Minimal Footer ─ */
+    .footer-minimal {
+      padding: 8px 24px;
+      text-align: center;
+      font-size: 0.7rem;
+      color: var(--text-secondary);
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border-color);
+    }
+
+    /* ─ Toast Notification ─ */
+    .toast-notification {
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      padding: 12px 24px;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      font-size: 0.85rem;
+      font-weight: 600;
+      opacity: 0;
+      transition: all 0.3s ease-out;
+      z-index: 9999;
+      border-left: 4px solid var(--accent-primary);
+    }
+    .toast-notification.visible {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
 
     .license-view, .report-view { display: none; padding: 0 40px 24px; }
     .license-view.active, .report-view.active { display: block; }
@@ -3655,6 +3917,10 @@
     .compliance-stat-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; }
     .compliance-met .compliance-stat-num { color: #16a34a; }
     .compliance-notmet .compliance-stat-num { color: #ef4444; }
+    .compliance-total .compliance-stat-num { color: #6366f1; }
+    .compliance-affected .compliance-stat-num { color: #f59e0b; }
+    .compliance-summary-detailed { gap: 16px; }
+    .compliance-summary-detailed .compliance-stat { min-width: 100px; }
 
     .compliance-table-wrap { padding: 0 40px 20px; overflow-x: auto; }
     .compliance-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.07); }
@@ -3886,16 +4152,6 @@
     <h1>CEU <span>Tracker</span></h1>
   </div>
   <div class="header-meta">
-    <div class="last-scraped-wrap" id="lastScrapedWrap">
-      <div class="last-scraped-label">Last Scraped <span id="staleWarningIcon" class="stale-warning-icon" style="display:none;" title="Data may be outdated. Check platform connections.">⚠️</span></div>
-      <div class="last-scraped-value" id="lastScrapedValue" data-iso="2026-03-20T19:19:05.007Z">Friday, March 20, 2026 at 3:19 PM</div>
-      <div class="last-scraped-ago" id="lastScrapedAgo"></div>
-      <div class="run-badge">
-        <span class="run-pill ok">✓ 12 successful logins</span>
-        <span class="run-pill notconfig clickable" onclick="showNoCEUsView()" title="Click to view providers with no credentials" style="cursor: pointer;">○ 21 no credentials</span>
-
-      </div>
-    </div>
     <div class="global-search-wrap">
       <input type="text" class="global-search" id="globalSearch" placeholder="Quick search..." onkeyup="globalSearchHandler(event)" />
       <div class="global-search-results" id="globalSearchResults"></div>
@@ -3918,6 +4174,13 @@
       <span id="sidebarCollapseIcon">▶</span>
     </button>
     <nav class="sidebar-nav">
+      <button class="nav-item" onclick="showTab('summary')" data-tab="summary">
+        <span class="nav-icon">📋</span>
+        <div class="nav-label-wrap">
+          <span class="nav-label">Overview</span>
+          <span class="nav-desc">Summary & info</span>
+        </div>
+      </button>
       <button class="nav-item active" onclick="showTab('providers')" data-tab="providers">
         <span class="nav-icon">👥</span>
         <div class="nav-label-wrap">
@@ -3940,25 +4203,39 @@
           <span class="nav-desc">NetCE, CEUfast, etc.</span>
         </div>
       </button>
-      <button class="nav-item" onclick="showTab('reports')" data-tab="reports">
-        <span class="nav-icon">📊</span>
-        <div class="nav-label-wrap">
-          <span class="nav-label">Reports</span>
-          <span class="nav-desc">Export & history</span>
+      <div class="nav-item-group" id="reportsNavGroup">
+        <button class="nav-item nav-item-parent" onclick="toggleReportsSubnav(event)" data-tab="reports">
+          <span class="nav-icon">📊</span>
+          <div class="nav-label-wrap">
+            <span class="nav-label">Reports</span>
+            <span class="nav-desc">Export & history</span>
+          </div>
+          <span class="nav-expand-icon" id="reportsExpandIcon">▶</span>
+        </button>
+        <div class="nav-subitems" id="reportsSubnav">
+          <button class="nav-subitem" onclick="showReportTab('charts')" data-report="charts">
+            <span class="nav-subitem-icon">📈</span>
+            <span class="nav-subitem-label">Progress Charts</span>
+          </button>
+          <button class="nav-subitem" onclick="showReportTab('calendar')" data-report="calendar">
+            <span class="nav-subitem-icon">📅</span>
+            <span class="nav-subitem-label">Deadline Calendar</span>
+          </button>
+          <button class="nav-subitem" onclick="showReportTab('costs')" data-report="costs">
+            <span class="nav-subitem-icon">💰</span>
+            <span class="nav-subitem-label">Cost Analysis</span>
+          </button>
+          <button class="nav-subitem" onclick="showReportTab('runlog')" data-report="runlog">
+            <span class="nav-subitem-icon">📜</span>
+            <span class="nav-subitem-label">Run History</span>
+          </button>
         </div>
-      </button>
+      </div>
       <button class="nav-item" onclick="showTab('help')" data-tab="help">
         <span class="nav-icon">❓</span>
         <div class="nav-label-wrap">
           <span class="nav-label">Help & FAQ</span>
           <span class="nav-desc">How it works</span>
-        </div>
-      </button>
-      <button class="nav-item" onclick="showTab('summary')" data-tab="summary">
-        <span class="nav-icon">📋</span>
-        <div class="nav-label-wrap">
-          <span class="nav-label">Overview</span>
-          <span class="nav-desc">Summary & info</span>
         </div>
       </button>
     </nav>
@@ -4008,6 +4285,14 @@
       <button class="exit-focus" onclick="toggleFocusMode()">Exit Focus Mode</button>
     </div>
 
+    <!-- ── Last Scraped Info (moved from header) ──────────────────────────── -->
+    <div class="last-scraped-subtitle" id="lastScrapedSubtitle">
+      <span class="last-scraped-label">Last updated:</span>
+      <span class="last-scraped-value" id="lastScrapedValue" data-iso="2026-03-20T19:19:05.007Z">Friday, March 20, 2026 at 3:19 PM</span>
+      <span class="last-scraped-ago" id="lastScrapedAgo"></span>
+      <span id="staleWarningIcon" class="stale-warning-icon" style="display:none;" title="Data may be outdated">⚠️</span>
+    </div>
+
     <!-- ── Deadline Timeline (12-month view) ──────────────────────────────── -->
     <div class="deadline-timeline" id="deadlineTimeline">
       <div class="timeline-header">
@@ -4045,12 +4330,47 @@
       </div>
     </div>
 
-    <!-- ── Getting Started (First-time users) ─────────────────────────────── -->
-    <div class="getting-started" id="gettingStarted">
+    <!-- ── Stats with Tooltips ────────────────────────────────────────────── -->
+    <div class="stats">
+      <div class="stat-card total has-tooltip stat-card-compact">
+        <div class="tooltip">Total clinical staff being tracked</div>
+        <div class="num">33</div>
+        <div class="lbl">Team Members</div>
+        <div class="stat-sublbl">Total providers tracked</div>
+      </div>
+      <div class="stat-card ok has-tooltip">
+        <div class="tooltip">All CE requirements met - no action needed</div>
+
+        <div class="num">6</div>
+        <div class="lbl">Complete</div>
+        <div class="stat-sublbl">All CE hours fulfilled</div>
+      </div>
+      <div class="stat-card prog has-tooltip">
+        <div class="tooltip">CEUs remaining but deadline is 60+ days away</div>
+        <div class="num">6</div>
+        <div class="lbl">On Track</div>
+        <div class="stat-sublbl">In progress, deadline is far</div>
+      </div>
+      <div class="stat-card risk has-tooltip stat-card-emphasis" id="atRiskCard">
+        <div class="tooltip">Providers with deadline within 90 days AND &lt;80% complete, or overdue</div>
+        <div class="num" id="atRiskCount">0</div>
+        <div class="lbl">At Risk</div>
+        <div class="stat-sublbl">Deadline ≤90 days, &lt;80% complete</div>
+      </div>
+      <div class="stat-card not-started has-tooltip has-providers stat-card-emphasis" onclick="showNoCEUsView()">
+        <div class="tooltip">Providers who have logged 0 CEU hours - need follow-up</div>
+        <div class="num" id="notStartedCount">0</div>
+        <div class="lbl">Not Started</div>
+        <div class="stat-sublbl">0 CEU hours logged</div>
+      </div>
+    </div>
+
+    <!-- ── Getting Started (First-time users) - Collapsed by default after first visit ─ -->
+    <div class="getting-started collapsed" id="gettingStarted">
       <div class="getting-started-header" onclick="toggleGettingStarted()">
         <span class="getting-started-icon">💡</span>
         <span class="getting-started-title">Quick Start Guide</span>
-        <span class="getting-started-toggle">▼</span>
+        <span class="getting-started-toggle" id="gettingStartedToggle">▶</span>
       </div>
       <div class="getting-started-steps">
         <div class="getting-started-step">
@@ -4066,42 +4386,7 @@
           <span>Click any provider card to see their detailed CE hours and renewal dates</span>
         </div>
       </div>
-      <button class="getting-started-dismiss" onclick="dismissGettingStarted()">Collapse by default</button>
-    </div>
-
-    <!-- ── Stats with Tooltips ────────────────────────────────────────────── -->
-    <div class="stats">
-      <div class="stat-card total has-tooltip">
-        <div class="tooltip">Total clinical staff being tracked</div>
-        <div class="num">33</div>
-        <div class="lbl">Team Members</div>
-        <div class="stat-sublbl">Total providers tracked</div>
-      </div>
-      <div class="stat-card ok has-tooltip">
-        <div class="tooltip">All CE requirements met - no action needed</div>
-        
-        <div class="num">6</div>
-        <div class="lbl">Complete</div>
-        <div class="stat-sublbl">All CE hours fulfilled</div>
-      </div>
-      <div class="stat-card prog has-tooltip">
-        <div class="tooltip">CEUs remaining but deadline is 60+ days away</div>
-        <div class="num">6</div>
-        <div class="lbl">On Track</div>
-        <div class="stat-sublbl">In progress, deadline is far</div>
-      </div>
-      <div class="stat-card risk has-tooltip" id="atRiskCard">
-        <div class="tooltip">Providers with deadline within 90 days AND &lt;80% complete, or overdue</div>
-        <div class="num" id="atRiskCount">0</div>
-        <div class="lbl">At Risk</div>
-        <div class="stat-sublbl">Deadline ≤90 days, &lt;80% complete</div>
-      </div>
-      <div class="stat-card not-started has-tooltip has-providers" onclick="showNoCEUsView()">
-        <div class="tooltip">Providers who have logged 0 CEU hours - need follow-up</div>
-        <div class="num" id="notStartedCount">0</div>
-        <div class="lbl">Not Started</div>
-        <div class="stat-sublbl">0 CEU hours logged</div>
-      </div>
+      <button class="getting-started-dismiss" onclick="dismissGettingStarted()">Got it, hide this</button>
     </div>
 
 <!-- ── Tab: Overview ──────────────────────────────────────────────────── -->
@@ -4480,21 +4765,64 @@
 <!-- ── Tab: Providers ─────────────────────────────────────────────────── -->
 <div class="tab-panel active" id="tab-providers">
   <!-- Action Items Banner -->
-  <div class="action-banner-wrap"><div class="action-banner" id="actionBanner"><div class="action-banner-header"><div class="action-banner-title"><span class="action-banner-title-icon">📋</span> Action Required</div><button class="action-banner-dismiss" onclick="collapseActionBanner()" title="Minimize">−</button></div><div class="action-banner-grid"><div class="action-item-card action-info" onclick="showTab(&quot;platforms&quot;); setTimeout(function(){ showPlatformView(&quot;gaps&quot;); }, 100)"><div class="action-item-icon">🔑</div><div class="action-item-content"><div class="action-item-label">Missing Platform Credentials</div><div class="action-item-value">7 providers</div><div class="action-item-detail"><strong>Action:</strong> Request CE platform login credentials from these providers</div><div class="action-item-providers"><span class="action-provider-chip">Megan Ryan-Riffle, NP</span><span class="action-provider-chip">Danielle Board, NP</span><span class="action-provider-chip">Ashley Escoe, NP</span><span class="action-provider-chip">+4 more</span></div></div></div></div></div><div class="action-badge-collapsed" id="actionBadgeCollapsed" onclick="expandActionBanner()"><span class="action-badge-icon">⚠</span><span class="action-badge-text">7 missing creds</span><span class="action-badge-expand">Show</span></div></div>
+  <div class="action-banner-wrap">
+    <div class="action-banner" id="actionBanner">
+      <div class="action-banner-header">
+        <div class="action-banner-title"><span class="action-banner-title-icon">📋</span> Action Required</div>
+        <button class="action-banner-dismiss" onclick="collapseActionBanner()" title="Minimize">−</button>
+      </div>
+      <div class="action-banner-grid">
+        <div class="action-item-card action-info">
+          <div class="action-item-icon">🔑</div>
+          <div class="action-item-content">
+            <div class="action-item-label">Missing Platform Credentials</div>
+            <div class="action-item-value">7 providers</div>
+            <div class="action-item-detail"><strong>Action:</strong> Request CE platform login credentials from these providers</div>
+            <div class="action-item-providers">
+              <span class="action-provider-chip">Megan Ryan-Riffle, NP</span>
+              <span class="action-provider-chip">Danielle Board, NP</span>
+              <span class="action-provider-chip">Ashley Escoe, NP</span>
+              <span class="action-provider-chip">+4 more</span>
+            </div>
+            <div class="action-item-buttons">
+              <button class="action-inline-btn" onclick="event.stopPropagation(); copyMissingCredentialsEmails()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                Copy Email List
+              </button>
+              <button class="action-inline-btn action-inline-primary" onclick="event.stopPropagation(); sendCredentialRequest()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                Send Credential Request
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="action-badge-collapsed" id="actionBadgeCollapsed" onclick="expandActionBanner()">
+      <span class="action-badge-icon">⚠</span>
+      <span class="action-badge-text">7 missing creds</span>
+      <span class="action-badge-expand">Show</span>
+    </div>
+  </div>
 
-  <!-- View Toggle Bar (Consolidated - 8 tabs max) -->
+  <!-- View Toggle Bar (Consolidated) -->
   <div class="view-toggle-bar">
-    <div class="view-tabs">
-      <button class="view-toggle active" onclick="showProviderView('all')">All Providers <span class="view-count">33</span></button>
-      <button class="view-toggle" onclick="showProviderView('table')">Table View</button>
-      <button class="view-toggle no-ceus-tab" onclick="showProviderView('noceus')">No CEUs <span class="view-count danger" id="noCEUsCount">0</span></button>
-      <button class="view-toggle" onclick="showProviderView('priority')">By Priority <span class="view-count ">0</span></button>
-      <button class="view-toggle" onclick="showProviderView('kanban')">Kanban</button>
-      <button class="view-toggle" onclick="showProviderView('deadline')">By Deadline <span class="view-count ">2</span></button>
-      <button class="view-toggle" onclick="showProviderView('state')">By State</button>
-      <button class="view-toggle" onclick="showProviderView('type')">By Type</button>
-      <button class="view-toggle" onclick="showProviderView('favorites')">Pinned <span class="view-count" id="pinnedCount">0</span></button>
-      <button class="view-toggle" onclick="showProviderView('aanp')">AANP</button>
+    <div class="view-tabs" id="viewTabs">
+      <button class="view-toggle active" onclick="showProviderView('all')" data-view="all" data-count="33">Cards <span class="view-count">33</span></button>
+      <button class="view-toggle" onclick="showProviderView('table')" data-view="table">Table</button>
+      <button class="view-toggle no-ceus-tab" onclick="showProviderView('noceus')" data-view="noceus" data-count="0">No CEUs <span class="view-count danger" id="noCEUsCount">0</span></button>
+      <button class="view-toggle" onclick="showProviderView('priority')" data-view="priority" data-count="0">By Priority <span class="view-count ">0</span></button>
+      <button class="view-toggle view-toggle-more" onclick="showProviderView('kanban')" data-view="kanban">Kanban</button>
+      <button class="view-toggle" onclick="showProviderView('deadline')" data-view="deadline" data-count="2">By Deadline <span class="view-count ">2</span></button>
+      <button class="view-toggle view-toggle-more" onclick="showProviderView('state')" data-view="state">By State</button>
+      <button class="view-toggle view-toggle-more" onclick="showProviderView('type')" data-view="type">By Type</button>
+      <button class="view-toggle" onclick="showProviderView('favorites')" data-view="favorites" data-count="0">Pinned <span class="view-count" id="pinnedCount">0</span></button>
+      <button class="view-toggle view-toggle-more" onclick="showProviderView('aanp')" data-view="aanp">AANP</button>
+      <!-- More dropdown for overflow items -->
+      <div class="view-more-dropdown" id="viewMoreDropdown">
+        <button class="view-toggle view-more-trigger" onclick="toggleViewMoreDropdown(event)">More <span class="dropdown-caret">▾</span></button>
+        <div class="view-more-menu" id="viewMoreMenu"></div>
+      </div>
     </div>
     <div class="toolbar-actions">
       <div class="export-dropdown">
@@ -10522,7 +10850,11 @@
       <h2>State Lookback Requirements</h2>
       <p class="compliance-subtitle">Certain CE hours must be completed within specific time windows (e.g., last 5 years)</p>
     </div>
-    <div class="compliance-summary">
+    <div class="compliance-summary compliance-summary-detailed">
+      <div class="compliance-stat compliance-total">
+        <span class="compliance-stat-num">7</span>
+        <span class="compliance-stat-label">Total Requirements</span>
+      </div>
       <div class="compliance-stat compliance-met">
         <span class="compliance-stat-num">1</span>
         <span class="compliance-stat-label">Met</span>
@@ -10530,6 +10862,10 @@
       <div class="compliance-stat compliance-notmet">
         <span class="compliance-stat-num">6</span>
         <span class="compliance-stat-label">Not Met</span>
+      </div>
+      <div class="compliance-stat compliance-affected">
+        <span class="compliance-stat-num">4</span>
+        <span class="compliance-stat-label">Providers Affected</span>
       </div>
     </div>
   </div>
@@ -10709,8 +11045,8 @@
 
 <!-- ── Tab: Reports ─────────────────────────────────────────────────────── -->
 <div class="tab-panel" id="tab-reports">
-  <!-- View Toggle Buttons -->
-  <div class="view-toggle-bar">
+  <!-- View Toggle Buttons - Now handled by sidebar sub-nav -->
+  <div class="view-toggle-bar reports-subnav-hidden" style="display: none;">
     <button class="view-toggle active" onclick="showReportView('charts')">Progress Charts</button>
     <button class="view-toggle" onclick="showReportView('calendar')">Deadline Calendar</button>
     <button class="view-toggle" onclick="showReportView('costs')">Cost Analysis</button>
@@ -12007,12 +12343,30 @@ Call log:
   </div>
 </div>
 
-<footer>
-  <div class="footer-updates">
-    <span class="footer-updates-title">Recent Updates:</span>
-    <span class="footer-update-item"><span class="footer-update-date">March 9, 2026</span> Weekly Summary tab added</span><span class="footer-update-item"><span class="footer-update-date">March 9, 2026</span> PM2 scheduler configured</span><span class="footer-update-item"><span class="footer-update-date">March 9, 2026</span> Bryce Hanley CE Broker credentials added</span>
+<!-- Contextual Bulk Action Bar - shows when providers are selected -->
+<div class="bulk-action-bar" id="bulkActionBar" style="display: none;">
+  <div class="bulk-action-info">
+    <span class="bulk-action-count"><span id="bulkSelectedCount">0</span> providers selected</span>
+    <button class="bulk-action-clear" onclick="clearSelection()">Clear</button>
   </div>
-  <div class="footer-meta">CEU Tracker &nbsp;·&nbsp; Last scraped: Friday, March 20, 2026 at 3:19 PM</div>
+  <div class="bulk-action-buttons">
+    <button class="bulk-action-btn" onclick="exportSelectedCSV()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Export Selected
+    </button>
+    <button class="bulk-action-btn" onclick="copySelectedEmails()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+      Copy Emails
+    </button>
+    <button class="bulk-action-btn bulk-action-primary" onclick="markSelectedComplete()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="20 6 9 17 4 12"/></svg>
+      Mark Complete
+    </button>
+  </div>
+</div>
+
+<footer class="footer-minimal">
+  <div class="footer-meta">CEU Tracker</div>
 </footer>
 
 <script>
@@ -12060,17 +12414,30 @@ Call log:
     localStorage.setItem('ceu-welcome-dismissed', '1');
   }
 
-  // ── Dismiss Getting Started (collapse by default) ──
+  // ── Dismiss Getting Started (collapse permanently) ──
   function dismissGettingStarted() {
     const el = document.getElementById('gettingStarted');
     if (el) el.classList.add('collapsed');
-    localStorage.setItem('ceu-getting-started-dismissed', '1');
+    updateGettingStartedIcon();
+    localStorage.setItem('ceu-getting-started-seen', '1');
   }
 
   // ── Toggle Getting Started expand/collapse ──
   function toggleGettingStarted() {
     const el = document.getElementById('gettingStarted');
-    if (el) el.classList.toggle('collapsed');
+    if (el) {
+      el.classList.toggle('collapsed');
+      updateGettingStartedIcon();
+    }
+  }
+
+  // ── Update Getting Started toggle icon ──
+  function updateGettingStartedIcon() {
+    const el = document.getElementById('gettingStarted');
+    const icon = document.getElementById('gettingStartedToggle');
+    if (el && icon) {
+      icon.textContent = el.classList.contains('collapsed') ? '▶' : '▼';
+    }
   }
 
   // ── Action Banner Collapse/Expand ──
@@ -12091,9 +12458,19 @@ Call log:
       const el = document.getElementById('welcomeBanner');
       if (el) el.style.display = 'none';
     }
-    if (localStorage.getItem('ceu-getting-started-dismissed')) {
-      const el = document.getElementById('gettingStarted');
-      if (el) el.classList.add('collapsed');
+    // Quick Start Guide: collapsed by default after first visit
+    const gettingStartedEl = document.getElementById('gettingStarted');
+    if (gettingStartedEl) {
+      const hasSeenGuide = localStorage.getItem('ceu-getting-started-seen');
+      if (hasSeenGuide) {
+        // User has visited before - keep collapsed
+        gettingStartedEl.classList.add('collapsed');
+      } else {
+        // First visit - show expanded, then mark as seen
+        gettingStartedEl.classList.remove('collapsed');
+        localStorage.setItem('ceu-getting-started-seen', '1');
+      }
+      updateGettingStartedIcon();
     }
     if (localStorage.getItem('ceu-action-banner-collapsed')) {
       const wrap = document.querySelector('.action-banner-wrap');
@@ -12279,9 +12656,33 @@ Call log:
     reportsTab.querySelectorAll('.view-toggle').forEach(b => b.classList.remove('active'));
     document.getElementById('report-' + name)?.classList.add('active');
     const btns = reportsTab.querySelectorAll('.view-toggle');
-    const labels = ['charts','calendar','runlog'];
+    const labels = ['charts','calendar','costs','runlog'];
     btns[labels.indexOf(name)]?.classList.add('active');
+    // Update sidebar subnav active state
+    document.querySelectorAll('.nav-subitem').forEach(s => s.classList.remove('active'));
+    const activeSubitem = document.querySelector('.nav-subitem[data-report="' + name + '"]');
+    if (activeSubitem) activeSubitem.classList.add('active');
     if (name === 'charts') initCharts();
+  }
+
+  // ── Reports Subnav Toggle ──
+  function toggleReportsSubnav(event) {
+    event.stopPropagation();
+    const group = document.getElementById('reportsNavGroup');
+    if (group) {
+      group.classList.toggle('expanded');
+    }
+  }
+
+  // ── Show Report Tab (navigate to Reports and show specific view) ──
+  function showReportTab(reportName) {
+    // First switch to reports tab
+    showTab('reports');
+    // Then show the specific report view
+    showReportView(reportName);
+    // Ensure subnav stays expanded
+    const group = document.getElementById('reportsNavGroup');
+    if (group) group.classList.add('expanded');
   }
 
   // ── Platform View Toggles ──
@@ -12301,9 +12702,15 @@ Call log:
     providersTab.querySelectorAll('.provider-view').forEach(v => v.classList.remove('active'));
     providersTab.querySelectorAll('.view-toggle').forEach(b => b.classList.remove('active'));
     document.getElementById('provider-' + name)?.classList.add('active');
-    const btns = providersTab.querySelectorAll('.view-toggle');
-    const labels = ['all','table','priority','kanban','deadline','state','type','favorites','aanp','stats','timeline','noceus'];
-    btns[labels.indexOf(name)]?.classList.add('active');
+    // Update active state using data-view attribute
+    const activeBtn = providersTab.querySelector('.view-toggle[data-view="' + name + '"]');
+    if (activeBtn) activeBtn.classList.add('active');
+    // Close More dropdown if open
+    closeViewMoreDropdown();
+    // Save view preference to localStorage (only for cards/table)
+    if (name === 'all' || name === 'table') {
+      localStorage.setItem('ceu-provider-view', name);
+    }
     // Initialize timeline when selected
     if (name === 'timeline' && typeof updateTimeline === 'function') {
       updateTimeline();
@@ -12317,6 +12724,77 @@ Call log:
       populateNoCEUsView();
     }
   }
+
+  // ── View More Dropdown ──
+  function toggleViewMoreDropdown(event) {
+    event.stopPropagation();
+    const menu = document.getElementById('viewMoreMenu');
+    const dropdown = document.getElementById('viewMoreDropdown');
+    if (menu && dropdown) {
+      dropdown.classList.toggle('open');
+    }
+  }
+  function closeViewMoreDropdown() {
+    const dropdown = document.getElementById('viewMoreDropdown');
+    if (dropdown) dropdown.classList.remove('open');
+  }
+  // Close dropdown when clicking outside
+  document.addEventListener('click', function(e) {
+    const dropdown = document.getElementById('viewMoreDropdown');
+    if (dropdown && !dropdown.contains(e.target)) {
+      dropdown.classList.remove('open');
+    }
+  });
+
+  // ── Initialize view tabs (hide zero-count, populate More dropdown) ──
+  function initViewTabs() {
+    const viewTabs = document.getElementById('viewTabs');
+    if (!viewTabs) return;
+    const moreMenu = document.getElementById('viewMoreMenu');
+    const moreDropdown = document.getElementById('viewMoreDropdown');
+    if (!moreMenu || !moreDropdown) return;
+
+    // Get all view-toggle-more buttons
+    const moreBtns = viewTabs.querySelectorAll('.view-toggle.view-toggle-more');
+    moreMenu.innerHTML = '';
+
+    moreBtns.forEach(btn => {
+      // Clone button for dropdown
+      const clone = btn.cloneNode(true);
+      clone.classList.remove('view-toggle-more');
+      clone.classList.add('view-more-item');
+      moreMenu.appendChild(clone);
+      // Hide original button
+      btn.style.display = 'none';
+    });
+
+    // Show More dropdown only if there are items
+    moreDropdown.style.display = moreBtns.length > 0 ? 'inline-block' : 'none';
+
+    // Hide zero-count tabs (except Cards and Table)
+    viewTabs.querySelectorAll('.view-toggle[data-count]').forEach(btn => {
+      const count = parseInt(btn.dataset.count) || 0;
+      const view = btn.dataset.view;
+      // Don't hide Cards or Table views
+      if (view !== 'all' && view !== 'table' && count === 0) {
+        btn.style.display = 'none';
+      }
+    });
+  }
+
+  // ── Restore saved view preference ──
+  (function() {
+    const savedView = localStorage.getItem('ceu-provider-view');
+    if (savedView && (savedView === 'all' || savedView === 'table')) {
+      // Will be applied after DOM is ready
+      document.addEventListener('DOMContentLoaded', function() {
+        showProviderView(savedView);
+        initViewTabs();
+      });
+    } else {
+      document.addEventListener('DOMContentLoaded', initViewTabs);
+    }
+  })();
 
   // ── No CEUs View Functions ──
   function showNoCEUsView() {
@@ -12920,6 +13398,111 @@ Call log:
       const cb = card.querySelector('.bulk-select-cb');
       card.classList.toggle('selected', cb && cb.checked);
     });
+
+    // Show/hide contextual bulk action bar
+    const bulkActionBar = document.getElementById('bulkActionBar');
+    const bulkSelectedCount = document.getElementById('bulkSelectedCount');
+    if (bulkActionBar) {
+      bulkActionBar.style.display = count > 0 ? 'flex' : 'none';
+      if (bulkSelectedCount) bulkSelectedCount.textContent = count;
+    }
+  }
+
+  // ── Copy Selected Emails ──
+  function copySelectedEmails() {
+    const selected = getSelectedProviders();
+    if (selected.length === 0) { alert('No providers selected'); return; }
+    // Extract emails from provider names (placeholder - would need actual email data)
+    const emails = selected.map(p => {
+      // Convert provider name to email format (placeholder logic)
+      const nameParts = p.name.replace(/,.*$/, '').trim().split(' ');
+      return nameParts.join('.').toLowerCase() + '@company.com';
+    });
+    const emailText = emails.join(', ');
+    navigator.clipboard.writeText(emailText).then(() => {
+      showToast(selected.length + ' email(s) copied to clipboard');
+    }).catch(() => {
+      // Fallback for older browsers
+      const textarea = document.createElement('textarea');
+      textarea.value = emailText;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      showToast(selected.length + ' email(s) copied to clipboard');
+    });
+  }
+
+  // ── Mark Selected Complete ──
+  function markSelectedComplete() {
+    const selected = getSelectedProviders();
+    if (selected.length === 0) { alert('No providers selected'); return; }
+    // This would typically update a backend - for now show confirmation
+    const names = selected.map(p => p.name).join(', ');
+    const confirmed = confirm('Mark ' + selected.length + ' provider(s) as complete?\n\n' + names);
+    if (confirmed) {
+      showToast(selected.length + ' provider(s) marked as complete (demo mode)');
+      clearSelection();
+    }
+  }
+
+  // ── Toast Notification ──
+  function showToast(message) {
+    const existing = document.querySelector('.toast-notification');
+    if (existing) existing.remove();
+    const toast = document.createElement('div');
+    toast.className = 'toast-notification';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.classList.add('visible'), 10);
+    setTimeout(() => {
+      toast.classList.remove('visible');
+      setTimeout(() => toast.remove(), 300);
+    }, 3000);
+  }
+
+  // ── Missing Credentials Email Copy ──
+  const missingCredentialsProviders = [
+    'Megan Ryan-Riffle, NP',
+    'Danielle Board, NP',
+    'Ashley Escoe, NP',
+    'Brooklyn Kimble, RN',
+    'Daniel Fis, RN',
+    'Brittany Alexander, RN',
+    'Lauren Dovin, RN'
+  ];
+
+  function copyMissingCredentialsEmails() {
+    // Generate emails from provider names (placeholder logic)
+    const emails = missingCredentialsProviders.map(name => {
+      const nameParts = name.replace(/,.*$/, '').trim().split(' ');
+      return nameParts.join('.').toLowerCase() + '@fountainlife.com';
+    });
+    const emailText = emails.join(', ');
+    navigator.clipboard.writeText(emailText).then(() => {
+      showToast(missingCredentialsProviders.length + ' email(s) copied to clipboard');
+    }).catch(() => {
+      // Fallback
+      const textarea = document.createElement('textarea');
+      textarea.value = emailText;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      showToast(missingCredentialsProviders.length + ' email(s) copied to clipboard');
+    });
+  }
+
+  // ── Send Credential Request (stub) ──
+  function sendCredentialRequest() {
+    const providerNames = missingCredentialsProviders.join('\n- ');
+    const confirmed = confirm(
+      'This will send a credential request email to ' + missingCredentialsProviders.length + ' providers:\n\n- ' +
+      providerNames + '\n\nProceed?'
+    );
+    if (confirmed) {
+      showToast('Credential request sent to ' + missingCredentialsProviders.length + ' providers (demo mode)');
+    }
   }
 
   function selectAllVisible() {
