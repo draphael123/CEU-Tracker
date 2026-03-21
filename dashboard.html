@@ -113,6 +113,14 @@
     .last-scraped-label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 1.5px; color: rgba(255,255,255,0.6); font-weight: 500; }
     .last-scraped-value { font-size: 0.85rem; color: #f1f5f9; font-weight: 700; margin-top: 2px; }
     .last-scraped-ago { font-size: 0.7rem; color: #818cf8; margin-top: 2px; font-weight: 500; }
+    /* Stale data warning states */
+    .last-scraped-wrap.stale-warning .last-scraped-label,
+    .last-scraped-wrap.stale-warning .last-scraped-value,
+    .last-scraped-wrap.stale-warning .last-scraped-ago { color: #fbbf24; }
+    .last-scraped-wrap.stale-danger .last-scraped-label,
+    .last-scraped-wrap.stale-danger .last-scraped-value,
+    .last-scraped-wrap.stale-danger .last-scraped-ago { color: #f87171; }
+    .stale-warning-icon { margin-left: 6px; cursor: help; }
     .theme-toggle {
       background: rgba(255,255,255,0.1);
       border: 1px solid rgba(255,255,255,0.2);
@@ -138,6 +146,7 @@
     .run-pill { padding: 4px 12px; border-radius: 99px; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
     .run-pill.ok   { background: linear-gradient(135deg, #10b981, #059669); color: #ffffff; box-shadow: 0 2px 8px rgba(16,185,129,0.3); }
     .run-pill.notconfig { background: rgba(255,255,255,0.15); color: #e2e8f0; }
+    .run-pill.notconfig.clickable:hover { background: rgba(239,68,68,0.3); color: #fecaca; transform: scale(1.02); box-shadow: 0 2px 8px rgba(239,68,68,0.3); }
     .run-pill.fail { background: linear-gradient(135deg, #ef4444, #dc2626); color: #ffffff; box-shadow: 0 2px 8px rgba(239,68,68,0.3); }
 
     /* ─ Global Search ─ */
@@ -215,7 +224,7 @@
     .stat-card.risk { box-shadow: var(--shadow-md), 0 0 0 1px rgba(239,68,68,0.2); }
     /* Sub-label for stat cards */
     .stat-sublbl { font-size: 0.7rem; color: var(--text-secondary); opacity: 0.7; margin-top: 4px; }
-    /* Needs Attention card with active risk - pulsing red border */
+    /* At Risk card with active risk - pulsing red border */
     .stat-card.risk.has-risk {
       background: linear-gradient(135deg, rgba(239,68,68,0.08) 0%, rgba(239,68,68,0.04) 100%);
       box-shadow: var(--shadow-md), 0 0 0 2px rgba(239,68,68,0.4);
@@ -646,6 +655,23 @@
       text-decoration: underline;
     }
     [data-theme="dark"] .getting-started-dismiss { color: #fef3c7; }
+    /* Collapsed Quick Start Guide */
+    .getting-started.collapsed {
+      padding: 12px 20px;
+      cursor: pointer;
+    }
+    .getting-started.collapsed .getting-started-header { margin-bottom: 0; }
+    .getting-started.collapsed .getting-started-steps,
+    .getting-started.collapsed .getting-started-dismiss { display: none; }
+    .getting-started-toggle {
+      margin-left: auto;
+      font-size: 0.8rem;
+      color: #92400e;
+      transition: transform 0.2s;
+    }
+    [data-theme="dark"] .getting-started-toggle { color: #fef3c7; }
+    .getting-started.collapsed .getting-started-toggle { transform: rotate(-90deg); }
+    .getting-started:not(.collapsed) .getting-started-toggle { transform: rotate(0deg); }
 
     /* ─ Nav Descriptions ─ */
     .nav-label-wrap { flex: 1; display: flex; flex-direction: column; align-items: flex-start; }
@@ -858,6 +884,11 @@
     }
     .provider-card.card-unk { border-left: 4px solid #64748b; }
     .provider-card.card-platform::after { background: linear-gradient(135deg, #3b82f6, #06b6d4); }
+    /* Deadline urgency top accent */
+    .provider-card.urgency-green { border-top: 3px solid #10b981; }
+    .provider-card.urgency-yellow { border-top: 3px solid #f59e0b; }
+    .provider-card.urgency-orange { border-top: 3px solid #f97316; }
+    .provider-card.urgency-red { border-top: 3px solid #ef4444; }
     .provider-card.card-error {
       border-color: #f87171;
     }
@@ -1765,21 +1796,26 @@
     .sidebar-collapse-btn:hover { background: var(--bg-tertiary); color: var(--text-primary); }
 
     /* Collapsed Sidebar State */
-    .sidebar.collapsed { width: 80px; }
+    .sidebar.collapsed { width: 72px; }
     .sidebar.collapsed .nav-item {
       flex-direction: column;
       justify-content: center;
-      padding: 10px 6px;
-      gap: 4px;
+      padding: 8px 4px;
+      gap: 3px;
       text-align: center;
     }
-    .sidebar.collapsed .nav-icon { width: auto; font-size: 1.2rem; }
+    .sidebar.collapsed .nav-icon { width: auto; font-size: 1.3rem; margin-bottom: 2px; }
     .sidebar.collapsed .nav-label {
-      font-size: 0.65rem;
+      font-size: 0.6rem;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
       max-width: 100%;
+      display: block !important;
+      opacity: 1 !important;
+      font-weight: 600;
+      letter-spacing: -0.2px;
+      line-height: 1.2;
     }
     .sidebar.collapsed .nav-badge {
       position: absolute;
@@ -1792,7 +1828,7 @@
     .sidebar.collapsed .sidebar-nav { padding: 10px 4px; }
     .sidebar.collapsed .sidebar-collapse-btn { right: -12px; }
     .sidebar.collapsed + .main-content,
-    body.sidebar-collapsed .main-content { margin-left: 80px; }
+    body.sidebar-collapsed .main-content { margin-left: 72px; }
 
     /* Expand sidebar on hover when collapsed */
     .sidebar.collapsed:hover {
@@ -3633,7 +3669,24 @@
     .compliance-table tr.comp-none { background: #fef2f2; }
     .compliance-table tr.comp-none:hover { background: #fee2e2; }
 
-    .comp-provider { font-weight: 600; color: #0f172a; }
+    .comp-provider { font-weight: 600; color: #0f172a; min-width: 180px; }
+    /* Sticky provider column */
+    .compliance-table th:first-child,
+    .compliance-table td:first-child {
+      position: sticky;
+      left: 0;
+      background: inherit;
+      z-index: 1;
+      min-width: 180px;
+    }
+    .compliance-table th:first-child { background: #f8fafc; }
+    .compliance-table tr.comp-met td:first-child { background: #f0fdf4; }
+    .compliance-table tr.comp-met:hover td:first-child { background: #dcfce7; }
+    .compliance-table tr.comp-partial td:first-child { background: #fffbeb; }
+    .compliance-table tr.comp-partial:hover td:first-child { background: #fef3c7; }
+    .compliance-table tr.comp-none td:first-child { background: #fef2f2; }
+    .compliance-table tr.comp-none:hover td:first-child { background: #fee2e2; }
+    .compliance-table tr:hover td:first-child { background: #f8fafc; }
     .comp-state { font-weight: 500; }
     .comp-req { font-size: 0.82rem; color: #64748b; max-width: 180px; }
     .comp-subject { font-weight: 500; }
@@ -3727,11 +3780,14 @@
       transform: translateX(-50%);
       background: #1e293b;
       color: #fff;
-      font-size: 0.72rem;
+      font-size: 0.75rem;
       font-weight: 500;
-      padding: 8px 12px;
-      border-radius: 6px;
-      white-space: nowrap;
+      padding: 10px 14px;
+      border-radius: 8px;
+      white-space: pre-line;
+      text-align: left;
+      line-height: 1.5;
+      min-width: 180px;
       opacity: 0;
       visibility: hidden;
       transition: opacity 0.15s, visibility 0.15s;
@@ -3830,14 +3886,14 @@
     <h1>CEU <span>Tracker</span></h1>
   </div>
   <div class="header-meta">
-    <div>
-      <div class="last-scraped-label">Last Scraped</div>
+    <div class="last-scraped-wrap" id="lastScrapedWrap">
+      <div class="last-scraped-label">Last Scraped <span id="staleWarningIcon" class="stale-warning-icon" style="display:none;" title="Data may be outdated. Check platform connections.">⚠️</span></div>
       <div class="last-scraped-value" id="lastScrapedValue" data-iso="2026-03-20T19:19:05.007Z">Friday, March 20, 2026 at 3:19 PM</div>
       <div class="last-scraped-ago" id="lastScrapedAgo"></div>
       <div class="run-badge">
         <span class="run-pill ok">✓ 12 successful logins</span>
-        <span class="run-pill notconfig">○ 21 no credentials</span>
-        
+        <span class="run-pill notconfig clickable" onclick="showNoCEUsView()" title="Click to view providers with no credentials" style="cursor: pointer;">○ 21 no credentials</span>
+
       </div>
     </div>
     <div class="global-search-wrap">
@@ -3991,9 +4047,10 @@
 
     <!-- ── Getting Started (First-time users) ─────────────────────────────── -->
     <div class="getting-started" id="gettingStarted">
-      <div class="getting-started-header">
+      <div class="getting-started-header" onclick="toggleGettingStarted()">
         <span class="getting-started-icon">💡</span>
         <span class="getting-started-title">Quick Start Guide</span>
+        <span class="getting-started-toggle">▼</span>
       </div>
       <div class="getting-started-steps">
         <div class="getting-started-step">
@@ -4009,7 +4066,7 @@
           <span>Click any provider card to see their detailed CE hours and renewal dates</span>
         </div>
       </div>
-      <button class="getting-started-dismiss" onclick="dismissGettingStarted()">Don't show this again</button>
+      <button class="getting-started-dismiss" onclick="dismissGettingStarted()">Collapse by default</button>
     </div>
 
     <!-- ── Stats with Tooltips ────────────────────────────────────────────── -->
@@ -4033,11 +4090,11 @@
         <div class="lbl">On Track</div>
         <div class="stat-sublbl">In progress, deadline is far</div>
       </div>
-      <div class="stat-card risk has-tooltip">
-        <div class="tooltip">CEUs remaining AND deadline within 60 days - urgent!</div>
-        <div class="num">0</div>
-        <div class="lbl">Needs Attention</div>
-        <div class="stat-sublbl">Deadline approaching or overdue</div>
+      <div class="stat-card risk has-tooltip" id="atRiskCard">
+        <div class="tooltip">Providers with deadline within 90 days AND &lt;80% complete, or overdue</div>
+        <div class="num" id="atRiskCount">0</div>
+        <div class="lbl">At Risk</div>
+        <div class="stat-sublbl">Deadline ≤90 days, &lt;80% complete</div>
       </div>
       <div class="stat-card not-started has-tooltip has-providers" onclick="showNoCEUsView()">
         <div class="tooltip">Providers who have logged 0 CEU hours - need follow-up</div>
@@ -12003,11 +12060,17 @@ Call log:
     localStorage.setItem('ceu-welcome-dismissed', '1');
   }
 
-  // ── Dismiss Getting Started ──
+  // ── Dismiss Getting Started (collapse by default) ──
   function dismissGettingStarted() {
     const el = document.getElementById('gettingStarted');
-    if (el) el.style.display = 'none';
+    if (el) el.classList.add('collapsed');
     localStorage.setItem('ceu-getting-started-dismissed', '1');
+  }
+
+  // ── Toggle Getting Started expand/collapse ──
+  function toggleGettingStarted() {
+    const el = document.getElementById('gettingStarted');
+    if (el) el.classList.toggle('collapsed');
   }
 
   // ── Action Banner Collapse/Expand ──
@@ -12030,7 +12093,7 @@ Call log:
     }
     if (localStorage.getItem('ceu-getting-started-dismissed')) {
       const el = document.getElementById('gettingStarted');
-      if (el) el.style.display = 'none';
+      if (el) el.classList.add('collapsed');
     }
     if (localStorage.getItem('ceu-action-banner-collapsed')) {
       const wrap = document.querySelector('.action-banner-wrap');
@@ -12455,7 +12518,68 @@ Call log:
     updatePinButtons();
     updatePinnedCount();
     initNoCEUsUI();
+    initAtRiskCount();
+    initCardNameTooltips();
+    initDeadlineUrgencyBorders();
+    sortComplianceTableDefault();
   });
+
+  // ── Sort compliance table by default (most hours needed desc, then deadline asc) ──
+  function sortComplianceTableDefault() {
+    const table = document.querySelector('.compliance-table');
+    if (!table) return;
+    const tbody = table.querySelector('tbody');
+    if (!tbody) return;
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+
+    rows.sort((a, b) => {
+      // Get hours needed from status column (last column)
+      const statusA = a.cells[8]?.textContent || '';
+      const statusB = b.cells[8]?.textContent || '';
+      const hoursA = parseInt(statusA.match(/\d+/) || [0]);
+      const hoursB = parseInt(statusB.match(/\d+/) || [0]);
+
+      // Sort by hours needed (descending)
+      if (hoursB !== hoursA) return hoursB - hoursA;
+
+      // Secondary sort by provider name (alphabetical as fallback)
+      const nameA = a.cells[0]?.textContent || '';
+      const nameB = b.cells[0]?.textContent || '';
+      return nameA.localeCompare(nameB);
+    });
+
+    // Re-append sorted rows
+    rows.forEach(row => tbody.appendChild(row));
+  }
+
+  // ── Add title tooltips to truncated card names ──
+  function initCardNameTooltips() {
+    document.querySelectorAll('.card-name').forEach(el => {
+      el.setAttribute('title', el.textContent.trim());
+    });
+  }
+
+  // ── Add deadline urgency top borders ──
+  function initDeadlineUrgencyBorders() {
+    document.querySelectorAll('.provider-card').forEach(card => {
+      const days = parseInt(card.dataset.days);
+      if (isNaN(days)) return;
+
+      // Remove existing urgency classes
+      card.classList.remove('urgency-green', 'urgency-yellow', 'urgency-orange', 'urgency-red');
+
+      // Apply based on deadline proximity
+      if (days < 0 || days <= 30) {
+        card.classList.add('urgency-red');
+      } else if (days <= 89) {
+        card.classList.add('urgency-orange');
+      } else if (days <= 180) {
+        card.classList.add('urgency-yellow');
+      } else {
+        card.classList.add('urgency-green');
+      }
+    });
+  }
 
   // ── Initialize No CEUs UI ──
   function initNoCEUsUI() {
@@ -12532,6 +12656,39 @@ Call log:
         if (barFill) barFill.classList.add('agg-empty');
       }
     });
+  }
+
+  // ── Calculate At Risk providers ──
+  function initAtRiskCount() {
+    const allCards = document.querySelectorAll('#provider-all .provider-card');
+    let atRiskCount = 0;
+
+    allCards.forEach(card => {
+      const completed = parseInt(card.dataset.completed) || 0;
+      const required = parseInt(card.dataset.required) || 0;
+      const days = parseInt(card.dataset.days);
+
+      // Skip providers with no requirements
+      if (required === 0) return;
+
+      const pctComplete = (completed / required) * 100;
+      const isOverdue = !isNaN(days) && days < 0;
+      const isAtRisk = !isNaN(days) && days <= 90 && pctComplete < 80;
+
+      if (isOverdue || isAtRisk) {
+        atRiskCount++;
+      }
+    });
+
+    // Update At Risk stat card
+    const atRiskEl = document.getElementById('atRiskCount');
+    if (atRiskEl) atRiskEl.textContent = atRiskCount;
+
+    // Add pulse animation if there are at-risk providers
+    const atRiskCard = document.getElementById('atRiskCard');
+    if (atRiskCard) {
+      atRiskCard.classList.toggle('has-risk', atRiskCount > 0);
+    }
   }
 
   // ── Credential Tracker Filter ──
@@ -13651,20 +13808,39 @@ Call log:
     }
   });
 
-  // ── "Updated X ago" live ticker ──────────────────────────────────────────
+  // ── "Updated X ago" live ticker with staleness warning ──────────────────────
   (function() {
     const el  = document.getElementById('lastScrapedAgo');
     const src = document.getElementById('lastScrapedValue');
+    const wrap = document.getElementById('lastScrapedWrap');
+    const warningIcon = document.getElementById('staleWarningIcon');
     if (!el || !src) return;
     const runTime = new Date(src.dataset.iso).getTime();
     if (isNaN(runTime)) return;
     function tick() {
       const diff = Math.floor((Date.now() - runTime) / 60000);
+      const hours = diff / 60;
+
+      // Update time ago text
       if (diff < 1)       el.textContent = 'just now';
       else if (diff < 60) el.textContent = diff + 'm ago';
       else {
         const h = Math.floor(diff / 60), m = diff % 60;
         el.textContent = h + 'h' + (m ? ' ' + m + 'm' : '') + ' ago';
+      }
+
+      // Update staleness indicator
+      if (wrap) {
+        wrap.classList.remove('stale-warning', 'stale-danger');
+        if (hours >= 24) {
+          wrap.classList.add('stale-danger');
+          if (warningIcon) warningIcon.style.display = 'inline';
+        } else if (hours >= 12) {
+          wrap.classList.add('stale-warning');
+          if (warningIcon) warningIcon.style.display = 'none';
+        } else {
+          if (warningIcon) warningIcon.style.display = 'none';
+        }
       }
     }
     tick();
