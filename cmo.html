@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CMO Dashboard - CEU Compliance Overview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-body: #f8fafc;
+      --bg-primary: #ffffff;
+      --bg-secondary: #f1f5f9;
+      --text-primary: #0f172a;
+      --text-secondary: #64748b;
+      --border-color: #e2e8f0;
+      --accent-primary: #6366f1;
+      --status-green: #10b981;
+      --status-amber: #f59e0b;
+      --status-red: #ef4444;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg-body); color: var(--text-primary); min-height: 100vh; }
+
+    /* Header */
+    .cmo-header {
+      background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 50%, #1e1b4b 100%);
+      color: #fff;
+      padding: 24px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .cmo-header-brand { display: flex; align-items: center; gap: 16px; }
+    .cmo-header-logo { height: 36px; }
+    .cmo-header h1 { font-size: 1.5rem; font-weight: 800; }
+    .cmo-header h1 span { color: #818cf8; }
+    .cmo-header-meta { text-align: right; }
+    .cmo-header-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.7; }
+    .cmo-header-value { font-size: 0.9rem; font-weight: 600; }
+    .cmo-back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 8px;
+      color: #fff;
+      font-size: 0.85rem;
+      text-decoration: none;
+      transition: all 0.15s;
+    }
+    .cmo-back-btn:hover { background: rgba(255,255,255,0.2); }
+
+    /* Main Layout */
+    .cmo-main { padding: 32px 40px; max-width: 1400px; margin: 0 auto; }
+
+    /* Section Headers */
+    .cmo-section { margin-bottom: 32px; }
+    .cmo-section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .cmo-section-title { font-size: 1.1rem; font-weight: 700; color: var(--text-primary); }
+    .cmo-section-subtitle { font-size: 0.8rem; color: var(--text-secondary); }
+
+    /* Scorecard Grid */
+    .cmo-scorecard {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+    }
+    .cmo-score-card {
+      background: var(--bg-primary);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      border: 1px solid var(--border-color);
+    }
+    .cmo-score-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-secondary); margin-bottom: 8px; }
+    .cmo-score-value { font-size: 2.5rem; font-weight: 800; line-height: 1; }
+    .cmo-score-value.green { color: var(--status-green); }
+    .cmo-score-value.amber { color: var(--status-amber); }
+    .cmo-score-value.red { color: var(--status-red); }
+    .cmo-score-change { font-size: 0.8rem; margin-top: 8px; display: flex; align-items: center; gap: 4px; }
+    .cmo-score-change.up { color: var(--status-green); }
+    .cmo-score-change.down { color: var(--status-red); }
+
+    /* Heat Map */
+    .cmo-heatmap {
+      background: var(--bg-primary);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      border: 1px solid var(--border-color);
+    }
+    .cmo-heatmap-grid {
+      display: grid;
+      grid-template-columns: 120px repeat(4, 1fr);
+      gap: 4px;
+    }
+    .cmo-heatmap-header {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      padding: 8px;
+      text-align: center;
+    }
+    .cmo-heatmap-header:first-child { text-align: left; }
+    .cmo-heatmap-row { display: contents; }
+    .cmo-heatmap-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 12px 8px;
+      display: flex;
+      align-items: center;
+    }
+    .cmo-heatmap-cell {
+      padding: 12px;
+      border-radius: 8px;
+      text-align: center;
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+    .cmo-heatmap-cell.complete { background: rgba(16, 185, 129, 0.15); color: #059669; }
+    .cmo-heatmap-cell.progress { background: rgba(245, 158, 11, 0.15); color: #d97706; }
+    .cmo-heatmap-cell.risk { background: rgba(239, 68, 68, 0.15); color: #dc2626; }
+    .cmo-heatmap-cell.na { background: var(--bg-secondary); color: var(--text-secondary); }
+
+    /* Attention List */
+    .cmo-attention-list {
+      background: var(--bg-primary);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      border: 1px solid var(--border-color);
+    }
+    .cmo-attention-item {
+      display: flex;
+      align-items: center;
+      padding: 16px;
+      border-bottom: 1px solid var(--border-color);
+      gap: 16px;
+    }
+    .cmo-attention-item:last-child { border-bottom: none; }
+    .cmo-attention-priority {
+      width: 8px;
+      height: 40px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+    .cmo-attention-priority.high { background: var(--status-red); }
+    .cmo-attention-priority.medium { background: var(--status-amber); }
+    .cmo-attention-priority.low { background: var(--status-green); }
+    .cmo-attention-info { flex: 1; }
+    .cmo-attention-name { font-weight: 600; color: var(--text-primary); }
+    .cmo-attention-meta { font-size: 0.8rem; color: var(--text-secondary); margin-top: 2px; }
+    .cmo-attention-badge {
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+    .cmo-attention-badge.urgent { background: rgba(239, 68, 68, 0.1); color: #dc2626; }
+    .cmo-attention-badge.warning { background: rgba(245, 158, 11, 0.1); color: #d97706; }
+
+    /* Rolling Scorecard */
+    .cmo-rolling {
+      background: var(--bg-primary);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      border: 1px solid var(--border-color);
+    }
+    .cmo-rolling-chart {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      height: 160px;
+      padding-top: 20px;
+    }
+    .cmo-rolling-bar {
+      flex: 1;
+      border-radius: 4px 4px 0 0;
+      position: relative;
+      transition: height 0.3s;
+    }
+    .cmo-rolling-bar.green { background: var(--status-green); }
+    .cmo-rolling-bar.amber { background: var(--status-amber); }
+    .cmo-rolling-bar.red { background: var(--status-red); }
+    .cmo-rolling-label {
+      position: absolute;
+      bottom: -24px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.65rem;
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+    .cmo-rolling-value {
+      position: absolute;
+      top: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    /* Two Column Layout */
+    .cmo-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    @media (max-width: 900px) {
+      .cmo-grid-2 { grid-template-columns: 1fr; }
+    }
+
+    /* Print Styles */
+    @media print {
+      .cmo-back-btn { display: none; }
+      .cmo-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+  <header class="cmo-header">
+    <div class="cmo-header-brand">
+      <img src="fountain-logo.png" alt="Fountain" class="cmo-header-logo" />
+      <h1>CMO <span>Compliance Dashboard</span></h1>
+    </div>
+    <div class="cmo-header-meta">
+      <a href="/" class="cmo-back-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        Back to Main Dashboard
+      </a>
+    </div>
+  </header>
+
+  <main class="cmo-main">
+    <!-- Executive Scorecard -->
+    <section class="cmo-section">
+      <div class="cmo-section-header">
+        <div>
+          <h2 class="cmo-section-title">Executive Summary</h2>
+          <p class="cmo-section-subtitle">Real-time compliance snapshot as of <span id="currentDate"></span></p>
+        </div>
+      </div>
+      <div class="cmo-scorecard" id="scorecard">
+        <div class="cmo-score-card">
+          <div class="cmo-score-label">Overall Compliance</div>
+          <div class="cmo-score-value green" id="overallCompliance">87%</div>
+          <div class="cmo-score-change up">+3% from last month</div>
+        </div>
+        <div class="cmo-score-card">
+          <div class="cmo-score-label">At Risk Providers</div>
+          <div class="cmo-score-value red" id="atRiskCount">2</div>
+          <div class="cmo-score-change down">+1 from last week</div>
+        </div>
+        <div class="cmo-score-card">
+          <div class="cmo-score-label">Complete</div>
+          <div class="cmo-score-value green" id="completeCount">6</div>
+          <div class="cmo-score-change up">+2 from last month</div>
+        </div>
+        <div class="cmo-score-card">
+          <div class="cmo-score-label">Missing Credentials</div>
+          <div class="cmo-score-value amber" id="missingCredsCount">7</div>
+          <div class="cmo-score-change">No change</div>
+        </div>
+        <div class="cmo-score-card">
+          <div class="cmo-score-label">Total Providers</div>
+          <div class="cmo-score-value" id="totalProviders">33</div>
+          <div class="cmo-score-change">Active tracking</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="cmo-grid-2">
+      <!-- Heat Map by License Type -->
+      <section class="cmo-section">
+        <div class="cmo-section-header">
+          <h2 class="cmo-section-title">Compliance by License Type</h2>
+        </div>
+        <div class="cmo-heatmap">
+          <div class="cmo-heatmap-grid" id="heatmapGrid">
+            <div class="cmo-heatmap-header">Type</div>
+            <div class="cmo-heatmap-header">Complete</div>
+            <div class="cmo-heatmap-header">In Progress</div>
+            <div class="cmo-heatmap-header">At Risk</div>
+            <div class="cmo-heatmap-header">Unknown</div>
+
+            <div class="cmo-heatmap-row">
+              <div class="cmo-heatmap-label">NP</div>
+              <div class="cmo-heatmap-cell complete">4</div>
+              <div class="cmo-heatmap-cell progress">3</div>
+              <div class="cmo-heatmap-cell risk">1</div>
+              <div class="cmo-heatmap-cell na">10</div>
+            </div>
+            <div class="cmo-heatmap-row">
+              <div class="cmo-heatmap-label">RN</div>
+              <div class="cmo-heatmap-cell complete">0</div>
+              <div class="cmo-heatmap-cell progress">1</div>
+              <div class="cmo-heatmap-cell risk">0</div>
+              <div class="cmo-heatmap-cell na">7</div>
+            </div>
+            <div class="cmo-heatmap-row">
+              <div class="cmo-heatmap-label">MD/DO</div>
+              <div class="cmo-heatmap-cell complete">0</div>
+              <div class="cmo-heatmap-cell progress">2</div>
+              <div class="cmo-heatmap-cell risk">1</div>
+              <div class="cmo-heatmap-cell na">0</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Rolling 12-Month Compliance -->
+      <section class="cmo-section">
+        <div class="cmo-section-header">
+          <h2 class="cmo-section-title">Rolling 12-Month Compliance</h2>
+        </div>
+        <div class="cmo-rolling">
+          <div class="cmo-rolling-chart" id="rollingChart">
+            <!-- Generated by JS -->
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Requires Attention -->
+    <section class="cmo-section">
+      <div class="cmo-section-header">
+        <h2 class="cmo-section-title">Requires Attention</h2>
+        <p class="cmo-section-subtitle">Providers needing immediate follow-up</p>
+      </div>
+      <div class="cmo-attention-list" id="attentionList">
+        <div class="cmo-attention-item">
+          <div class="cmo-attention-priority high"></div>
+          <div class="cmo-attention-info">
+            <div class="cmo-attention-name">Tim Mack, NP</div>
+            <div class="cmo-attention-meta">New Mexico - 72 days until deadline - 50% complete</div>
+          </div>
+          <span class="cmo-attention-badge urgent">40h Needed</span>
+        </div>
+        <div class="cmo-attention-item">
+          <div class="cmo-attention-priority medium"></div>
+          <div class="cmo-attention-info">
+            <div class="cmo-attention-name">Bryce Hanley, RN</div>
+            <div class="cmo-attention-meta">Tennessee - 194 days until deadline - 0% complete</div>
+          </div>
+          <span class="cmo-attention-badge warning">10h Needed</span>
+        </div>
+        <div class="cmo-attention-item">
+          <div class="cmo-attention-priority medium"></div>
+          <div class="cmo-attention-info">
+            <div class="cmo-attention-name">Catherine Herrington, MD</div>
+            <div class="cmo-attention-meta">Texas - 437 days until deadline - 15% complete</div>
+          </div>
+          <span class="cmo-attention-badge warning">41h Needed</span>
+        </div>
+        <div class="cmo-attention-item">
+          <div class="cmo-attention-priority medium"></div>
+          <div class="cmo-attention-info">
+            <div class="cmo-attention-name">Doron Stember, MD</div>
+            <div class="cmo-attention-meta">Texas - No deadline set - 0% complete</div>
+          </div>
+          <span class="cmo-attention-badge warning">48h Needed</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // Set current date
+    document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+
+    // Generate rolling chart
+    const months = ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'];
+    const complianceData = [78, 80, 82, 79, 83, 85, 84, 86, 85, 87, 88, 87];
+    const chartEl = document.getElementById('rollingChart');
+
+    months.forEach((month, i) => {
+      const value = complianceData[i];
+      const height = Math.max(20, (value / 100) * 140);
+      const colorClass = value >= 85 ? 'green' : value >= 70 ? 'amber' : 'red';
+
+      const bar = document.createElement('div');
+      bar.className = `cmo-rolling-bar ${colorClass}`;
+      bar.style.height = `${height}px`;
+      bar.innerHTML = `
+        <span class="cmo-rolling-value">${value}%</span>
+        <span class="cmo-rolling-label">${month}</span>
+      `;
+      chartEl.appendChild(bar);
+    });
+  </script>
+</body>
+</html>

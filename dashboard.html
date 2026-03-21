@@ -1166,6 +1166,34 @@
     [data-theme="dark"] .agg-remaining { color: #f87171; }
     [data-theme="dark"] .agg-done { color: #34d399; }
 
+    /* Pace indicator */
+    .pace-indicator {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 6px;
+      font-size: 0.68rem;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 4px;
+      width: fit-content;
+    }
+    .pace-indicator.on-pace {
+      background: rgba(16, 185, 129, 0.1);
+      color: #059669;
+    }
+    .pace-indicator.falling-behind {
+      background: rgba(245, 158, 11, 0.1);
+      color: #d97706;
+    }
+    .pace-indicator.critical {
+      background: rgba(239, 68, 68, 0.1);
+      color: #dc2626;
+    }
+    [data-theme="dark"] .pace-indicator.on-pace { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+    [data-theme="dark"] .pace-indicator.falling-behind { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+    [data-theme="dark"] .pace-indicator.critical { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+
     /* Course link - compact icon style */
     .lic-course-link {
       display: inline-flex;
@@ -1377,6 +1405,472 @@
     .shortcut-desc { color: var(--text-secondary); font-size: 0.85rem; }
     .keyboard-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; }
     .keyboard-overlay.open { display: block; }
+
+    /* ─ Credential Request Modal ─ */
+    .cred-modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 1100;
+      backdrop-filter: blur(2px);
+    }
+    .cred-modal-overlay.open { display: flex; align-items: center; justify-content: center; }
+    .cred-modal {
+      background: var(--bg-primary);
+      border-radius: 16px;
+      max-width: 640px;
+      width: 90%;
+      max-height: 80vh;
+      overflow: hidden;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.25);
+      display: flex;
+      flex-direction: column;
+    }
+    .cred-modal-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .cred-modal-title { font-size: 1.1rem; font-weight: 700; color: var(--text-primary); }
+    .cred-modal-close {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: none;
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 1.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+    .cred-modal-close:hover { background: var(--status-red-bg); color: var(--status-red); }
+    .cred-modal-body { padding: 20px 24px; overflow-y: auto; flex: 1; }
+    .cred-modal-section { margin-bottom: 20px; }
+    .cred-modal-section-title { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 12px; letter-spacing: 0.5px; }
+    .cred-provider-list { display: flex; flex-direction: column; gap: 8px; }
+    .cred-provider-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      background: var(--bg-secondary);
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+    }
+    .cred-provider-checkbox { width: 18px; height: 18px; accent-color: var(--accent-primary); cursor: pointer; }
+    .cred-provider-name { font-weight: 500; color: var(--text-primary); flex: 1; }
+    .cred-provider-type { font-size: 0.75rem; padding: 2px 8px; background: var(--bg-tertiary); border-radius: 4px; color: var(--text-secondary); }
+    .cred-email-template {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .cred-email-template textarea {
+      width: 100%;
+      min-height: 180px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 12px;
+      font-size: 0.85rem;
+      font-family: inherit;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      resize: vertical;
+    }
+    .cred-email-template textarea:focus { outline: none; border-color: var(--accent-primary); }
+    .cred-modal-footer {
+      padding: 16px 24px;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+    .cred-modal-btn {
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      border: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .cred-modal-btn-secondary { background: var(--bg-tertiary); color: var(--text-primary); }
+    .cred-modal-btn-secondary:hover { background: var(--border-color); }
+    .cred-modal-btn-primary { background: var(--accent-primary); color: #fff; }
+    .cred-modal-btn-primary:hover { background: var(--accent-primary-hover); }
+    .cred-select-all { font-size: 0.8rem; color: var(--accent-primary); cursor: pointer; margin-left: auto; }
+    .cred-select-all:hover { text-decoration: underline; }
+
+    /* ─ Deadline Clustering Alert ─ */
+    .cluster-alert {
+      display: none;
+      margin: 0 40px 20px;
+      padding: 16px 20px;
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, rgba(245, 158, 11, 0.15) 100%);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      border-radius: 12px;
+      align-items: center;
+      gap: 16px;
+    }
+    .cluster-alert.visible { display: flex; }
+    .cluster-alert-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: rgba(245, 158, 11, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      flex-shrink: 0;
+    }
+    .cluster-alert-content { flex: 1; }
+    .cluster-alert-title {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #92400e;
+      margin-bottom: 4px;
+    }
+    [data-theme="dark"] .cluster-alert-title { color: #fbbf24; }
+    .cluster-alert-desc {
+      font-size: 0.8rem;
+      color: #b45309;
+    }
+    [data-theme="dark"] .cluster-alert-desc { color: #fcd34d; }
+    .cluster-alert-actions { display: flex; gap: 10px; }
+    .cluster-alert-btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s;
+    }
+    .cluster-alert-btn-primary {
+      background: #f59e0b;
+      color: #fff;
+    }
+    .cluster-alert-btn-primary:hover { background: #d97706; }
+    .cluster-alert-btn-secondary {
+      background: rgba(245, 158, 11, 0.15);
+      color: #b45309;
+    }
+    [data-theme="dark"] .cluster-alert-btn-secondary { color: #fbbf24; }
+    .cluster-alert-btn-secondary:hover { background: rgba(245, 158, 11, 0.25); }
+    .cluster-alert-dismiss {
+      background: none;
+      border: none;
+      color: #b45309;
+      cursor: pointer;
+      padding: 4px;
+      opacity: 0.6;
+    }
+    .cluster-alert-dismiss:hover { opacity: 1; }
+    [data-theme="dark"] .cluster-alert-dismiss { color: #fbbf24; }
+
+    /* ─ Certificate Upload ─ */
+    .cert-upload-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.15s;
+      margin-right: 8px;
+    }
+    .cert-upload-btn:hover { border-color: var(--accent-primary); color: var(--accent-primary); }
+    .cert-upload-btn svg { width: 14px; height: 14px; }
+    .cert-modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 1200;
+      backdrop-filter: blur(2px);
+    }
+    .cert-modal-overlay.open { display: flex; align-items: center; justify-content: center; }
+    .cert-modal {
+      background: var(--bg-primary);
+      border-radius: 16px;
+      max-width: 560px;
+      width: 90%;
+      max-height: 80vh;
+      overflow: hidden;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.25);
+      display: flex;
+      flex-direction: column;
+    }
+    .cert-modal-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .cert-modal-title { font-size: 1.1rem; font-weight: 700; color: var(--text-primary); }
+    .cert-modal-subtitle { font-size: 0.8rem; color: var(--text-secondary); margin-top: 2px; }
+    .cert-modal-close {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: none;
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 1.2rem;
+    }
+    .cert-modal-close:hover { background: var(--status-red-bg); color: var(--status-red); }
+    .cert-modal-body { padding: 20px 24px; overflow-y: auto; flex: 1; }
+    .cert-dropzone {
+      border: 2px dashed var(--border-color);
+      border-radius: 12px;
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: var(--bg-secondary);
+    }
+    .cert-dropzone:hover, .cert-dropzone.dragover {
+      border-color: var(--accent-primary);
+      background: rgba(99, 102, 241, 0.05);
+    }
+    .cert-dropzone-icon { font-size: 2.5rem; margin-bottom: 12px; opacity: 0.6; }
+    .cert-dropzone-text { font-size: 0.9rem; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
+    .cert-dropzone-hint { font-size: 0.8rem; color: var(--text-secondary); }
+    .cert-dropzone input { display: none; }
+    .cert-file-list { margin-top: 20px; }
+    .cert-file-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      background: var(--bg-secondary);
+      border-radius: 8px;
+      margin-bottom: 8px;
+      border: 1px solid var(--border-color);
+    }
+    .cert-file-icon { font-size: 1.5rem; }
+    .cert-file-info { flex: 1; }
+    .cert-file-name { font-weight: 600; color: var(--text-primary); font-size: 0.85rem; }
+    .cert-file-meta { font-size: 0.75rem; color: var(--text-secondary); }
+    .cert-file-remove {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+    .cert-file-remove:hover { background: var(--status-red-bg); color: var(--status-red); }
+    .cert-modal-footer {
+      padding: 16px 24px;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+    .cert-empty { text-align: center; padding: 20px; color: var(--text-secondary); font-size: 0.85rem; }
+
+    /* ─ Audit Export Button ─ */
+    .audit-export-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      background: var(--status-green);
+      border: none;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #fff;
+      cursor: pointer;
+      transition: all 0.15s;
+      margin-right: 8px;
+    }
+    .audit-export-btn:hover { background: #059669; transform: translateY(-1px); }
+    .audit-export-btn svg { width: 14px; height: 14px; }
+    .audit-export-dropdown {
+      position: relative;
+      display: inline-block;
+    }
+    .audit-export-menu {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+      min-width: 160px;
+      z-index: 100;
+      margin-top: 4px;
+    }
+    .audit-export-menu.open { display: block; }
+    .audit-export-menu-item {
+      display: block;
+      width: 100%;
+      padding: 10px 14px;
+      text-align: left;
+      border: none;
+      background: none;
+      font-size: 0.85rem;
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .audit-export-menu-item:hover { background: var(--bg-secondary); }
+    .audit-export-menu-item:first-child { border-radius: 8px 8px 0 0; }
+    .audit-export-menu-item:last-child { border-radius: 0 0 8px 8px; }
+
+    /* ─ Digest Settings ─ */
+    .digest-settings-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .digest-settings-btn:hover { border-color: var(--accent-primary); color: var(--accent-primary); }
+    .digest-modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 1100;
+      backdrop-filter: blur(2px);
+    }
+    .digest-modal-overlay.open { display: flex; align-items: center; justify-content: center; }
+    .digest-modal {
+      background: var(--bg-primary);
+      border-radius: 16px;
+      max-width: 480px;
+      width: 90%;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.25);
+    }
+    .digest-modal-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .digest-modal-title { font-size: 1.1rem; font-weight: 700; color: var(--text-primary); }
+    .digest-modal-close {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: none;
+      background: var(--bg-tertiary);
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 1.2rem;
+    }
+    .digest-modal-close:hover { background: var(--status-red-bg); color: var(--status-red); }
+    .digest-modal-body { padding: 24px; }
+    .digest-form-group { margin-bottom: 20px; }
+    .digest-form-label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .digest-form-toggle {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .digest-toggle-switch {
+      position: relative;
+      width: 48px;
+      height: 26px;
+    }
+    .digest-toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .digest-toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      inset: 0;
+      background: var(--bg-tertiary);
+      border-radius: 13px;
+      transition: all 0.2s;
+    }
+    .digest-toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 20px;
+      width: 20px;
+      left: 3px;
+      bottom: 3px;
+      background: #fff;
+      border-radius: 50%;
+      transition: all 0.2s;
+    }
+    .digest-toggle-switch input:checked + .digest-toggle-slider { background: var(--status-green); }
+    .digest-toggle-switch input:checked + .digest-toggle-slider:before { transform: translateX(22px); }
+    .digest-toggle-label { font-size: 0.9rem; color: var(--text-primary); }
+    .digest-form-row { display: flex; gap: 16px; }
+    .digest-form-row .digest-form-group { flex: 1; }
+    .digest-select, .digest-input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+    }
+    .digest-select:focus, .digest-input:focus { outline: none; border-color: var(--accent-primary); }
+    .digest-modal-footer {
+      padding: 16px 24px;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+    .digest-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px;
+      background: var(--bg-secondary);
+      border-radius: 8px;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+    .digest-status-icon { font-size: 1.2rem; }
+    .digest-status.active { background: rgba(16, 185, 129, 0.1); color: #059669; }
+    .digest-status.inactive { background: var(--bg-secondary); color: var(--text-secondary); }
 
     /* ─ Provider Notes ─ */
     .provider-note { margin-top: 12px; padding: 10px 12px; background: #fefce8; border: 1px solid #fef08a; border-radius: 8px; font-size: 0.82rem; color: #854d0e; }
@@ -3900,6 +4394,9 @@
       <input type="text" class="global-search" id="globalSearch" placeholder="Quick search..." onkeyup="globalSearchHandler(event)" />
       <div class="global-search-results" id="globalSearchResults"></div>
     </div>
+    <button class="digest-settings-btn" onclick="openDigestSettings()" title="Digest Settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+    </button>
     <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark/light mode" id="themeToggle">
       <span class="theme-icon">🌙</span>
       <span class="theme-toggle-label">Dark</span>
@@ -3947,6 +4444,13 @@
           <span class="nav-desc">Export & history</span>
         </div>
       </button>
+      <a href="/cmo" class="nav-item" style="text-decoration: none;">
+        <span class="nav-icon">👔</span>
+        <div class="nav-label-wrap">
+          <span class="nav-label">CMO View</span>
+          <span class="nav-desc">Executive summary</span>
+        </div>
+      </a>
       <button class="nav-item" onclick="showTab('help')" data-tab="help">
         <span class="nav-icon">❓</span>
         <div class="nav-label-wrap">
@@ -4144,6 +4648,20 @@
         <div class="dash-stat-label">12-Month Spend</div>
       </div>
     </div>
+  </div>
+
+  <!-- Deadline Clustering Alert -->
+  <div class="cluster-alert" id="clusterAlert">
+    <div class="cluster-alert-icon">📅</div>
+    <div class="cluster-alert-content">
+      <div class="cluster-alert-title" id="clusterAlertTitle">Multiple renewals approaching</div>
+      <div class="cluster-alert-desc" id="clusterAlertDesc">Several providers have deadlines within the same 2-week period</div>
+    </div>
+    <div class="cluster-alert-actions">
+      <button class="cluster-alert-btn cluster-alert-btn-primary" onclick="viewClusteredProviders()">View Providers</button>
+      <button class="cluster-alert-btn cluster-alert-btn-secondary" onclick="exportClusterReport()">Export Report</button>
+    </div>
+    <button class="cluster-alert-dismiss" onclick="dismissClusterAlert()" title="Dismiss">&times;</button>
   </div>
 
   <!-- Urgency Panel - Sorted by Priority -->
@@ -4355,7 +4873,13 @@
         
         <div class="dash-action-item dash-action-info" onclick="showTab('providers'); document.getElementById('noCredsFilter').checked = true; filterCards();">
           <span class="dash-action-icon">○</span>
-          <span class="dash-action-text"><strong>7</strong> providers need platform credentials</span>
+          <div class="dash-action-content">
+            <span class="dash-action-text"><strong>7</strong> providers need platform credentials</span>
+            <button class="action-download-btn action-request-btn" onclick="event.stopPropagation(); openCredentialRequestModal()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              Request All Credentials
+            </button>
+          </div>
           <span class="dash-action-arrow">→</span>
         </div>
 
@@ -12521,7 +13045,9 @@ Call log:
     initAtRiskCount();
     initCardNameTooltips();
     initDeadlineUrgencyBorders();
+    initPaceIndicators();
     sortComplianceTableDefault();
+    initClusterAlert();
   });
 
   // ── Sort compliance table by default (most hours needed desc, then deadline asc) ──
@@ -12556,6 +13082,56 @@ Call log:
   function initCardNameTooltips() {
     document.querySelectorAll('.card-name').forEach(el => {
       el.setAttribute('title', el.textContent.trim());
+    });
+  }
+
+  // ── Add pace indicators to provider cards ──
+  function initPaceIndicators() {
+    document.querySelectorAll('.provider-card').forEach(card => {
+      const completed = parseInt(card.dataset.completed) || 0;
+      const required = parseInt(card.dataset.required) || 0;
+      const days = parseInt(card.dataset.days);
+
+      // Skip if no requirements or already complete
+      if (required === 0 || completed >= required) return;
+      if (isNaN(days) || days <= 0) return;
+
+      // Find the progress stats section to append pace indicator
+      const statsEl = card.querySelector('.agg-bar-stats');
+      if (!statsEl || statsEl.querySelector('.pace-indicator')) return;
+
+      // Calculate pace - estimate days elapsed (assume 2-year cycle = 730 days typical)
+      // For simplicity, estimate that renewal cycle started 730 - days ago
+      const cycleDays = 730; // typical 2-year renewal cycle
+      const daysElapsed = Math.max(cycleDays - days, 1);
+      const dailyRate = completed / daysElapsed;
+      const projectedTotal = dailyRate * (daysElapsed + days);
+
+      // Determine pace status
+      let paceClass, paceText, paceTitle;
+      if (projectedTotal >= required) {
+        paceClass = 'on-pace';
+        paceText = '✓ On Pace';
+        const finishDate = new Date();
+        const daysToFinish = Math.ceil((required - completed) / dailyRate);
+        finishDate.setDate(finishDate.getDate() + daysToFinish);
+        paceTitle = `Projected to finish by ${finishDate.toLocaleDateString()}`;
+      } else if (projectedTotal >= required * 0.7) {
+        paceClass = 'falling-behind';
+        paceText = '⚠ Falling Behind';
+        paceTitle = `At current pace, will only complete ${Math.round(projectedTotal)}h of ${required}h needed`;
+      } else {
+        paceClass = 'critical';
+        paceText = '⚠ Falling Behind';
+        paceTitle = `At current pace, will only complete ${Math.round(projectedTotal)}h of ${required}h needed`;
+      }
+
+      // Create and append pace indicator
+      const paceEl = document.createElement('div');
+      paceEl.className = `pace-indicator ${paceClass}`;
+      paceEl.textContent = paceText;
+      paceEl.title = paceTitle;
+      statsEl.parentNode.appendChild(paceEl);
     });
   }
 
@@ -13358,6 +13934,129 @@ Call log:
     document.body.style.overflow = 'hidden';
     // Load notes for this provider
     loadProviderNotes(name);
+    // Add upload certificates button
+    injectCertUploadButton(name);
+  }
+
+  function injectCertUploadButton(provider) {
+    // Find the drawer actions area (usually near print button)
+    const drawerContent = document.getElementById('drawerContent');
+    if (!drawerContent) return;
+
+    // Look for the print button or actions area
+    const printBtn = drawerContent.querySelector('button[onclick*="print"]');
+    if (printBtn && printBtn.parentNode) {
+      // Add audit export button
+      const auditBtn = document.createElement('button');
+      auditBtn.className = 'audit-export-btn';
+      auditBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> Audit Export`;
+      auditBtn.onclick = () => exportAuditReport(provider);
+      printBtn.parentNode.insertBefore(auditBtn, printBtn);
+
+      // Add cert upload button
+      const certCount = getCertCount(provider);
+      const countBadge = certCount > 0 ? ` (${certCount})` : '';
+      const uploadBtn = document.createElement('button');
+      uploadBtn.className = 'cert-upload-btn';
+      uploadBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Upload Certs${countBadge}`;
+      uploadBtn.onclick = () => openCertModal(provider);
+      printBtn.parentNode.insertBefore(uploadBtn, printBtn);
+    }
+  }
+
+  function exportAuditReport(provider) {
+    // Get provider data from EXPORT_DATA
+    const providerData = EXPORT_DATA.allProviders.find(p => p.name === provider);
+    if (!providerData) {
+      alert('Provider data not found.');
+      return;
+    }
+
+    // Get certificates
+    const certKey = getCertKey(provider);
+    let certs = [];
+    try {
+      certs = JSON.parse(localStorage.getItem(certKey)) || [];
+    } catch (e) {}
+
+    // Get notes
+    const noteKey = getNotesKey(provider);
+    let notes = [];
+    try {
+      notes = JSON.parse(localStorage.getItem(noteKey)) || [];
+    } catch (e) {}
+
+    // Build CSV data
+    const csvRows = [];
+
+    // Header section
+    csvRows.push(['AUDIT REPORT - ' + provider]);
+    csvRows.push(['Generated:', new Date().toLocaleString()]);
+    csvRows.push([]);
+
+    // Provider summary
+    csvRows.push(['PROVIDER SUMMARY']);
+    csvRows.push(['Name:', providerData.name]);
+    csvRows.push(['Type:', providerData.type]);
+    csvRows.push(['State:', providerData.state || 'N/A']);
+    csvRows.push(['Status:', providerData.status]);
+    csvRows.push(['Hours Required:', providerData.hoursRequired]);
+    csvRows.push(['Hours Completed:', providerData.hoursCompleted]);
+    csvRows.push(['Hours Remaining:', providerData.hoursRemaining]);
+    csvRows.push(['Renewal Deadline:', providerData.renewalDeadline || 'N/A']);
+    csvRows.push(['Days Until Deadline:', providerData.daysUntilDeadline || 'N/A']);
+    csvRows.push([]);
+
+    // Certificates section
+    csvRows.push(['UPLOADED CERTIFICATES']);
+    if (certs.length === 0) {
+      csvRows.push(['No certificates uploaded']);
+    } else {
+      csvRows.push(['File Name', 'Type', 'Size', 'Upload Date']);
+      certs.forEach(cert => {
+        const sizeStr = cert.size < 1024 ? `${cert.size} B` :
+                        cert.size < 1024 * 1024 ? `${(cert.size / 1024).toFixed(1)} KB` :
+                        `${(cert.size / (1024 * 1024)).toFixed(1)} MB`;
+        csvRows.push([cert.name, cert.type, sizeStr, new Date(cert.uploadedAt).toLocaleDateString()]);
+      });
+    }
+    csvRows.push([]);
+
+    // Notes section
+    csvRows.push(['NOTES & TASKS']);
+    if (notes.length === 0) {
+      csvRows.push(['No notes recorded']);
+    } else {
+      csvRows.push(['Date', 'Type', 'Status', 'Content']);
+      notes.forEach(note => {
+        const dateStr = new Date(note.date).toLocaleDateString();
+        const type = note.isTask ? 'Task' : 'Note';
+        const status = note.isTask ? (note.done ? 'Completed' : 'Pending') : '-';
+        csvRows.push([dateStr, type, status, note.text]);
+      });
+    }
+
+    // Convert to CSV string
+    const csvContent = csvRows.map(row =>
+      row.map(cell => {
+        const str = String(cell ?? '');
+        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+          return '"' + str.replace(/"/g, '""') + '"';
+        }
+        return str;
+      }).join(',')
+    ).join('\n');
+
+    // Download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `audit-report-${provider.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}-${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   }
   function closeProvider() {
     document.getElementById('drawerOverlay').classList.remove('open');
@@ -13948,6 +14647,526 @@ Call log:
     }
   }
 
+  // ── Deadline Clustering Alert ──────────────────────────────────────────────
+  let clusterData = null;
+
+  function initClusterAlert() {
+    const providers = EXPORT_DATA.allProviders || [];
+
+    // Filter providers with valid deadlines and parse dates
+    const withDeadlines = providers
+      .filter(p => p.renewalDeadline && p.daysUntilDeadline !== '' && typeof p.daysUntilDeadline === 'number')
+      .map(p => ({
+        ...p,
+        deadlineDate: new Date(p.renewalDeadline),
+        days: p.daysUntilDeadline
+      }))
+      .filter(p => !isNaN(p.deadlineDate.getTime()) && p.days > 0 && p.days <= 180) // Only consider upcoming 6 months
+      .sort((a, b) => a.days - b.days);
+
+    if (withDeadlines.length < 3) return;
+
+    // Find clusters (3+ providers within 14 days of each other)
+    let maxCluster = [];
+    for (let i = 0; i < withDeadlines.length; i++) {
+      const cluster = [withDeadlines[i]];
+      const startDate = withDeadlines[i].deadlineDate;
+
+      for (let j = i + 1; j < withDeadlines.length; j++) {
+        const daysDiff = Math.abs((withDeadlines[j].deadlineDate - startDate) / (1000 * 60 * 60 * 24));
+        if (daysDiff <= 14) {
+          cluster.push(withDeadlines[j]);
+        }
+      }
+
+      if (cluster.length >= 3 && cluster.length > maxCluster.length) {
+        maxCluster = cluster;
+      }
+    }
+
+    if (maxCluster.length >= 3) {
+      clusterData = maxCluster;
+
+      // Format date range
+      const startDate = maxCluster[0].deadlineDate;
+      const endDate = maxCluster[maxCluster.length - 1].deadlineDate;
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const startStr = `${months[startDate.getMonth()]} ${startDate.getDate()}`;
+      const endStr = `${months[endDate.getMonth()]} ${endDate.getDate()}`;
+      const dateRange = startDate.getMonth() === endDate.getMonth()
+        ? `${months[startDate.getMonth()]} ${startDate.getDate()}-${endDate.getDate()}`
+        : `${startStr} - ${endStr}`;
+
+      // Update alert content
+      const titleEl = document.getElementById('clusterAlertTitle');
+      const descEl = document.getElementById('clusterAlertDesc');
+
+      if (titleEl) titleEl.textContent = `${maxCluster.length} renewals due ${dateRange}`;
+      if (descEl) descEl.textContent = `These providers have deadlines within 2 weeks of each other. Consider staggering renewals to reduce workload.`;
+
+      // Check if dismissed
+      const dismissed = localStorage.getItem('clusterAlertDismissed');
+      const dismissedDate = localStorage.getItem('clusterAlertDismissedDate');
+
+      // Re-show if dismissed more than 7 days ago
+      if (dismissed && dismissedDate) {
+        const daysSinceDismiss = (Date.now() - parseInt(dismissedDate)) / (1000 * 60 * 60 * 24);
+        if (daysSinceDismiss > 7) {
+          localStorage.removeItem('clusterAlertDismissed');
+          localStorage.removeItem('clusterAlertDismissedDate');
+        }
+      }
+
+      if (!localStorage.getItem('clusterAlertDismissed')) {
+        document.getElementById('clusterAlert')?.classList.add('visible');
+      }
+    }
+  }
+
+  function dismissClusterAlert() {
+    document.getElementById('clusterAlert')?.classList.remove('visible');
+    localStorage.setItem('clusterAlertDismissed', 'true');
+    localStorage.setItem('clusterAlertDismissedDate', Date.now().toString());
+  }
+
+  function viewClusteredProviders() {
+    if (!clusterData || clusterData.length === 0) return;
+
+    // Switch to providers tab
+    showTab('providers');
+
+    // Search for clustered providers
+    setTimeout(() => {
+      const searchBox = document.getElementById('cardSearch');
+      if (searchBox) {
+        // Join first names for search
+        const names = clusterData.slice(0, 3).map(p => p.name.split(',')[0]).join('|');
+        // Can't really search multiple at once, so just show first one and alert
+        searchBox.value = '';
+        filterCards();
+
+        // Highlight the clustered providers
+        const cards = document.querySelectorAll('.provider-card');
+        const clusterNames = new Set(clusterData.map(p => p.name));
+        cards.forEach(card => {
+          const providerName = card.dataset.provider;
+          if (clusterNames.has(providerName)) {
+            card.style.boxShadow = '0 0 0 3px #f59e0b';
+          }
+        });
+
+        // Scroll to first match
+        const firstMatch = Array.from(cards).find(c => clusterNames.has(c.dataset.provider));
+        if (firstMatch) firstMatch.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        // Clear highlight after 5 seconds
+        setTimeout(() => {
+          cards.forEach(card => card.style.boxShadow = '');
+        }, 5000);
+      }
+    }, 100);
+  }
+
+  function exportClusterReport() {
+    if (!clusterData || clusterData.length === 0) {
+      alert('No cluster data available.');
+      return;
+    }
+
+    const csvData = clusterData.map(p => ({
+      Name: p.name,
+      Type: p.type,
+      State: p.state,
+      'Renewal Deadline': p.renewalDeadline,
+      'Days Until Deadline': p.daysUntilDeadline,
+      'Hours Required': p.hoursRequired,
+      'Hours Completed': p.hoursCompleted,
+      Status: p.status
+    }));
+
+    downloadCSV(csvData, `clustered-renewals-${new Date().toISOString().slice(0,10)}.csv`);
+  }
+
+  // ── Credential Request Modal ──────────────────────────────────────────────
+  function openCredentialRequestModal() {
+    const overlay = document.getElementById('credModalOverlay');
+    const listEl = document.getElementById('credProviderList');
+    if (!overlay || !listEl) return;
+
+    // Get providers with no credentials from EXPORT_DATA.noLogins
+    const providers = EXPORT_DATA.noLogins || [];
+
+    if (providers.length === 0) {
+      alert('All providers have platform credentials configured.');
+      return;
+    }
+
+    // Populate the provider list
+    listEl.innerHTML = providers.map((p, i) => `
+      <label class="cred-provider-item">
+        <input type="checkbox" class="cred-provider-checkbox" data-name="${p.name}" checked>
+        <span class="cred-provider-name">${p.name}</span>
+        <span class="cred-provider-type">${p.type}</span>
+      </label>
+    `).join('');
+
+    overlay.classList.add('open');
+  }
+
+  function closeCredentialModal() {
+    document.getElementById('credModalOverlay')?.classList.remove('open');
+  }
+
+  function toggleAllCredProviders() {
+    const checkboxes = document.querySelectorAll('#credProviderList .cred-provider-checkbox');
+    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+    checkboxes.forEach(cb => cb.checked = !allChecked);
+
+    // Update button text
+    const btn = document.querySelector('.cred-select-all');
+    if (btn) btn.textContent = allChecked ? 'Select All' : 'Deselect All';
+  }
+
+  function getSelectedCredProviders() {
+    const checkboxes = document.querySelectorAll('#credProviderList .cred-provider-checkbox:checked');
+    return Array.from(checkboxes).map(cb => cb.dataset.name);
+  }
+
+  function copyCredentialEmail() {
+    const selected = getSelectedCredProviders();
+    if (selected.length === 0) {
+      alert('Please select at least one provider.');
+      return;
+    }
+
+    const template = document.getElementById('credEmailTemplate').value;
+
+    // Create email content for each selected provider
+    const emails = selected.map(name => {
+      return template.replace(/\[PROVIDER_NAME\]/g, name.split(',')[0].trim());
+    });
+
+    // Copy to clipboard
+    const fullText = emails.join('\n\n---\n\n');
+    navigator.clipboard.writeText(fullText).then(() => {
+      // Show success feedback
+      const btn = document.querySelector('.cred-modal-btn-secondary');
+      const originalText = btn.innerHTML;
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="20 6 9 17 4 12"/></svg> Copied!';
+      btn.style.background = '#10b981';
+      btn.style.color = '#fff';
+      setTimeout(() => {
+        btn.innerHTML = originalText;
+        btn.style.background = '';
+        btn.style.color = '';
+      }, 2000);
+    }).catch(() => {
+      alert('Failed to copy to clipboard. Please try again.');
+    });
+  }
+
+  function sendCredentialEmails() {
+    const selected = getSelectedCredProviders();
+    if (selected.length === 0) {
+      alert('Please select at least one provider.');
+      return;
+    }
+
+    const template = document.getElementById('credEmailTemplate').value;
+    const subject = encodeURIComponent('CEU Platform Credentials Request');
+
+    // For multiple providers, we'll create a mailto link with a general template
+    // In a real implementation, you'd have provider email addresses
+    const body = encodeURIComponent(template.replace(/\[PROVIDER_NAME\]/g, selected.length === 1 ? selected[0].split(',')[0].trim() : 'Team'));
+
+    // Open default email client
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+
+    // Close modal after opening email
+    closeCredentialModal();
+  }
+
+  // ── Certificate Upload Modal ──────────────────────────────────────────────
+  let currentCertProvider = null;
+
+  function getCertKey(provider) {
+    return 'ceu-certs-' + provider.replace(/[^a-zA-Z0-9]/g, '_');
+  }
+
+  function openCertModal(provider) {
+    currentCertProvider = provider;
+    const overlay = document.getElementById('certModalOverlay');
+    const providerEl = document.getElementById('certModalProvider');
+
+    if (providerEl) providerEl.textContent = provider;
+    if (overlay) overlay.classList.add('open');
+
+    // Load existing certificates
+    renderCertList();
+
+    // Setup drag-and-drop
+    setupCertDropzone();
+  }
+
+  function closeCertModal() {
+    document.getElementById('certModalOverlay')?.classList.remove('open');
+    currentCertProvider = null;
+  }
+
+  function setupCertDropzone() {
+    const dropzone = document.getElementById('certDropzone');
+    if (!dropzone) return;
+
+    dropzone.ondragover = (e) => {
+      e.preventDefault();
+      dropzone.classList.add('dragover');
+    };
+
+    dropzone.ondragleave = (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+    };
+
+    dropzone.ondrop = (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      handleCertFiles(e.dataTransfer.files);
+    };
+  }
+
+  function handleCertFiles(files) {
+    if (!currentCertProvider || !files || files.length === 0) return;
+
+    const key = getCertKey(currentCertProvider);
+    let certs = [];
+    try {
+      certs = JSON.parse(localStorage.getItem(key)) || [];
+    } catch (e) {}
+
+    // Process each file
+    Array.from(files).forEach(file => {
+      // Validate file type
+      const validTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+      if (!validTypes.includes(file.type)) {
+        alert(`${file.name} is not a valid file type. Please upload PDF, JPG, or PNG files.`);
+        return;
+      }
+
+      // Limit file size to 5MB
+      if (file.size > 5 * 1024 * 1024) {
+        alert(`${file.name} is too large. Maximum file size is 5MB.`);
+        return;
+      }
+
+      // Read file as base64
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        certs.push({
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          data: e.target.result,
+          uploadedAt: new Date().toISOString()
+        });
+        localStorage.setItem(key, JSON.stringify(certs));
+        renderCertList();
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // Clear file input
+    document.getElementById('certFileInput').value = '';
+  }
+
+  function renderCertList() {
+    const listEl = document.getElementById('certFileList');
+    if (!listEl || !currentCertProvider) return;
+
+    const key = getCertKey(currentCertProvider);
+    let certs = [];
+    try {
+      certs = JSON.parse(localStorage.getItem(key)) || [];
+    } catch (e) {}
+
+    if (certs.length === 0) {
+      listEl.innerHTML = '<div class="cert-empty">No certificates uploaded yet</div>';
+      return;
+    }
+
+    listEl.innerHTML = certs.map((cert, idx) => {
+      const sizeStr = cert.size < 1024 ? `${cert.size} B` :
+                      cert.size < 1024 * 1024 ? `${(cert.size / 1024).toFixed(1)} KB` :
+                      `${(cert.size / (1024 * 1024)).toFixed(1)} MB`;
+      const dateStr = new Date(cert.uploadedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      const icon = cert.type === 'application/pdf' ? '📄' : '🖼️';
+
+      return `
+        <div class="cert-file-item">
+          <span class="cert-file-icon">${icon}</span>
+          <div class="cert-file-info">
+            <div class="cert-file-name">${escapeHtml(cert.name)}</div>
+            <div class="cert-file-meta">${sizeStr} • Uploaded ${dateStr}</div>
+          </div>
+          <button class="cert-file-remove" onclick="removeCertificate(${idx})" title="Remove">✕</button>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function removeCertificate(idx) {
+    if (!currentCertProvider) return;
+    if (!confirm('Remove this certificate?')) return;
+
+    const key = getCertKey(currentCertProvider);
+    let certs = [];
+    try {
+      certs = JSON.parse(localStorage.getItem(key)) || [];
+    } catch (e) {}
+
+    certs.splice(idx, 1);
+    localStorage.setItem(key, JSON.stringify(certs));
+    renderCertList();
+  }
+
+  function getCertCount(provider) {
+    const key = getCertKey(provider);
+    try {
+      const certs = JSON.parse(localStorage.getItem(key)) || [];
+      return certs.length;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  // ── Digest Settings Modal ──────────────────────────────────────────────
+  function getDigestSettings() {
+    try {
+      return JSON.parse(localStorage.getItem('ceu-digest-settings')) || {
+        enabled: false,
+        day: 1,
+        time: '08:00',
+        method: 'email',
+        emails: '',
+        slackUrl: ''
+      };
+    } catch (e) {
+      return { enabled: false, day: 1, time: '08:00', method: 'email', emails: '', slackUrl: '' };
+    }
+  }
+
+  function openDigestSettings() {
+    const overlay = document.getElementById('digestModalOverlay');
+    if (!overlay) return;
+
+    // Load settings
+    const settings = getDigestSettings();
+    document.getElementById('digestEnabled').checked = settings.enabled;
+    document.getElementById('digestDay').value = settings.day;
+    document.getElementById('digestTime').value = settings.time;
+    document.getElementById('digestMethod').value = settings.method;
+    document.getElementById('digestEmails').value = settings.emails;
+    document.getElementById('digestSlackUrl').value = settings.slackUrl;
+
+    // Update visibility
+    updateDigestMethodVisibility();
+    updateDigestStatus();
+
+    overlay.classList.add('open');
+  }
+
+  function closeDigestSettings() {
+    document.getElementById('digestModalOverlay')?.classList.remove('open');
+  }
+
+  function updateDigestMethodVisibility() {
+    const method = document.getElementById('digestMethod').value;
+    const emailGroup = document.getElementById('digestEmailGroup');
+    const slackGroup = document.getElementById('digestSlackGroup');
+
+    if (method === 'email') {
+      emailGroup.style.display = 'block';
+      slackGroup.style.display = 'none';
+    } else if (method === 'slack') {
+      emailGroup.style.display = 'none';
+      slackGroup.style.display = 'block';
+    } else {
+      emailGroup.style.display = 'block';
+      slackGroup.style.display = 'block';
+    }
+  }
+
+  function updateDigestStatus() {
+    const enabled = document.getElementById('digestEnabled').checked;
+    const statusEl = document.getElementById('digestStatus');
+    const statusTextEl = document.getElementById('digestStatusText');
+
+    if (!statusEl || !statusTextEl) return;
+
+    if (enabled) {
+      const day = document.getElementById('digestDay');
+      const time = document.getElementById('digestTime');
+      const dayName = day.options[day.selectedIndex].text;
+      const timeName = time.options[time.selectedIndex].text;
+
+      statusEl.className = 'digest-status active';
+      statusTextEl.textContent = `Digest enabled: ${dayName}s at ${timeName}`;
+    } else {
+      statusEl.className = 'digest-status inactive';
+      statusTextEl.textContent = 'Digest disabled';
+    }
+  }
+
+  function saveDigestSettings() {
+    const settings = {
+      enabled: document.getElementById('digestEnabled').checked,
+      day: parseInt(document.getElementById('digestDay').value),
+      time: document.getElementById('digestTime').value,
+      method: document.getElementById('digestMethod').value,
+      emails: document.getElementById('digestEmails').value.trim(),
+      slackUrl: document.getElementById('digestSlackUrl').value.trim()
+    };
+
+    // Validate
+    if (settings.enabled) {
+      if ((settings.method === 'email' || settings.method === 'both') && !settings.emails) {
+        alert('Please enter at least one email address.');
+        return;
+      }
+      if ((settings.method === 'slack' || settings.method === 'both') && !settings.slackUrl) {
+        alert('Please enter a Slack webhook URL.');
+        return;
+      }
+    }
+
+    localStorage.setItem('ceu-digest-settings', JSON.stringify(settings));
+
+    // Show success message
+    const btn = document.querySelector('.digest-modal-footer .cred-modal-btn-primary');
+    if (btn) {
+      const originalText = btn.textContent;
+      btn.textContent = '✓ Saved!';
+      btn.style.background = '#10b981';
+      setTimeout(() => {
+        btn.textContent = originalText;
+        btn.style.background = '';
+        closeDigestSettings();
+      }, 1500);
+    } else {
+      closeDigestSettings();
+    }
+  }
+
+  // Initialize method visibility on change
+  document.addEventListener('DOMContentLoaded', () => {
+    const methodSelect = document.getElementById('digestMethod');
+    if (methodSelect) {
+      methodSelect.addEventListener('change', () => {
+        updateDigestMethodVisibility();
+        updateDigestStatus();
+      });
+    }
+  });
+
   // ── Shortcuts Overlay ────────────────────────────────────────────────────
   function toggleShortcutsOverlay() {
     const overlay = document.getElementById('shortcutsOverlay');
@@ -13977,7 +15196,7 @@ Call log:
       case 'j': e.preventDefault(); currentCardIndex = Math.min(currentCardIndex + 1, cards.length - 1); cards[currentCardIndex]?.scrollIntoView({ behavior: 'smooth', block: 'center' }); break;
       case 'k': e.preventDefault(); currentCardIndex = Math.max(currentCardIndex - 1, 0); cards[currentCardIndex]?.scrollIntoView({ behavior: 'smooth', block: 'center' }); break;
       case 'Enter': if (currentCardIndex >= 0 && cards[currentCardIndex]) openProvider(cards[currentCardIndex].dataset.provider); break;
-      case 'Escape': shortcutsOpen ? toggleShortcutsOverlay() : keyboardModalOpen ? toggleKeyboardModal() : closeProvider(); break;
+      case 'Escape': shortcutsOpen ? toggleShortcutsOverlay() : keyboardModalOpen ? toggleKeyboardModal() : document.getElementById('credModalOverlay')?.classList.contains('open') ? closeCredentialModal() : closeProvider(); break;
       case 'r': if (!e.ctrlKey && !e.metaKey) { e.preventDefault(); resetProviderFilters(); } break;
       case '1': e.preventDefault(); applyQuickFilter('urgent'); break;
       case '2': e.preventDefault(); applyQuickFilter('due30'); break;
@@ -14064,6 +15283,156 @@ Call log:
       </div>
     </div>
     <div class="shortcuts-hint">Press <span class="shortcut-key">Esc</span> to close</div>
+  </div>
+</div>
+
+<!-- ── Credential Request Modal ─────────────────────────────────────────── -->
+<div class="cred-modal-overlay" id="credModalOverlay" onclick="if(event.target===this)closeCredentialModal()">
+  <div class="cred-modal">
+    <div class="cred-modal-header">
+      <div class="cred-modal-title">Request Platform Credentials</div>
+      <button class="cred-modal-close" onclick="closeCredentialModal()">&times;</button>
+    </div>
+    <div class="cred-modal-body">
+      <div class="cred-modal-section">
+        <div style="display: flex; align-items: center;">
+          <div class="cred-modal-section-title">Select Providers</div>
+          <span class="cred-select-all" onclick="toggleAllCredProviders()">Select All</span>
+        </div>
+        <div class="cred-provider-list" id="credProviderList">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+      <div class="cred-modal-section">
+        <div class="cred-modal-section-title">Email Template</div>
+        <div class="cred-email-template">
+          <textarea id="credEmailTemplate">Hi [PROVIDER_NAME],
+
+We're updating our CEU compliance tracking system and need your CE Broker login credentials to monitor your continuing education progress.
+
+Please reply with:
+- CE Broker Username/Email:
+- CE Broker Password:
+
+This information will be stored securely and used only for tracking your CEU compliance status.
+
+Thank you,
+Compliance Team</textarea>
+        </div>
+      </div>
+    </div>
+    <div class="cred-modal-footer">
+      <button class="cred-modal-btn cred-modal-btn-secondary" onclick="copyCredentialEmail()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+        Copy Email
+      </button>
+      <button class="cred-modal-btn cred-modal-btn-primary" onclick="sendCredentialEmails()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        Open in Email Client
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Certificate Upload Modal ─────────────────────────────────────────── -->
+<div class="cert-modal-overlay" id="certModalOverlay" onclick="if(event.target===this)closeCertModal()">
+  <div class="cert-modal">
+    <div class="cert-modal-header">
+      <div>
+        <div class="cert-modal-title">Upload Certificates</div>
+        <div class="cert-modal-subtitle" id="certModalProvider"></div>
+      </div>
+      <button class="cert-modal-close" onclick="closeCertModal()">&times;</button>
+    </div>
+    <div class="cert-modal-body">
+      <div class="cert-dropzone" id="certDropzone" onclick="document.getElementById('certFileInput').click()">
+        <div class="cert-dropzone-icon">📄</div>
+        <div class="cert-dropzone-text">Drag & drop certificates here</div>
+        <div class="cert-dropzone-hint">or click to browse (PDF, JPG, PNG)</div>
+        <input type="file" id="certFileInput" accept=".pdf,.jpg,.jpeg,.png" multiple onchange="handleCertFiles(this.files)">
+      </div>
+      <div class="cert-file-list" id="certFileList"></div>
+    </div>
+    <div class="cert-modal-footer">
+      <button class="cred-modal-btn cred-modal-btn-secondary" onclick="closeCertModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Digest Settings Modal ─────────────────────────────────────────── -->
+<div class="digest-modal-overlay" id="digestModalOverlay" onclick="if(event.target===this)closeDigestSettings()">
+  <div class="digest-modal">
+    <div class="digest-modal-header">
+      <div class="digest-modal-title">Weekly Digest Settings</div>
+      <button class="digest-modal-close" onclick="closeDigestSettings()">&times;</button>
+    </div>
+    <div class="digest-modal-body">
+      <div class="digest-form-group">
+        <div class="digest-form-toggle">
+          <label class="digest-toggle-switch">
+            <input type="checkbox" id="digestEnabled" onchange="updateDigestStatus()">
+            <span class="digest-toggle-slider"></span>
+          </label>
+          <span class="digest-toggle-label">Enable Weekly Digest</span>
+        </div>
+      </div>
+
+      <div class="digest-form-row">
+        <div class="digest-form-group">
+          <label class="digest-form-label">Day of Week</label>
+          <select class="digest-select" id="digestDay">
+            <option value="0">Sunday</option>
+            <option value="1" selected>Monday</option>
+            <option value="2">Tuesday</option>
+            <option value="3">Wednesday</option>
+            <option value="4">Thursday</option>
+            <option value="5">Friday</option>
+            <option value="6">Saturday</option>
+          </select>
+        </div>
+        <div class="digest-form-group">
+          <label class="digest-form-label">Time</label>
+          <select class="digest-select" id="digestTime">
+            <option value="06:00">6:00 AM</option>
+            <option value="07:00">7:00 AM</option>
+            <option value="08:00" selected>8:00 AM</option>
+            <option value="09:00">9:00 AM</option>
+            <option value="10:00">10:00 AM</option>
+            <option value="12:00">12:00 PM</option>
+            <option value="14:00">2:00 PM</option>
+            <option value="16:00">4:00 PM</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="digest-form-group">
+        <label class="digest-form-label">Delivery Method</label>
+        <select class="digest-select" id="digestMethod">
+          <option value="email" selected>Email</option>
+          <option value="slack">Slack</option>
+          <option value="both">Both</option>
+        </select>
+      </div>
+
+      <div class="digest-form-group" id="digestEmailGroup">
+        <label class="digest-form-label">Email Recipients</label>
+        <input type="text" class="digest-input" id="digestEmails" placeholder="email@example.com, email2@example.com">
+      </div>
+
+      <div class="digest-form-group" id="digestSlackGroup" style="display: none;">
+        <label class="digest-form-label">Slack Webhook URL</label>
+        <input type="text" class="digest-input" id="digestSlackUrl" placeholder="https://hooks.slack.com/services/...">
+      </div>
+
+      <div class="digest-status" id="digestStatus">
+        <span class="digest-status-icon">📧</span>
+        <span id="digestStatusText">Not configured</span>
+      </div>
+    </div>
+    <div class="digest-modal-footer">
+      <button class="cred-modal-btn cred-modal-btn-secondary" onclick="closeDigestSettings()">Cancel</button>
+      <button class="cred-modal-btn cred-modal-btn-primary" onclick="saveDigestSettings()">Save Settings</button>
+    </div>
   </div>
 </div>
 </body>
