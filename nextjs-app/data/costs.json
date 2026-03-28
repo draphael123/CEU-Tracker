@@ -1,0 +1,47 @@
+{
+  "subscriptions": {
+    "organization": [
+      {
+        "name": "NetCE Unlimited",
+        "platform": "NetCE",
+        "cost": 0,
+        "period": "annual",
+        "startDate": "2026-01-01",
+        "notes": "Update with actual subscription cost"
+      },
+      {
+        "name": "CEUfast Subscription",
+        "platform": "CEUfast",
+        "cost": 0,
+        "period": "annual",
+        "startDate": "2026-01-01",
+        "notes": "Update with actual subscription cost"
+      }
+    ],
+    "perProvider": {}
+  },
+  "manualCosts": {},
+  "platformDefaults": {
+    "NetCE": {
+      "avgCoursePrice": 30,
+      "unlimitedAnnual": 99
+    },
+    "CEUfast": {
+      "avgCoursePrice": 20,
+      "unlimitedAnnual": 59
+    },
+    "AANP Cert": {
+      "avgCoursePrice": 0,
+      "notes": "Included with certification"
+    },
+    "ExclamationCE": {
+      "avgCoursePrice": 25
+    },
+    "Nursing CE Central": {
+      "avgCoursePrice": 20
+    },
+    "Nursece4less": {
+      "avgCoursePrice": 15
+    }
+  }
+}

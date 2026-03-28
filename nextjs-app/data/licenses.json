@@ -1,0 +1,1190 @@
+{
+  "lastUpdated": "2026-03-02T15:31:22.306Z",
+  "providers": {
+    "Ashley Grout, NP": {
+      "providerType": "NP",
+      "licenses": [
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "RN9361181",
+          "licenseType": "RN",
+          "status": "Active",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:20:35.893Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "APRN9361181",
+          "licenseType": "RN",
+          "status": "Active",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:20:35.893Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "PTA27860",
+          "licenseType": "RN",
+          "status": "Active",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:20:35.893Z",
+          "disciplineActions": false
+        }
+      ],
+      "statesSearched": 2,
+      "statesWithLicense": 3,
+      "lastFullScan": "2026-03-02T15:20:46.500Z"
+    },
+    "Bill Carbonneau, NP": {
+      "providerType": "NP",
+      "licenses": [],
+      "statesSearched": 2,
+      "statesWithLicense": 0,
+      "lastFullScan": "2026-03-02T15:21:06.507Z"
+    },
+    "Bryana Anderson, NP": {
+      "providerType": "NP",
+      "licenses": [],
+      "statesSearched": 2,
+      "statesWithLicense": 0,
+      "lastFullScan": "2026-03-02T15:21:27.056Z"
+    },
+    "Bryce Amos, NP": {
+      "providerType": "NP",
+      "licenses": [],
+      "statesSearched": 2,
+      "statesWithLicense": 0,
+      "lastFullScan": "2026-03-02T15:21:47.126Z"
+    },
+    "Hilary Morgan, RN": {
+      "providerType": "RN",
+      "licenses": [
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "RN1098682",
+          "licenseType": "RN",
+          "status": "Active",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:22:36.473Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "APRN1098682",
+          "licenseType": "RN",
+          "status": "Active",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:22:36.473Z",
+          "disciplineActions": false
+        }
+      ],
+      "statesSearched": 2,
+      "statesWithLicense": 2,
+      "lastFullScan": "2026-03-02T15:22:47.094Z"
+    },
+    "Jacquelyn Sexton, NP": {
+      "providerType": "NP",
+      "licenses": [],
+      "statesSearched": 2,
+      "statesWithLicense": 0,
+      "lastFullScan": "2026-03-01T22:51:55.801Z"
+    },
+    "Lindsay Burden, NP": {
+      "providerType": "NP",
+      "licenses": [
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "RN9337451",
+          "licenseType": "RN",
+          "status": "Active",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:22:55.823Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "APRN9337451",
+          "licenseType": "RN",
+          "status": "Active",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:22:55.823Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "NH",
+          "stateFullName": "New Hampshire",
+          "licenseNumber": "112115",
+          "licenseType": "APRN",
+          "status": "Active",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "New Hampshire Board",
+          "lastVerified": "2026-03-02T15:23:04.945Z",
+          "disciplineActions": false
+        }
+      ],
+      "statesSearched": 2,
+      "statesWithLicense": 3,
+      "lastFullScan": "2026-03-02T15:23:06.474Z"
+    },
+    "Liz Gloor, NP": {
+      "providerType": "NP",
+      "licenses": [],
+      "statesSearched": 2,
+      "statesWithLicense": 0,
+      "lastFullScan": "2026-03-02T15:23:26.502Z"
+    },
+    "Mackinzie Johnson, RN": {
+      "providerType": "RN",
+      "licenses": [],
+      "statesSearched": 2,
+      "statesWithLicense": 0,
+      "lastFullScan": "2026-03-02T15:23:46.676Z"
+    },
+    "Martin Van Dongen, NP": {
+      "providerType": "NP",
+      "licenses": [],
+      "statesSearched": 2,
+      "statesWithLicense": 0,
+      "lastFullScan": "2026-03-02T15:24:08.369Z"
+    },
+    "Priya Chaudhari, NP": {
+      "providerType": "NP",
+      "licenses": [],
+      "statesSearched": 2,
+      "statesWithLicense": 0,
+      "lastFullScan": "2026-03-02T15:24:27.967Z"
+    },
+    "Rachel Razi, NP": {
+      "providerType": "NP",
+      "licenses": [],
+      "statesSearched": 2,
+      "statesWithLicense": 0,
+      "lastFullScan": "2026-03-02T15:24:46.988Z"
+    },
+    "Summer Denny, NP": {
+      "providerType": "NP",
+      "licenses": [
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "RN9360075",
+          "licenseType": "RN",
+          "status": "Inactive",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:24:55.445Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "APRN11031615",
+          "licenseType": "RN",
+          "status": "Active",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:24:55.445Z",
+          "disciplineActions": false
+        }
+      ],
+      "statesSearched": 2,
+      "statesWithLicense": 2,
+      "lastFullScan": "2026-03-02T15:25:06.515Z"
+    },
+    "Terray Humphrey, NP": {
+      "providerType": "NP",
+      "licenses": [],
+      "statesSearched": 2,
+      "statesWithLicense": 0,
+      "lastFullScan": "2026-03-02T15:25:26.515Z"
+    },
+    "Tim Mack, NP": {
+      "providerType": "NP",
+      "licenses": [
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "RPT73460",
+          "licenseType": "RN",
+          "status": "Active",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:25:36.098Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "SA18295",
+          "licenseType": "RN",
+          "status": "Inactive",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:25:36.098Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": null,
+          "licenseType": "RN",
+          "status": "Active",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:25:36.098Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": null,
+          "licenseType": "RN",
+          "status": "Inactive",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:25:36.098Z",
+          "disciplineActions": false
+        }
+      ],
+      "statesSearched": 2,
+      "statesWithLicense": 4,
+      "lastFullScan": "2026-03-02T15:25:47.361Z"
+    },
+    "Vivien Lee, NP": {
+      "providerType": "NP",
+      "licenses": [],
+      "statesSearched": 2,
+      "statesWithLicense": 0,
+      "lastFullScan": "2026-03-02T15:26:25.760Z"
+    },
+    "Victor Lopez, NP": {
+      "providerType": "NP",
+      "licenses": [
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "RPT95405",
+          "licenseType": "RN",
+          "status": "Active",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:26:34.483Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "RPT49689",
+          "licenseType": "RN",
+          "status": "Inactive",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:26:34.483Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": null,
+          "licenseType": "RN",
+          "status": "Active",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:26:34.483Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "CNA233200",
+          "licenseType": "RN",
+          "status": "Inactive",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:26:34.483Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "APRN9221773",
+          "licenseType": "RN",
+          "status": "Active",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:26:34.483Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "RN9221773",
+          "licenseType": "RN",
+          "status": "Active",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:26:34.483Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "EMT586994",
+          "licenseType": "RN",
+          "status": "Active",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:26:34.483Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "CRT85005",
+          "licenseType": "RN",
+          "status": "Active",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:26:34.483Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": null,
+          "licenseType": "RN",
+          "status": "Active",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:26:34.483Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "RN9651384",
+          "licenseType": "RN",
+          "status": "Active",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:26:34.483Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "MA56435",
+          "licenseType": "RN",
+          "status": "Unknown",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:26:34.483Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "DR127918",
+          "licenseType": "RN",
+          "status": "Active",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:26:34.483Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "DH20421",
+          "licenseType": "RN",
+          "status": "Inactive",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:26:34.483Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "CNA185762",
+          "licenseType": "RN",
+          "status": "Unknown",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:26:34.483Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": null,
+          "licenseType": "RN",
+          "status": "Inactive",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:26:34.483Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "RN9465082",
+          "licenseType": "RN",
+          "status": "Active",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:26:34.483Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "TC50541",
+          "licenseType": "RN",
+          "status": "Inactive",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:26:34.483Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": null,
+          "licenseType": "RN",
+          "status": "Inactive",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:26:34.483Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": null,
+          "licenseType": "RN",
+          "status": "Inactive",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:26:34.483Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "TRN27500",
+          "licenseType": "RN",
+          "status": "Inactive",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:26:34.483Z",
+          "disciplineActions": false
+        }
+      ],
+      "statesSearched": 2,
+      "statesWithLicense": 20,
+      "lastFullScan": "2026-03-02T15:26:45.518Z"
+    },
+    "Camryn Burden, RN": {
+      "providerType": "RN",
+      "licenses": [
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "CNA376135",
+          "licenseType": "RN",
+          "status": "Active",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:26:53.940Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "RN9660348",
+          "licenseType": "RN",
+          "status": "Active",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:26:53.940Z",
+          "disciplineActions": false
+        }
+      ],
+      "statesSearched": 2,
+      "statesWithLicense": 2,
+      "lastFullScan": "2026-03-02T15:27:04.640Z"
+    },
+    "Alexis Foster-Horton, NP": {
+      "providerType": "NP",
+      "licenses": [],
+      "statesSearched": 2,
+      "statesWithLicense": 0,
+      "lastFullScan": "2026-03-02T15:27:23.769Z"
+    },
+    "Megan Ryan-Riffle, NP": {
+      "providerType": "NP",
+      "licenses": [],
+      "statesSearched": 2,
+      "statesWithLicense": 0,
+      "lastFullScan": "2026-03-02T15:27:42.722Z"
+    },
+    "Michele Foster, NP": {
+      "providerType": "NP",
+      "licenses": [
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "BMO103851",
+          "licenseType": "RN",
+          "status": "Active",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:27:51.178Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "CRT35278",
+          "licenseType": "RN",
+          "status": "Active",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:27:51.178Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "RN1618492",
+          "licenseType": "RN",
+          "status": "Inactive",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:27:51.178Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "RN9618492",
+          "licenseType": "RN",
+          "status": "Active",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:27:51.178Z",
+          "disciplineActions": false
+        }
+      ],
+      "statesSearched": 2,
+      "statesWithLicense": 4,
+      "lastFullScan": "2026-03-02T15:28:02.012Z"
+    },
+    "Danielle Board, NP": {
+      "providerType": "NP",
+      "licenses": [],
+      "statesSearched": 2,
+      "statesWithLicense": 0,
+      "lastFullScan": "2026-03-02T15:28:21.391Z"
+    },
+    "DeAnna Maher, NP": {
+      "providerType": "NP",
+      "licenses": [],
+      "statesSearched": 2,
+      "statesWithLicense": 0,
+      "lastFullScan": "2026-03-02T15:28:42.335Z"
+    },
+    "Skye Sauls, NP": {
+      "providerType": "NP",
+      "licenses": [
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "CNA251481",
+          "licenseType": "RN",
+          "status": "Inactive",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:29:10.685Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "RN9398137",
+          "licenseType": "RN",
+          "status": "Active",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:29:10.685Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "APRN11025749",
+          "licenseType": "RN",
+          "status": "Active",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:29:10.685Z",
+          "disciplineActions": false
+        }
+      ],
+      "statesSearched": 2,
+      "statesWithLicense": 3,
+      "lastFullScan": "2026-03-02T15:29:21.512Z"
+    },
+    "Brooklyn Kimble, RN": {
+      "providerType": "RN",
+      "licenses": [],
+      "statesSearched": 2,
+      "statesWithLicense": 0,
+      "lastFullScan": "2026-03-02T15:29:44.242Z"
+    },
+    "Daniel Fis, RN": {
+      "providerType": "RN",
+      "licenses": [
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": null,
+          "licenseType": "RN",
+          "status": "Inactive",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:29:52.682Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "PTA20165",
+          "licenseType": "RN",
+          "status": "Inactive",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:29:52.682Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "PTA34374",
+          "licenseType": "RN",
+          "status": "Active",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:29:52.682Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "EMT506665",
+          "licenseType": "RN",
+          "status": "Inactive",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:29:52.682Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "PMD517352",
+          "licenseType": "RN",
+          "status": "Active",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:29:52.682Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "ME15864",
+          "licenseType": "MD",
+          "status": "Inactive",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:29:52.682Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "ME17917",
+          "licenseType": "MD",
+          "status": "Inactive",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:29:52.682Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "OS16218",
+          "licenseType": "RN",
+          "status": "Active",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:29:52.682Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "CNA221910",
+          "licenseType": "RN",
+          "status": "Inactive",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:29:52.682Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "RN9373081",
+          "licenseType": "RN",
+          "status": "Inactive",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:29:52.682Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "RPT18925",
+          "licenseType": "RN",
+          "status": "Inactive",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:29:52.682Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": null,
+          "licenseType": "RN",
+          "status": "Active",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:29:52.682Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": null,
+          "licenseType": "RN",
+          "status": "Inactive",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:29:52.682Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": null,
+          "licenseType": "RN",
+          "status": "Inactive",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:29:52.682Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "EMT574316",
+          "licenseType": "RN",
+          "status": "Inactive",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:29:52.682Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": null,
+          "licenseType": "RN",
+          "status": "Inactive",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:29:52.682Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "RN9285776",
+          "licenseType": "RN",
+          "status": "Inactive",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:29:52.682Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "MH13042",
+          "licenseType": "RN",
+          "status": "Active",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:29:52.682Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": null,
+          "licenseType": "RN",
+          "status": "Inactive",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:29:52.682Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "ME162847",
+          "licenseType": "MD",
+          "status": "Active",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:29:52.682Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "NH",
+          "stateFullName": "New Hampshire",
+          "licenseNumber": "18331",
+          "licenseType": "APRN",
+          "status": "Active",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "New Hampshire Board",
+          "lastVerified": "2026-03-02T15:30:01.775Z",
+          "disciplineActions": false
+        }
+      ],
+      "statesSearched": 2,
+      "statesWithLicense": 21,
+      "lastFullScan": "2026-03-02T15:30:03.297Z"
+    },
+    "Bryce Hanley, RN": {
+      "providerType": "RN",
+      "licenses": [],
+      "statesSearched": 2,
+      "statesWithLicense": 0,
+      "lastFullScan": "2026-03-02T15:30:22.234Z"
+    },
+    "Shelby Bailey, RN": {
+      "providerType": "RN",
+      "licenses": [
+        {
+          "state": "NH",
+          "stateFullName": "New Hampshire",
+          "licenseNumber": "052423",
+          "licenseType": "APRN",
+          "status": "Active",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "New Hampshire Board",
+          "lastVerified": "2026-03-02T15:30:40.797Z",
+          "disciplineActions": false
+        }
+      ],
+      "statesSearched": 2,
+      "statesWithLicense": 1,
+      "lastFullScan": "2026-03-02T15:30:42.323Z"
+    },
+    "Brittany Alexander, RN": {
+      "providerType": "RN",
+      "licenses": [
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "CNA324455",
+          "licenseType": "RN",
+          "status": "Active",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:30:52.184Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "CNA290739",
+          "licenseType": "RN",
+          "status": "Inactive",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:30:52.184Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "CNA367063",
+          "licenseType": "RN",
+          "status": "Inactive",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:30:52.184Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "CNA188754",
+          "licenseType": "RN",
+          "status": "Inactive",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:30:52.184Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "MH15782",
+          "licenseType": "RN",
+          "status": "Active",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:30:52.184Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "IMH13566",
+          "licenseType": "RN",
+          "status": "Inactive",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:30:52.184Z",
+          "disciplineActions": false
+        }
+      ],
+      "statesSearched": 2,
+      "statesWithLicense": 6,
+      "lastFullScan": "2026-03-02T15:31:02.810Z"
+    },
+    "Lauren Dovin, RN": {
+      "providerType": "RN",
+      "licenses": [],
+      "statesSearched": 2,
+      "statesWithLicense": 0,
+      "lastFullScan": "2026-03-02T15:31:22.306Z"
+    },
+    "Catherine Herrington, MD": {
+      "providerType": "MD",
+      "licenses": [
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "ME162177",
+          "licenseType": "MD",
+          "status": "Active",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:21:55.900Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "PN633241",
+          "licenseType": "RN",
+          "status": "Unknown",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:21:55.900Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": null,
+          "licenseType": "RN",
+          "status": "Inactive",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:21:55.900Z",
+          "disciplineActions": false
+        }
+      ],
+      "statesSearched": 2,
+      "statesWithLicense": 3,
+      "lastFullScan": "2026-03-02T15:22:06.452Z"
+    },
+    "Doron Stember, MD": {
+      "providerType": "MD",
+      "licenses": [],
+      "statesSearched": 2,
+      "statesWithLicense": 0,
+      "lastFullScan": "2026-03-02T15:22:26.339Z"
+    },
+    "Tzvi Doron, DO": {
+      "providerType": "DO",
+      "licenses": [
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "OS12294",
+          "licenseType": "RN",
+          "status": "Active",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:25:55.896Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": null,
+          "licenseType": "RN",
+          "status": "Inactive",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-03-02T15:25:55.896Z",
+          "disciplineActions": false
+        }
+      ],
+      "statesSearched": 2,
+      "statesWithLicense": 2,
+      "lastFullScan": "2026-03-02T15:26:06.426Z"
+    },
+    "Ashley Escoe, NP": {
+      "providerType": "NP",
+      "licenses": [
+        {
+          "state": "NH",
+          "stateFullName": "New Hampshire",
+          "licenseNumber": "084878",
+          "licenseType": "APRN",
+          "status": "Active",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "New Hampshire Board",
+          "lastVerified": "2026-03-02T15:29:00.662Z",
+          "disciplineActions": false
+        }
+      ],
+      "statesSearched": 2,
+      "statesWithLicense": 1,
+      "lastFullScan": "2026-03-02T15:29:02.194Z"
+    }
+  },
+  "verificationStats": {
+    "totalProviders": 34,
+    "totalLicensesFound": 77,
+    "activeLicenses": 41,
+    "expiringWithin90Days": 0,
+    "manualEntries": 0,
+    "scrapedEntries": 77
+  }
+}

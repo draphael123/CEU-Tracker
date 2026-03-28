@@ -1,0 +1,229 @@
+{
+  "FL": {
+    "name": "Florida",
+    "autonomousAPRN": {
+      "description": "Florida Autonomous APRN Requirements (HB 607)",
+      "subjects": [
+        {
+          "name": "Pharmacology",
+          "pattern": "pharmaco",
+          "hoursRequired": 45,
+          "lookbackYears": 5
+        },
+        {
+          "name": "Differential Diagnosis",
+          "pattern": "differential|diagnosis",
+          "hoursRequired": 45,
+          "lookbackYears": 5
+        }
+      ]
+    },
+    "APRN": {
+      "description": "Florida APRN Standard Requirements",
+      "totalHours": 24,
+      "subjects": [
+        {
+          "name": "Controlled Substances Prescribing",
+          "pattern": "controlled.*(substance|prescrib)|opioid|pain.*(manag|prescrib)",
+          "hoursRequired": 3,
+          "lookbackYears": null
+        },
+        {
+          "name": "Human Trafficking",
+          "pattern": "human.*traffick|trafficking",
+          "hoursRequired": 2,
+          "lookbackYears": null
+        }
+      ]
+    },
+    "RN": {
+      "description": "Florida RN Requirements",
+      "totalHours": 24,
+      "subjects": [
+        {
+          "name": "Prevention of Medical Errors",
+          "pattern": "medical.*error|error.*prevent|patient.*safety",
+          "hoursRequired": 2,
+          "lookbackYears": null
+        },
+        {
+          "name": "Domestic Violence",
+          "pattern": "domestic.*violen|intimate.*partner|family.*violen",
+          "hoursRequired": 2,
+          "lookbackYears": null
+        },
+        {
+          "name": "Human Trafficking",
+          "pattern": "human.*traffick|trafficking",
+          "hoursRequired": 2,
+          "lookbackYears": null
+        },
+        {
+          "name": "HIV/AIDS",
+          "pattern": "hiv|aids|human.*immuno",
+          "hoursRequired": 1,
+          "lookbackYears": null
+        }
+      ]
+    }
+  },
+  "OH": {
+    "name": "Ohio",
+    "APRN": {
+      "description": "Ohio APRN Requirements",
+      "totalHours": 24,
+      "subjects": [
+        {
+          "name": "Advanced Pharmacology",
+          "pattern": "pharmaco",
+          "hoursRequired": 12,
+          "lookbackYears": null
+        },
+        {
+          "name": "Controlled Substance Prescribing",
+          "pattern": "controlled.*(substance|prescrib)|opioid",
+          "hoursRequired": 1,
+          "lookbackYears": null
+        }
+      ]
+    }
+  },
+  "MI": {
+    "name": "Michigan",
+    "RN": {
+      "description": "Michigan RN Requirements",
+      "totalHours": 25,
+      "subjects": [
+        {
+          "name": "Pain and Symptom Management",
+          "pattern": "pain.*(manag|symptom)|symptom.*manag",
+          "hoursRequired": 2,
+          "lookbackYears": null
+        },
+        {
+          "name": "Implicit Bias",
+          "pattern": "implicit.*bias|bias.*train",
+          "hoursRequired": 2,
+          "lookbackYears": null
+        }
+      ]
+    }
+  },
+  "NM": {
+    "name": "New Mexico",
+    "APRN": {
+      "description": "New Mexico APRN Requirements",
+      "totalHours": 30,
+      "subjects": [
+        {
+          "name": "Pharmacology/Pharmacotherapeutics",
+          "pattern": "pharmaco",
+          "hoursRequired": 10,
+          "lookbackYears": null
+        },
+        {
+          "name": "Opioid Prescribing",
+          "pattern": "opioid|controlled.*(substance|prescrib)|pain.*prescrib",
+          "hoursRequired": 3,
+          "lookbackYears": null
+        }
+      ]
+    }
+  },
+  "TX": {
+    "name": "Texas",
+    "APRN": {
+      "description": "Texas APRN Requirements",
+      "totalHours": 20,
+      "subjects": [
+        {
+          "name": "Pharmacotherapeutics",
+          "pattern": "pharmaco|pharmacotherap",
+          "hoursRequired": 5,
+          "lookbackYears": null
+        }
+      ]
+    },
+    "RN": {
+      "description": "Texas RN Requirements",
+      "totalHours": 20,
+      "subjects": [
+        {
+          "name": "Nursing Jurisprudence & Ethics",
+          "pattern": "jurisprud|ethics|legal.*nurs",
+          "hoursRequired": 2,
+          "lookbackYears": null
+        }
+      ]
+    }
+  },
+  "NY": {
+    "name": "New York",
+    "NP": {
+      "description": "New York NP Requirements",
+      "totalHours": 30,
+      "subjects": [
+        {
+          "name": "Infection Control",
+          "pattern": "infection.*control|infect.*prevent",
+          "hoursRequired": 4,
+          "lookbackYears": 4
+        },
+        {
+          "name": "Child Abuse Identification",
+          "pattern": "child.*abuse|abuse.*identif|maltreat",
+          "hoursRequired": 2,
+          "lookbackYears": null
+        }
+      ]
+    },
+    "RN": {
+      "description": "New York RN Requirements",
+      "totalHours": 3,
+      "subjects": [
+        {
+          "name": "Infection Control",
+          "pattern": "infection.*control|infect.*prevent",
+          "hoursRequired": 4,
+          "lookbackYears": 4
+        },
+        {
+          "name": "Child Abuse Identification",
+          "pattern": "child.*abuse|abuse.*identif|maltreat",
+          "hoursRequired": 2,
+          "lookbackYears": null
+        }
+      ]
+    }
+  },
+  "NH": {
+    "name": "New Hampshire",
+    "APRN": {
+      "description": "New Hampshire APRN Requirements",
+      "totalHours": 30,
+      "subjects": [
+        {
+          "name": "Pharmacology",
+          "pattern": "pharmaco",
+          "hoursRequired": 8,
+          "lookbackYears": null
+        }
+      ]
+    }
+  },
+  "_AANPCB": {
+    "name": "AANPCB National Certification",
+    "NP": {
+      "description": "AANP Certification Board Recertification",
+      "totalHours": 100,
+      "subjects": [
+        {
+          "name": "Pharmacology",
+          "pattern": "pharmaco",
+          "hoursRequired": 25,
+          "lookbackYears": 5
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,275 @@
+{
+  "timestamp": "2026-03-28T02:47:57.124Z",
+  "results": [
+    {
+      "providerName": "Ashley Grout, NP",
+      "platform": "AANP Cert",
+      "status": "success",
+      "hoursEarned": null,
+      "totalSpent": null,
+      "courseCount": 0,
+      "orderCount": 0
+    },
+    {
+      "providerName": "Bill Carbonneau, NP",
+      "platform": "NetCE",
+      "status": "success",
+      "hoursEarned": 220,
+      "totalSpent": 1329,
+      "courseCount": 42,
+      "orderCount": 12
+    },
+    {
+      "providerName": "Bryana Anderson, NP",
+      "platform": "AANP Cert",
+      "status": "success",
+      "hoursEarned": 287.5,
+      "totalSpent": null,
+      "courseCount": 100,
+      "orderCount": 0
+    },
+    {
+      "providerName": "Bryana Anderson, NP",
+      "platform": "NetCE",
+      "status": "success",
+      "hoursEarned": 259.5,
+      "totalSpent": 1641,
+      "courseCount": 48,
+      "orderCount": 23
+    },
+    {
+      "providerName": "Bryce Amos, NP",
+      "platform": "AANP Cert",
+      "status": "success",
+      "hoursEarned": null,
+      "totalSpent": null,
+      "courseCount": 0,
+      "orderCount": 0
+    },
+    {
+      "providerName": "Bryce Amos, NP",
+      "platform": "CEUfast",
+      "status": "success",
+      "hoursEarned": null,
+      "totalSpent": null,
+      "courseCount": 0,
+      "orderCount": 0
+    },
+    {
+      "providerName": "Doron Stember, MD",
+      "platform": "NetCE",
+      "status": "success",
+      "hoursEarned": 206,
+      "totalSpent": 4097.2300000000005,
+      "courseCount": 37,
+      "orderCount": 57
+    },
+    {
+      "providerName": "Hilary Morgan, RN",
+      "platform": "NetCE",
+      "status": "success",
+      "hoursEarned": null,
+      "totalSpent": null,
+      "courseCount": 0,
+      "orderCount": 0
+    },
+    {
+      "providerName": "Lindsay Burden, NP",
+      "platform": "CEUfast",
+      "status": "success",
+      "hoursEarned": null,
+      "totalSpent": null,
+      "courseCount": 0,
+      "orderCount": 0
+    },
+    {
+      "providerName": "Lindsay Burden, NP",
+      "platform": "AANP Cert",
+      "status": "success",
+      "hoursEarned": 102,
+      "totalSpent": null,
+      "courseCount": 41,
+      "orderCount": 0
+    },
+    {
+      "providerName": "Liz Gloor, NP",
+      "platform": "AANP Cert",
+      "status": "success",
+      "hoursEarned": 101.41,
+      "totalSpent": null,
+      "courseCount": 3,
+      "orderCount": 0
+    },
+    {
+      "providerName": "Liz Gloor, NP",
+      "platform": "AANP Cert",
+      "status": "success",
+      "hoursEarned": null,
+      "totalSpent": null,
+      "courseCount": 0,
+      "orderCount": 0
+    },
+    {
+      "providerName": "Mackinzie Johnson, RN",
+      "platform": "NetCE",
+      "status": "success",
+      "hoursEarned": 21,
+      "totalSpent": 432,
+      "courseCount": 7,
+      "orderCount": 10
+    },
+    {
+      "providerName": "Martin Van Dongen, NP",
+      "platform": "AANP Cert",
+      "status": "success",
+      "hoursEarned": 119,
+      "totalSpent": null,
+      "courseCount": 11,
+      "orderCount": 0
+    },
+    {
+      "providerName": "Martin Van Dongen, NP",
+      "platform": "CEUfast",
+      "status": "success",
+      "hoursEarned": null,
+      "totalSpent": null,
+      "courseCount": 0,
+      "orderCount": 0
+    },
+    {
+      "providerName": "Martin Van Dongen, NP",
+      "platform": "NetCE",
+      "status": "success",
+      "hoursEarned": 61,
+      "totalSpent": 375.29999999999995,
+      "courseCount": 10,
+      "orderCount": 3
+    },
+    {
+      "providerName": "Rachel Razi, NP",
+      "platform": "AANP Cert",
+      "status": "success",
+      "hoursEarned": null,
+      "totalSpent": null,
+      "courseCount": 0,
+      "orderCount": 0
+    },
+    {
+      "providerName": "Summer Denny, NP",
+      "platform": "AANP Cert",
+      "status": "success",
+      "hoursEarned": 107.1,
+      "totalSpent": null,
+      "courseCount": 13,
+      "orderCount": 0
+    },
+    {
+      "providerName": "Terray Humphrey, NP",
+      "platform": "NetCE",
+      "status": "success",
+      "hoursEarned": 281,
+      "totalSpent": 1652.8500000000001,
+      "courseCount": 32,
+      "orderCount": 29
+    },
+    {
+      "providerName": "Tim Mack, NP",
+      "platform": "AANP Cert",
+      "status": "success",
+      "hoursEarned": 135.67,
+      "totalSpent": null,
+      "courseCount": 19,
+      "orderCount": 0
+    },
+    {
+      "providerName": "Tim Mack, NP",
+      "platform": "NetCE",
+      "status": "success",
+      "hoursEarned": 215.5,
+      "totalSpent": 1356,
+      "courseCount": 30,
+      "orderCount": 12
+    },
+    {
+      "providerName": "Tzvi Doron, DO",
+      "platform": "NetCE",
+      "status": "success",
+      "hoursEarned": 89,
+      "totalSpent": 1767.0299999999997,
+      "courseCount": 26,
+      "orderCount": 68
+    },
+    {
+      "providerName": "Vivien Lee, NP",
+      "platform": "NetCE",
+      "status": "success",
+      "hoursEarned": 40,
+      "totalSpent": 276,
+      "courseCount": 7,
+      "orderCount": 6
+    },
+    {
+      "providerName": "Victor Lopez, NP",
+      "platform": "CEUfast",
+      "status": "success",
+      "hoursEarned": null,
+      "totalSpent": null,
+      "courseCount": 0,
+      "orderCount": 0
+    },
+    {
+      "providerName": "Camryn Burden, RN",
+      "platform": "ExclamationCE",
+      "status": "success",
+      "hoursEarned": null,
+      "totalSpent": null,
+      "courseCount": 0,
+      "orderCount": 0
+    },
+    {
+      "providerName": "Alexis Foster-Horton, NP",
+      "platform": "NetCE",
+      "status": "success",
+      "hoursEarned": 31.8,
+      "totalSpent": 156,
+      "courseCount": 25,
+      "orderCount": 3
+    },
+    {
+      "providerName": "Michele Foster, NP",
+      "platform": "Nursing CE Central",
+      "status": "success",
+      "hoursEarned": null,
+      "totalSpent": null,
+      "courseCount": 0,
+      "orderCount": 0
+    },
+    {
+      "providerName": "Skye Sauls, NP",
+      "platform": "CEUfast",
+      "status": "success",
+      "hoursEarned": null,
+      "totalSpent": null,
+      "courseCount": 0,
+      "orderCount": 0
+    },
+    {
+      "providerName": "Skye Sauls, NP",
+      "platform": "NetCE",
+      "status": "success",
+      "hoursEarned": 263,
+      "totalSpent": 1018.65,
+      "courseCount": 52,
+      "orderCount": 22
+    },
+    {
+      "providerName": "Shelby Bailey, RN",
+      "platform": "CEUfast",
+      "status": "success",
+      "hoursEarned": null,
+      "totalSpent": null,
+      "courseCount": 0,
+      "orderCount": 0
+    }
+  ]
+}
