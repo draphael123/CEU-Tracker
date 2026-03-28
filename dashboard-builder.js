@@ -6,6 +6,7 @@ const { daysUntil, parseDate, getStatus, courseSearchUrl, calculateSubjectHoursW
 const { getHealthSummary } = require('./credential-health');
 const { loadCosts, calculateAllProviderSpending, calculateRolling12MonthSpending } = require('./cost-utils');
 const { getAllUpdates } = require('./change-detector');
+const { getAllProviders } = require('./credentials-loader');
 
 // ─── Platform Registry ────────────────────────────────────────────────────────
 
@@ -221,8 +222,8 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
   const runDate = new Date().toLocaleString('en-US', { dateStyle: 'full', timeStyle: 'short' });
   const runIso  = new Date().toISOString();
 
-  // Load providers.json early for credential checks
-  const providers = require('./providers.json');
+  // Load providers early for credential checks
+  const providers = getAllProviders();
   const noCredentialsProviders = providers.filter(p => p.noCredentials === true).map(p => p.name);
 
   // ── Get credential health summary ─────────────────────────────────────────

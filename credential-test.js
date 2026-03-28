@@ -8,8 +8,9 @@ const path = require('path');
 const { chromium } = require('playwright');
 const { logger, sleep } = require('./utils');
 const { recordSuccess, recordFailure, getHealthSummary } = require('./credential-health');
+const { getAllProviders } = require('./credentials-loader');
 
-const providers = require('./providers.json');
+const providers = getAllProviders();
 
 // ─── Platform Registry ────────────────────────────────────────────────────────
 

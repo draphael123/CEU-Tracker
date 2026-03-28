@@ -3,6 +3,10 @@
 
 'use strict';
 
+// Initialize Sentry first (before other imports)
+const { initSentry, captureError, addBreadcrumb, flush } = require('./sentry');
+initSentry();
+
 const fs        = require('fs');
 const path      = require('path');
 const { execSync } = require('child_process');
@@ -11,94 +15,148 @@ const { runPlatformScrapers } = require('./platform-scrapers');
 const { runLicenseVerification } = require('./license-scraper');
 const { buildReport } = require('./exporter');
 const { buildDashboard } = require('./dashboard-builder');
-const { logger, randomDelay, printSummary, ensureScreenshotsDir } = require('./utils');
+const { logger, randomDelay, printSummary, ensureScreenshotsDir, cleanupOldScreenshots } = require('./utils');
 const { runChangeDetection } = require('./change-detector');
+const { getAllProviders } = require('./credentials-loader');
 
-// ─── Load Providers ──────────────────────────────────────────────────────────
-const providers = require('./providers.json');
+// ─── Load Providers (from secure credentials source) ─────────────────────────
+const providers = getAllProviders();
+
+// ─── Parallel Processing Configuration ────────────────────────────────────────
+const CONCURRENCY = parseInt(process.env.SCRAPER_CONCURRENCY, 10) || 5;
+
+/**
+ * Process a single provider (login + scrape)
+ * Returns { result, records } for aggregation
+ */
+async function processProvider(browser, provider, index, total) {
+  logger.info(`[${index + 1}/${total}] Processing: ${provider.name}`);
+
+  // Check if CE Broker credentials are configured
+  const hasCEBrokerCreds = provider.username && provider.password;
+
+  if (!hasCEBrokerCreds) {
+    logger.info(`${provider.name}: No CE Broker credentials configured (platform-only)`);
+    return {
+      result: { name: provider.name, status: 'not_configured' },
+      records: [{
+        providerName:    provider.name,
+        providerType:    provider.type,
+        state:           null,
+        licenseType:     provider.type,
+        renewalDeadline: null,
+        hoursRequired:   null,
+        hoursCompleted:  null,
+        hoursRemaining:  null,
+        lastUpdated:     null,
+        subjectAreas:    [],
+      }]
+    };
+  }
+
+  let page = null;
+  try {
+    // Login
+    page = await loginProvider(browser, provider);
+
+    // Scrape
+    const records = await scrapeLicenseData(page, provider);
+
+    const licSummary = records.map((r) =>
+      `${r.state || '??'} — ${r.hoursCompleted ?? '?'}/${r.hoursRequired ?? '?'} hrs`
+    ).join(', ');
+    logger.success(`${provider.name}: ${licSummary}`);
+
+    return {
+      result: { name: provider.name, status: 'success' },
+      records
+    };
+
+  } catch (err) {
+    logger.error(`Login error for ${provider.name}: ${err.message}`);
+
+    // Send to Sentry with context
+    captureError(err, {
+      provider: provider.name,
+      operation: 'ce_broker_scrape',
+      providerType: provider.type,
+    });
+
+    return {
+      result: { name: provider.name, status: 'login_error', error: err.message },
+      records: [{
+        providerName:    provider.name,
+        providerType:    provider.type,
+        state:           null,
+        licenseType:     provider.type,
+        renewalDeadline: null,
+        hoursRequired:   null,
+        hoursCompleted:  null,
+        hoursRemaining:  null,
+        lastUpdated:     null,
+        subjectAreas:    [],
+      }]
+    };
+
+  } finally {
+    if (page) await closePage(page);
+  }
+}
+
+/**
+ * Process providers in parallel batches
+ */
+async function processProvidersInParallel(browser, providers, concurrency) {
+  const allResults = [];
+  const allRecords = [];
+  const total = providers.length;
+
+  // Process in batches
+  for (let i = 0; i < providers.length; i += concurrency) {
+    const batch = providers.slice(i, i + concurrency);
+    const batchNum = Math.floor(i / concurrency) + 1;
+    const totalBatches = Math.ceil(providers.length / concurrency);
+
+    logger.info(`\n── Batch ${batchNum}/${totalBatches} (${batch.length} providers) ──────────────────`);
+
+    // Process batch in parallel
+    const batchPromises = batch.map((provider, batchIndex) =>
+      processProvider(browser, provider, i + batchIndex, total)
+    );
+
+    const batchResults = await Promise.all(batchPromises);
+
+    // Aggregate results
+    for (const { result, records } of batchResults) {
+      allResults.push(result);
+      allRecords.push(records);
+    }
+
+    // Delay between batches (skip after the last batch)
+    if (i + concurrency < providers.length) {
+      logger.info('Waiting between batches...');
+      await randomDelay(2000, 4000);
+    }
+  }
+
+  return { allResults, allRecords };
+}
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 async function main() {
   console.log('\n' + '═'.repeat(60));
   console.log('  CE Broker CEU Tracker — Starting Run');
   console.log(`  Providers to process: ${providers.length}`);
+  console.log(`  Parallel concurrency: ${CONCURRENCY}`);
   console.log('═'.repeat(60) + '\n');
 
   ensureScreenshotsDir();
+  cleanupOldScreenshots(7); // Clean up screenshots older than 7 days
 
   const browser = await launchBrowser();
-  const allResults = [];     // { name, status, error? }
-  const allRecords = [];     // LicenseRecord[][] per provider
 
-  for (let i = 0; i < providers.length; i++) {
-    const provider = providers[i];
-    logger.info(`\n[${i + 1}/${providers.length}] Processing: ${provider.name}`);
-
-    // ── Check if CE Broker credentials are configured ───────────────────────
-    const hasCEBrokerCreds = provider.username && provider.password;
-
-    if (!hasCEBrokerCreds) {
-      logger.info(`${provider.name}: No CE Broker credentials configured (platform-only)`);
-      allResults.push({ name: provider.name, status: 'not_configured' });
-      allRecords.push([{
-        providerName:    provider.name,
-        providerType:    provider.type,
-        state:           null,
-        licenseType:     provider.type,
-        renewalDeadline: null,
-        hoursRequired:   null,
-        hoursCompleted:  null,
-        hoursRemaining:  null,
-        lastUpdated:     null,
-        subjectAreas:    [],
-      }]);
-      continue;
-    }
-
-    let page = null;
-    try {
-      // ── Login ──────────────────────────────────────────────────────────────
-      page = await loginProvider(browser, provider);
-
-      // ── Scrape ────────────────────────────────────────────────────────────
-      const records = await scrapeLicenseData(page, provider);
-      allRecords.push(records);
-
-      const licSummary = records.map((r) =>
-        `${r.state || '??'} — ${r.hoursCompleted ?? '?'}/${r.hoursRequired ?? '?'} hrs`
-      ).join(', ');
-      logger.success(`${provider.name}: ${licSummary}`);
-
-      allResults.push({ name: provider.name, status: 'success' });
-
-    } catch (err) {
-      logger.error(`Login error for ${provider.name}: ${err.message}`);
-      allResults.push({ name: provider.name, status: 'login_error', error: err.message });
-
-      // Push an empty placeholder so the export still shows the provider
-      allRecords.push([{
-        providerName:    provider.name,
-        providerType:    provider.type,
-        state:           null,
-        licenseType:     provider.type,
-        renewalDeadline: null,
-        hoursRequired:   null,
-        hoursCompleted:  null,
-        hoursRemaining:  null,
-        lastUpdated:     null,
-        subjectAreas:    [],
-      }]);
-
-    } finally {
-      // Always close the page/context to free memory
-      if (page) await closePage(page);
-    }
-
-    // ── Delay between logins (skip after the last provider) ───────────────
-    if (i < providers.length - 1) {
-      await randomDelay(3000, 7000);
-    }
-  }
+  // Process all providers in parallel batches
+  const { allResults, allRecords } = await processProvidersInParallel(browser, providers, CONCURRENCY);
 
   // ── Platform scrapers (CEUfast, AANP Cert, NetCE) ─────────────────────────
   let platformData = [];
@@ -203,8 +261,18 @@ async function main() {
   }
 }
 
-main().catch((err) => {
-  logger.error(`Fatal error: ${err.message}`);
-  console.error(err);
-  process.exit(1);
-});
+main()
+  .then(async () => {
+    // Flush Sentry events before exit
+    await flush();
+  })
+  .catch(async (err) => {
+    logger.error(`Fatal error: ${err.message}`);
+    console.error(err);
+
+    // Capture and flush before exit
+    captureError(err, { operation: 'main', fatal: true });
+    await flush();
+
+    process.exit(1);
+  });

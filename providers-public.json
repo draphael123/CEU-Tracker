@@ -1,0 +1,320 @@
+[
+  {
+    "name": "Ashley Grout, NP",
+    "type": "NP",
+    "email": null,
+    "hasCEBrokerCreds": true,
+    "noCredentials": false,
+    "platforms": [
+      "AANP Cert"
+    ]
+  },
+  {
+    "name": "Bill Carbonneau, NP",
+    "type": "NP",
+    "email": null,
+    "hasCEBrokerCreds": true,
+    "noCredentials": false,
+    "platforms": [
+      "NetCE"
+    ]
+  },
+  {
+    "name": "Bryana Anderson, NP",
+    "type": "NP",
+    "email": null,
+    "hasCEBrokerCreds": true,
+    "noCredentials": false,
+    "platforms": [
+      "AANP Cert",
+      "NetCE"
+    ]
+  },
+  {
+    "name": "Bryce Amos, NP",
+    "type": "NP",
+    "email": null,
+    "hasCEBrokerCreds": true,
+    "noCredentials": false,
+    "platforms": [
+      "AANP Cert",
+      "CEUfast"
+    ]
+  },
+  {
+    "name": "Catherine Herrington, MD",
+    "type": "MD",
+    "email": null,
+    "hasCEBrokerCreds": true,
+    "noCredentials": false,
+    "platforms": []
+  },
+  {
+    "name": "Doron Stember, MD",
+    "type": "MD",
+    "email": null,
+    "hasCEBrokerCreds": true,
+    "noCredentials": false,
+    "platforms": [
+      "NetCE"
+    ]
+  },
+  {
+    "name": "Hilary Morgan, RN",
+    "type": "RN",
+    "email": null,
+    "hasCEBrokerCreds": false,
+    "noCredentials": false,
+    "platforms": [
+      "NetCE"
+    ]
+  },
+  {
+    "name": "Lindsay Burden, NP",
+    "type": "NP",
+    "email": "linds01tahoe@gmail.com",
+    "hasCEBrokerCreds": true,
+    "noCredentials": false,
+    "platforms": [
+      "CEUfast",
+      "AANP Cert"
+    ]
+  },
+  {
+    "name": "Liz Gloor, NP",
+    "type": "NP",
+    "email": null,
+    "hasCEBrokerCreds": false,
+    "noCredentials": false,
+    "platforms": [
+      "AANP Cert",
+      "AANP Cert"
+    ]
+  },
+  {
+    "name": "Mackinzie Johnson, RN",
+    "type": "RN",
+    "email": null,
+    "hasCEBrokerCreds": false,
+    "noCredentials": false,
+    "platforms": [
+      "NetCE"
+    ]
+  },
+  {
+    "name": "Martin Van Dongen, NP",
+    "type": "NP",
+    "email": null,
+    "hasCEBrokerCreds": true,
+    "noCredentials": false,
+    "platforms": [
+      "AANP Cert",
+      "CEUfast",
+      "NetCE"
+    ]
+  },
+  {
+    "name": "Priya Chaudhari, NP",
+    "type": "NP",
+    "email": null,
+    "hasCEBrokerCreds": true,
+    "noCredentials": false,
+    "platforms": []
+  },
+  {
+    "name": "Rachel Razi, NP",
+    "type": "NP",
+    "email": null,
+    "hasCEBrokerCreds": false,
+    "noCredentials": false,
+    "platforms": [
+      "AANP Cert"
+    ]
+  },
+  {
+    "name": "Summer Denny, NP",
+    "type": "NP",
+    "email": null,
+    "hasCEBrokerCreds": true,
+    "noCredentials": false,
+    "platforms": [
+      "AANP Cert"
+    ]
+  },
+  {
+    "name": "Terray Humphrey, NP",
+    "type": "NP",
+    "email": null,
+    "hasCEBrokerCreds": false,
+    "noCredentials": false,
+    "platforms": [
+      "NetCE"
+    ]
+  },
+  {
+    "name": "Tim Mack, NP",
+    "type": "NP",
+    "email": null,
+    "hasCEBrokerCreds": true,
+    "noCredentials": false,
+    "platforms": [
+      "AANP Cert",
+      "NetCE"
+    ]
+  },
+  {
+    "name": "Tzvi Doron, DO",
+    "type": "DO",
+    "email": null,
+    "hasCEBrokerCreds": false,
+    "noCredentials": false,
+    "platforms": [
+      "NetCE"
+    ]
+  },
+  {
+    "name": "Vivien Lee, NP",
+    "type": "NP",
+    "email": null,
+    "hasCEBrokerCreds": false,
+    "noCredentials": false,
+    "platforms": [
+      "NetCE"
+    ]
+  },
+  {
+    "name": "Victor Lopez, NP",
+    "type": "NP",
+    "email": null,
+    "hasCEBrokerCreds": false,
+    "noCredentials": false,
+    "platforms": [
+      "CEUfast"
+    ]
+  },
+  {
+    "name": "Camryn Burden, RN",
+    "type": "RN",
+    "email": null,
+    "hasCEBrokerCreds": false,
+    "noCredentials": false,
+    "platforms": [
+      "ExclamationCE"
+    ]
+  },
+  {
+    "name": "Alexis Foster-Horton, NP",
+    "type": "NP",
+    "email": null,
+    "hasCEBrokerCreds": false,
+    "noCredentials": false,
+    "platforms": [
+      "NetCE"
+    ]
+  },
+  {
+    "name": "Megan Ryan-Riffle, NP",
+    "type": "NP",
+    "email": null,
+    "hasCEBrokerCreds": false,
+    "noCredentials": true,
+    "platforms": []
+  },
+  {
+    "name": "Michele Foster, NP",
+    "type": "NP",
+    "email": null,
+    "hasCEBrokerCreds": false,
+    "noCredentials": false,
+    "platforms": [
+      "Nursing CE Central"
+    ]
+  },
+  {
+    "name": "Danielle Board, NP",
+    "type": "NP",
+    "email": null,
+    "hasCEBrokerCreds": false,
+    "noCredentials": true,
+    "platforms": []
+  },
+  {
+    "name": "DeAnna Maher, NP",
+    "type": "NP",
+    "email": null,
+    "hasCEBrokerCreds": false,
+    "noCredentials": false,
+    "platforms": [
+      "Nursece4less"
+    ]
+  },
+  {
+    "name": "Ashley Escoe, NP",
+    "type": "NP",
+    "email": null,
+    "hasCEBrokerCreds": false,
+    "noCredentials": true,
+    "platforms": []
+  },
+  {
+    "name": "Skye Sauls, NP",
+    "type": "NP",
+    "email": null,
+    "hasCEBrokerCreds": false,
+    "noCredentials": false,
+    "platforms": [
+      "CEUfast",
+      "NetCE"
+    ]
+  },
+  {
+    "name": "Brooklyn Kimble, RN",
+    "type": "RN",
+    "email": null,
+    "hasCEBrokerCreds": false,
+    "noCredentials": true,
+    "platforms": []
+  },
+  {
+    "name": "Daniel Fis, RN",
+    "type": "RN",
+    "email": null,
+    "hasCEBrokerCreds": false,
+    "noCredentials": true,
+    "platforms": []
+  },
+  {
+    "name": "Bryce Hanley, RN",
+    "type": "RN",
+    "email": null,
+    "hasCEBrokerCreds": true,
+    "noCredentials": false,
+    "platforms": []
+  },
+  {
+    "name": "Shelby Bailey, RN",
+    "type": "RN",
+    "email": null,
+    "hasCEBrokerCreds": false,
+    "noCredentials": false,
+    "platforms": [
+      "CEUfast"
+    ]
+  },
+  {
+    "name": "Brittany Alexander, RN",
+    "type": "RN",
+    "email": null,
+    "hasCEBrokerCreds": false,
+    "noCredentials": true,
+    "platforms": []
+  },
+  {
+    "name": "Lauren Dovin, RN",
+    "type": "RN",
+    "email": null,
+    "hasCEBrokerCreds": false,
+    "noCredentials": true,
+    "platforms": []
+  }
+]

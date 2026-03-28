@@ -2607,6 +2607,20 @@
   "Summer Denny, NP": {
     "courses": [
       {
+        "date": "2026-03-27",
+        "name": "Ancc approved - screening and brief interventions for substance use in nursing",
+        "hours": 10,
+        "state": "Ohio",
+        "scrapedAt": "2026-03-28"
+      },
+      {
+        "date": "2026-03-27",
+        "name": "Ancc approved - screening and brief interventions for substance use in nursing",
+        "hours": 2,
+        "state": "Ohio",
+        "scrapedAt": "2026-03-28"
+      },
+      {
         "date": "2026-02-19",
         "name": "To upload your national certification click \"additional options\" above this line, select the ce cycle, and select your current dea status.",
         "hours": 2,
@@ -2647,6 +2661,13 @@
         "hours": 9.25,
         "state": "New Mexico",
         "scrapedAt": "2026-03-01"
+      },
+      {
+        "date": "2026-02-19",
+        "name": "Ancc approved - screening and brief interventions for substance use in nursing",
+        "hours": 2,
+        "state": "Ohio",
+        "scrapedAt": "2026-03-20"
       },
       {
         "date": "2023-10-16",
@@ -2755,8 +2776,8 @@
     ],
     "deadlines": [
       {
-        "date": "2027-09-30",
-        "state": "New Mexico",
+        "date": "2027-10-31",
+        "state": "Ohio",
         "licenseType": "NP"
       }
     ],
@@ -2764,6 +2785,203 @@
   },
   "Tim Mack, NP": {
     "courses": [
+      {
+        "date": "2026-03-25",
+        "name": "Pain Management Pearls: Opioids and Culture",
+        "hours": 2,
+        "platform": "NetCE",
+        "cost": null,
+        "scrapedAt": "2026-03-26"
+      },
+      {
+        "date": "2026-03-23",
+        "name": "Non-cancer pain management for new mexico advanced practice nurses",
+        "hours": 5,
+        "state": "New Mexico",
+        "scrapedAt": "2026-03-24"
+      },
+      {
+        "date": "2026-03-23",
+        "name": "Non-cancer pain management for new mexico advanced practice nurses",
+        "hours": 6,
+        "state": "New Mexico",
+        "scrapedAt": "2026-03-24"
+      },
+      {
+        "date": "2026-03-23",
+        "name": "Non-cancer pain management for new mexico advanced practice nurses",
+        "hours": 3,
+        "state": "New Mexico",
+        "scrapedAt": "2026-03-24"
+      },
+      {
+        "date": "2026-03-23",
+        "name": "Non-cancer pain management for new mexico advanced practice nurses",
+        "hours": 15,
+        "state": "New Mexico",
+        "scrapedAt": "2026-03-24"
+      },
+      {
+        "date": "2026-03-23",
+        "name": "Non-cancer pain management for new mexico advanced practice nurses",
+        "hours": 10,
+        "state": "New Mexico",
+        "scrapedAt": "2026-03-24"
+      },
+      {
+        "date": "2026-03-22",
+        "name": "To upload your national certification click \"additional options\" above this line, select the ce cycle, and select your current dea status.",
+        "hours": 3,
+        "state": "New Mexico",
+        "scrapedAt": "2026-03-23"
+      },
+      {
+        "date": "2026-03-22",
+        "name": "To upload your national certification click \"additional options\" above this line, select the ce cycle, and select your current dea status.",
+        "hours": 15,
+        "state": "New Mexico",
+        "scrapedAt": "2026-03-23"
+      },
+      {
+        "date": "2026-03-22",
+        "name": "To upload your national certification click \"additional options\" above this line, select the ce cycle, and select your current dea status.",
+        "hours": 5,
+        "state": "New Mexico",
+        "scrapedAt": "2026-03-23"
+      },
+      {
+        "date": "2026-03-22",
+        "name": "To upload your national certification click \"additional options\" above this line, select the ce cycle, and select your current dea status.",
+        "hours": 10,
+        "state": "New Mexico",
+        "scrapedAt": "2026-03-23"
+      },
+      {
+        "date": "2026-03-22",
+        "name": "To upload your national certification click \"additional options\" above this line, select the ce cycle, and select your current dea status.",
+        "hours": 24,
+        "state": "New Mexico",
+        "scrapedAt": "2026-03-23"
+      },
+      {
+        "date": "2026-03-22",
+        "name": "To upload your national certification click \"additional options\" above this line, select the ce cycle, and select your current dea status.",
+        "hours": 100,
+        "state": "New Mexico",
+        "scrapedAt": "2026-03-23"
+      },
+      {
+        "date": "2026-03-22",
+        "name": "To upload your national certification click \"additional options\" above this line, select the ce cycle, and select your current dea status.",
+        "hours": 9,
+        "state": "New Mexico",
+        "scrapedAt": "2026-03-23"
+      },
+      {
+        "date": "2026-03-22",
+        "name": "Health Issues Distinctive to Women",
+        "hours": 15,
+        "platform": "NetCE",
+        "cost": null,
+        "scrapedAt": "2026-03-23"
+      },
+      {
+        "date": "2026-03-22",
+        "name": "Communication and Soft Skills in Nursing Practice",
+        "hours": 3,
+        "platform": "NetCE",
+        "cost": null,
+        "scrapedAt": "2026-03-23"
+      },
+      {
+        "date": "2026-03-22",
+        "name": "Low Back Pain",
+        "hours": 15,
+        "platform": "NetCE",
+        "cost": null,
+        "scrapedAt": "2026-03-23"
+      },
+      {
+        "date": "2026-03-22",
+        "name": "Men's Health Issues",
+        "hours": 15,
+        "platform": "NetCE",
+        "cost": null,
+        "scrapedAt": "2026-03-23"
+      },
+      {
+        "date": "2026-03-20",
+        "name": "Supplements for Aging",
+        "hours": 5,
+        "platform": "NetCE",
+        "cost": null,
+        "scrapedAt": "2026-03-20"
+      },
+      {
+        "date": "2026-03-20",
+        "name": "Asthma: Diagnosis and Management",
+        "hours": 10,
+        "platform": "NetCE",
+        "cost": null,
+        "scrapedAt": "2026-03-20"
+      },
+      {
+        "date": "2026-03-20",
+        "name": "Pathophysiology: The Hematologic System",
+        "hours": 15,
+        "platform": "NetCE",
+        "cost": null,
+        "scrapedAt": "2026-03-20"
+      },
+      {
+        "date": "2026-03-20",
+        "name": "To upload your national certification click \"additional options\" above this line, select the ce cycle, and select your current dea status.",
+        "hours": 5,
+        "state": "New Mexico",
+        "scrapedAt": "2026-03-22"
+      },
+      {
+        "date": "2026-03-20",
+        "name": "To upload your national certification click \"additional options\" above this line, select the ce cycle, and select your current dea status.",
+        "hours": 10,
+        "state": "New Mexico",
+        "scrapedAt": "2026-03-22"
+      },
+      {
+        "date": "2026-03-20",
+        "name": "To upload your national certification click \"additional options\" above this line, select the ce cycle, and select your current dea status.",
+        "hours": 15,
+        "state": "New Mexico",
+        "scrapedAt": "2026-03-22"
+      },
+      {
+        "date": "2026-03-20",
+        "name": "To upload your national certification click \"additional options\" above this line, select the ce cycle, and select your current dea status.",
+        "hours": 24,
+        "state": "New Mexico",
+        "scrapedAt": "2026-03-22"
+      },
+      {
+        "date": "2026-03-20",
+        "name": "To upload your national certification click \"additional options\" above this line, select the ce cycle, and select your current dea status.",
+        "hours": 100,
+        "state": "New Mexico",
+        "scrapedAt": "2026-03-22"
+      },
+      {
+        "date": "2026-03-20",
+        "name": "To upload your national certification click \"additional options\" above this line, select the ce cycle, and select your current dea status.",
+        "hours": 3,
+        "state": "New Mexico",
+        "scrapedAt": "2026-03-22"
+      },
+      {
+        "date": "2026-03-20",
+        "name": "To upload your national certification click \"additional options\" above this line, select the ce cycle, and select your current dea status.",
+        "hours": 9,
+        "state": "New Mexico",
+        "scrapedAt": "2026-03-22"
+      },
       {
         "date": "2026-02-13",
         "name": "To upload your national certification click \"additional options\" above this line, select the ce cycle, and select your current dea status.",
@@ -3033,8 +3251,8 @@
     ],
     "deadlines": [
       {
-        "date": "2026-05-31",
-        "state": "New Mexico",
+        "date": "2030-04-01",
+        "state": "Arizona",
         "licenseType": "NP"
       }
     ],
@@ -3090,6 +3308,27 @@
   },
   "Lindsay Burden, NP": {
     "courses": [
+      {
+        "date": "2026-03-26",
+        "name": "Adult obesity: comprehensive assessment and management",
+        "hours": 2.5,
+        "state": "West Virginia",
+        "scrapedAt": "2026-03-27"
+      },
+      {
+        "date": "2026-03-26",
+        "name": "Adult obesity: comprehensive assessment and management",
+        "hours": 4,
+        "state": "West Virginia",
+        "scrapedAt": "2026-03-27"
+      },
+      {
+        "date": "2026-03-26",
+        "name": "Adult obesity: comprehensive assessment and management",
+        "hours": 2,
+        "state": "West Virginia",
+        "scrapedAt": "2026-03-27"
+      },
       {
         "date": "2025-03-10",
         "name": "Part 2 - expert perspectives on practice-changing strategies for improved patient outcomes in multiple myeloma",

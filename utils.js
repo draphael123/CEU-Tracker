@@ -86,6 +86,55 @@ async function screenshotOnError(page, providerName, suffix = 'error') {
   }
 }
 
+/**
+ * Clean up screenshots older than a specified number of days.
+ * @param {number} maxAgeDays - Delete screenshots older than this (default: 7)
+ * @returns {{ deleted: number, errors: number, totalSize: number }}
+ */
+function cleanupOldScreenshots(maxAgeDays = 7) {
+  const result = { deleted: 0, errors: 0, totalSize: 0 };
+
+  if (!fs.existsSync(SCREENSHOTS_DIR)) {
+    return result;
+  }
+
+  const now = Date.now();
+  const maxAgeMs = maxAgeDays * 24 * 60 * 60 * 1000;
+
+  try {
+    const files = fs.readdirSync(SCREENSHOTS_DIR);
+
+    for (const file of files) {
+      if (!file.endsWith('.png')) continue;
+
+      const filepath = path.join(SCREENSHOTS_DIR, file);
+      try {
+        const stats = fs.statSync(filepath);
+        const fileAge = now - stats.mtimeMs;
+
+        if (fileAge > maxAgeMs) {
+          result.totalSize += stats.size;
+          fs.unlinkSync(filepath);
+          result.deleted++;
+        }
+      } catch (fileErr) {
+        result.errors++;
+        logger.warn(`Could not process screenshot ${file}: ${fileErr.message}`);
+      }
+    }
+
+    if (result.deleted > 0) {
+      const sizeMB = (result.totalSize / (1024 * 1024)).toFixed(2);
+      logger.success(`Cleaned up ${result.deleted} old screenshots (${sizeMB} MB freed)`);
+    }
+  } catch (err) {
+    logger.error(`Screenshot cleanup failed: ${err.message}`);
+    result.errors++;
+  }
+
+  return result;
+}
+
 // ─── Date Utilities ──────────────────────────────────────────────────────────
 
 /**
@@ -245,6 +294,7 @@ module.exports = {
   sleep,
   screenshotOnError,
   ensureScreenshotsDir,
+  cleanupOldScreenshots,
   parseDate,
   daysUntil,
   getStatus,

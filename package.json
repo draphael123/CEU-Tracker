@@ -12,17 +12,28 @@
     "schedule": "node scheduler.js",
     "pdf": "node pdf-export.js",
     "email": "node email-digest.js",
-    "email:setup": "node email-digest.js --setup"
+    "email:setup": "node email-digest.js --setup",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "db:init": "node database.js init",
+    "db:migrate": "node database.js migrate"
   },
   "dependencies": {
+    "@sentry/node": "^8.0.0",
+    "better-sqlite3": "^11.0.0",
+    "bullmq": "^5.0.0",
     "exceljs": "^4.4.0",
     "express": "^5.2.1",
+    "ioredis": "^5.3.0",
     "node-cron": "^4.2.1",
     "nodemailer": "^8.0.1",
     "pdfkit": "^0.17.2",
     "playwright": "^1.41.0"
   },
   "devDependencies": {
+    "@types/jest": "^29.5.0",
+    "jest": "^29.7.0",
     "xlsx": "^0.18.5"
   }
 }
