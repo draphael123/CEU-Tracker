@@ -1,7 +1,4 @@
 {
   "version": 2,
-  "framework": "nextjs",
-  "buildCommand": "cd nextjs-app && npm install && npm run build",
-  "outputDirectory": "nextjs-app/.next",
-  "installCommand": "cd nextjs-app && npm install"
+  "rootDirectory": "nextjs-app"
 }
