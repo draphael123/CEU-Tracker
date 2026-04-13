@@ -92,28 +92,6 @@
     ]
   },
   {
-    "name": "Mackinzie Johnson, RN",
-    "type": "RN",
-    "email": null,
-    "hasCEBrokerCreds": false,
-    "noCredentials": false,
-    "platforms": [
-      "NetCE"
-    ]
-  },
-  {
-    "name": "Martin Van Dongen, NP",
-    "type": "NP",
-    "email": null,
-    "hasCEBrokerCreds": true,
-    "noCredentials": false,
-    "platforms": [
-      "AANP Cert",
-      "CEUfast",
-      "NetCE"
-    ]
-  },
-  {
     "name": "Priya Chaudhari, NP",
     "type": "NP",
     "email": null,
@@ -257,17 +235,6 @@
     "platforms": []
   },
   {
-    "name": "Skye Sauls, NP",
-    "type": "NP",
-    "email": null,
-    "hasCEBrokerCreds": false,
-    "noCredentials": false,
-    "platforms": [
-      "CEUfast",
-      "NetCE"
-    ]
-  },
-  {
     "name": "Brooklyn Kimble, RN",
     "type": "RN",
     "email": null,
@@ -310,8 +277,24 @@
     "platforms": []
   },
   {
-    "name": "Lauren Dovin, RN",
-    "type": "RN",
+    "name": "Emmanuel Sonaike, MD",
+    "type": "MD",
+    "email": null,
+    "hasCEBrokerCreds": false,
+    "noCredentials": true,
+    "platforms": []
+  },
+  {
+    "name": "Naureen Majid Adam, MD",
+    "type": "MD",
+    "email": null,
+    "hasCEBrokerCreds": false,
+    "noCredentials": true,
+    "platforms": []
+  },
+  {
+    "name": "Nicole Tahira Perrotte, MD",
+    "type": "MD",
     "email": null,
     "hasCEBrokerCreds": false,
     "noCredentials": true,
