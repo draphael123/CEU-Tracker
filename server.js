@@ -3,6 +3,7 @@
 const express = require('express');
 const path    = require('path');
 const fs      = require('fs');
+const { loadJson } = require('./utils');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -45,22 +46,14 @@ app.get('/cmo', (req, res) => {
 
 // API: full run history (for dynamic refresh or external tooling)
 app.get('/api/history', (req, res) => {
-  try {
-    const data = JSON.parse(fs.readFileSync(HISTORY_FILE, 'utf8'));
-    res.json(data);
-  } catch {
-    res.json([]);
-  }
+  const data = loadJson(HISTORY_FILE, []);
+  res.json(data);
 });
 
 // API: last run summary
 app.get('/api/status', (req, res) => {
-  try {
-    const data = JSON.parse(fs.readFileSync(LAST_RUN_FILE, 'utf8'));
-    res.json(data);
-  } catch {
-    res.json({ error: 'No run data yet. Run npm start to scrape.' });
-  }
+  const data = loadJson(LAST_RUN_FILE, { error: 'No run data yet. Run npm start to scrape.' });
+  res.json(data);
 });
 
 // ── Start ─────────────────────────────────────────────────────────────────────

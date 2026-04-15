@@ -2,11 +2,15 @@
 
 'use strict';
 
-const fs = require('fs');
 const path = require('path');
-const { logger } = require('./utils');
+const { logger, loadJson, saveJson } = require('./utils');
 
 const COSTS_FILE = path.join(__dirname, 'costs.json');
+
+const DEFAULT_COSTS = {
+  subscriptions: { organization: [], perProvider: {} },
+  manualCosts: {}
+};
 
 // ─── Load/Save Costs ─────────────────────────────────────────────────────────
 
@@ -15,18 +19,11 @@ const COSTS_FILE = path.join(__dirname, 'costs.json');
  * @returns {Object} Cost data with subscriptions and manualCosts
  */
 function loadCosts() {
-  try {
-    if (fs.existsSync(COSTS_FILE)) {
-      const data = JSON.parse(fs.readFileSync(COSTS_FILE, 'utf8'));
-      return {
-        subscriptions: data.subscriptions || { organization: [], perProvider: {} },
-        manualCosts: data.manualCosts || {},
-      };
-    }
-  } catch (err) {
-    logger.warn(`Could not load costs.json: ${err.message}`);
-  }
-  return { subscriptions: { organization: [], perProvider: {} }, manualCosts: {} };
+  const data = loadJson(COSTS_FILE, DEFAULT_COSTS);
+  return {
+    subscriptions: data.subscriptions || DEFAULT_COSTS.subscriptions,
+    manualCosts: data.manualCosts || {},
+  };
 }
 
 /**
@@ -35,7 +32,7 @@ function loadCosts() {
  */
 function saveCosts(costData) {
   try {
-    fs.writeFileSync(COSTS_FILE, JSON.stringify(costData, null, 2));
+    saveJson(COSTS_FILE, costData);
     logger.info('Saved costs.json');
   } catch (err) {
     logger.error(`Could not save costs.json: ${err.message}`);

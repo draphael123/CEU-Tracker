@@ -206,16 +206,16 @@ async function main() {
     logger.error(`Platform scraper error: ${platformErr.message}`);
   }
 
-  // ── License verification (DISABLED - CEU scraping only) ─────────────────
+  // ── License verification ─────────────────────────────────────────────────
   let licenseData = null;
-  // License verification skipped - only scraping for CEUs
-  // To re-enable, uncomment the following:
-  // try {
-  //   const { licenseData: verifiedLicenses } = await runLicenseVerification(browser, providers);
-  //   licenseData = verifiedLicenses;
-  // } catch (licenseErr) {
-  //   logger.error(`License verification error: ${licenseErr.message}`);
-  // }
+  try {
+    logger.info('\n── Running license verification ────────────────────────────');
+    const { licenseData: verifiedLicenses } = await runLicenseVerification(browser, providers);
+    licenseData = verifiedLicenses;
+    logger.success('License verification completed');
+  } catch (licenseErr) {
+    logger.error(`License verification error: ${licenseErr.message}`);
+  }
 
   // ── Close browser ──────────────────────────────────────────────────────────
   await browser.close();

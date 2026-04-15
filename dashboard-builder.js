@@ -2,7 +2,7 @@
 
 const fs   = require('fs');
 const path = require('path');
-const { daysUntil, parseDate, getStatus, courseSearchUrl, calculateSubjectHoursWithLookback, formatLookbackCutoff } = require('./utils');
+const { daysUntil, parseDate, getStatus, courseSearchUrl, calculateSubjectHoursWithLookback, formatLookbackCutoff, loadJson, saveJson } = require('./utils');
 const { getHealthSummary } = require('./credential-health');
 const { loadCosts, calculateAllProviderSpending, calculateRolling12MonthSpending } = require('./cost-utils');
 const { getAllUpdates } = require('./change-detector');
@@ -36,11 +36,7 @@ function ensurePublicDir() {
  * Returns an object keyed by provider name, each containing an array of courses.
  */
 function loadCourseHistory() {
-  try {
-    return JSON.parse(fs.readFileSync(COURSE_HISTORY_FILE, 'utf8'));
-  } catch {
-    return {};
-  }
+  return loadJson(COURSE_HISTORY_FILE, {});
 }
 
 /**
@@ -173,8 +169,7 @@ function saveHistory(allProviderRecords, runResults) {
   };
 
   // Load existing history (or start fresh)
-  let history = [];
-  try { history = JSON.parse(fs.readFileSync(HISTORY_FILE, 'utf8')); } catch { /* first run */ }
+  const history = loadJson(HISTORY_FILE, []);
 
   history.push(snapshot);
   fs.writeFileSync(HISTORY_FILE, JSON.stringify(history, null, 2), 'utf8');

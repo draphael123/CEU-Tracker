@@ -1,7 +1,35 @@
-// utils.js — Shared helpers: logging, delays, error handling
+// utils.js — Shared helpers: logging, delays, error handling, file I/O
 
 const fs = require('fs');
 const path = require('path');
+
+// ─── File I/O ─────────────────────────────────────────────────────────────────
+
+/**
+ * Load JSON file safely with error handling.
+ * @param {string} filePath - Path to JSON file
+ * @param {*} defaultValue - Value to return if file doesn't exist or is invalid
+ * @returns {*} Parsed JSON or defaultValue
+ */
+function loadJson(filePath, defaultValue = null) {
+  try {
+    if (fs.existsSync(filePath)) {
+      return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    }
+  } catch (err) {
+    console.error(`[loadJson] Error loading ${filePath}: ${err.message}`);
+  }
+  return defaultValue;
+}
+
+/**
+ * Save data to JSON file with pretty formatting.
+ * @param {string} filePath - Path to JSON file
+ * @param {*} data - Data to save
+ */
+function saveJson(filePath, data) {
+  fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
+}
 
 // ─── Logging ────────────────────────────────────────────────────────────────
 
@@ -289,19 +317,28 @@ function printSummary(results) {
 }
 
 module.exports = {
+  // File I/O
+  loadJson,
+  saveJson,
+  // Logging
   logger,
+  // Delays
   randomDelay,
   sleep,
+  // Screenshots
   screenshotOnError,
   ensureScreenshotsDir,
   cleanupOldScreenshots,
+  // Date utilities
   parseDate,
   daysUntil,
   getStatus,
   courseSearchUrl,
-  printSummary,
+  // Lookback utilities
   filterCoursesByLookback,
   calculateSubjectHoursWithLookback,
   getLookbackCutoffDate,
   formatLookbackCutoff,
+  // Summary
+  printSummary,
 };

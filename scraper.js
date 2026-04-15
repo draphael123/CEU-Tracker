@@ -182,18 +182,20 @@ async function loginProvider(browser, provider) {
     } catch (err) {
       lastError = err;
 
-      // Capture page content for error classification
+      // Capture page content for error classification (page may be closed/invalid)
       let pageContent = '';
       try {
         pageContent = await page.locator('body').innerText().catch(() => '');
-      } catch { /* page may be closed */ }
+      } catch (pageErr) {
+        // Page may be closed or navigated away - safe to ignore
+      }
 
       // Classify the error
       const classified = classifyLoginError(err, pageContent);
       lastError.classified = classified;
 
       await screenshotOnError(page, name, `login_error_attempt${attempt}`);
-      try { await context.close(); } catch { /* ignore */ }
+      try { await context.close(); } catch { /* Context may already be closed */ }
 
       if (attempt < MAX_LOGIN_RETRIES) {
         logger.warn(`Login attempt ${attempt}/${MAX_LOGIN_RETRIES} failed for ${name}: ${classified.message}. Retrying in 3s...`);

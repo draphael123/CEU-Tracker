@@ -1,22 +1,20 @@
 // credential-health.js — Track credential health and login failures
 
-const fs = require('fs');
 const path = require('path');
+const { loadJson, saveJson } = require('./utils');
 
 const HEALTH_FILE = path.join(__dirname, 'credential-health.json');
+
+const DEFAULT_HEALTH_DATA = {
+  lastUpdated: null,
+  credentials: {}
+};
 
 /**
  * Load existing credential health data
  */
 function loadHealthData() {
-  try {
-    return JSON.parse(fs.readFileSync(HEALTH_FILE, 'utf8'));
-  } catch {
-    return {
-      lastUpdated: null,
-      credentials: {}
-    };
-  }
+  return loadJson(HEALTH_FILE, DEFAULT_HEALTH_DATA);
 }
 
 /**
@@ -24,7 +22,7 @@ function loadHealthData() {
  */
 function saveHealthData(data) {
   data.lastUpdated = new Date().toISOString();
-  fs.writeFileSync(HEALTH_FILE, JSON.stringify(data, null, 2), 'utf8');
+  saveJson(HEALTH_FILE, data);
 }
 
 /**

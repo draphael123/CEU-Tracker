@@ -9,34 +9,13 @@
  * - Credential changes
  */
 
-const fs = require('fs');
 const path = require('path');
+const { loadJson, saveJson } = require('./utils');
 
 const PROVIDERS_FILE = path.join(__dirname, 'providers.json');
 const SNAPSHOT_FILE = path.join(__dirname, 'providers-snapshot.json');
 const UPDATES_FILE = path.join(__dirname, 'updates.json');
 const MANUAL_UPDATES_FILE = path.join(__dirname, 'manual-updates.json');
-
-/**
- * Load JSON file safely
- */
-function loadJson(filePath, defaultValue = []) {
-  try {
-    if (fs.existsSync(filePath)) {
-      return JSON.parse(fs.readFileSync(filePath, 'utf8'));
-    }
-  } catch (err) {
-    console.error(`Error loading ${filePath}:`, err.message);
-  }
-  return defaultValue;
-}
-
-/**
- * Save JSON file
- */
-function saveJson(filePath, data) {
-  fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
-}
 
 /**
  * Get current date in readable format
@@ -281,6 +260,4 @@ module.exports = {
   getAllUpdates,
   addManualUpdate,
   detectChanges,
-  loadJson,
-  saveJson
 };

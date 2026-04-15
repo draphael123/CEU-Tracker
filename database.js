@@ -234,6 +234,8 @@ function savePlatformResult(providerId, platform, result) {
 
 /**
  * Update credential health for a provider/platform
+ * @deprecated Use credential-health.js instead - credential-health.json is the authoritative source.
+ * This database table is kept for historical data but new tracking uses the JSON file.
  */
 function updateCredentialHealth(providerId, platform, success, error = null) {
   const db = initDatabase();

@@ -6,18 +6,14 @@
 const cron = require('node-cron');
 const { execSync } = require('child_process');
 const path = require('path');
-const fs = require('fs');
+const { loadJson } = require('./utils');
 
 // Check if email is configured
 function isEmailConfigured() {
   const configPath = path.join(__dirname, 'email-config.json');
-  if (fs.existsSync(configPath)) {
-    try {
-      const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-      return config.smtp?.auth?.user && config.smtp?.auth?.pass && config.recipients?.length > 0;
-    } catch {
-      return false;
-    }
+  const config = loadJson(configPath, null);
+  if (config) {
+    return config.smtp?.auth?.user && config.smtp?.auth?.pass && config.recipients?.length > 0;
   }
   return process.env.SMTP_USER && process.env.SMTP_PASS && process.env.EMAIL_RECIPIENTS;
 }
