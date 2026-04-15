@@ -323,10 +323,79 @@ if (require.main === module) {
 }
 
 /**
+ * Generate HTML for login errors section in emails
+ */
+function generateLoginErrorsHTML(loginErrors) {
+  if (!loginErrors || loginErrors.length === 0) return '';
+
+  // Map error codes to user-friendly labels and icons
+  const errorLabels = {
+    'invalid_credentials': { label: 'Invalid Credentials', icon: '🔐', color: '#dc2626' },
+    'account_locked': { label: 'Account Locked', icon: '🔒', color: '#7c3aed' },
+    'mfa_required': { label: '2FA Required', icon: '📱', color: '#2563eb' },
+    'timeout': { label: 'Connection Timeout', icon: '⏱️', color: '#d97706' },
+    'site_changed': { label: 'Site Changed', icon: '🔧', color: '#dc2626' },
+    'network_error': { label: 'Network Error', icon: '📡', color: '#d97706' },
+    'session_error': { label: 'Session Error', icon: '🔄', color: '#d97706' },
+    'unknown': { label: 'Login Failed', icon: '❓', color: '#64748b' }
+  };
+
+  // Group errors by error code
+  const errorGroups = {};
+  loginErrors.forEach(e => {
+    const code = e.errorCode || 'unknown';
+    if (!errorGroups[code]) errorGroups[code] = [];
+    errorGroups[code].push(e);
+  });
+
+  let errorRows = '';
+  Object.entries(errorGroups).forEach(([code, errors]) => {
+    const info = errorLabels[code] || errorLabels['unknown'];
+    const names = errors.map(e => e.name).join(', ');
+    const action = errors[0]?.errorAction || 'Check screenshot for details';
+
+    errorRows += `
+      <tr style="background-color: #ffffff;">
+        <td style="padding: 12px; font-size: 13px; vertical-align: top;">
+          <span style="font-size: 16px;">${info.icon}</span>
+          <strong style="color: ${info.color};">${info.label}</strong>
+        </td>
+        <td style="padding: 12px; font-size: 13px; color: #1e293b;">${names}</td>
+        <td style="padding: 12px; font-size: 12px; color: #64748b; font-style: italic;">${action}</td>
+      </tr>
+    `;
+  });
+
+  return `
+    <!-- Login Errors Section -->
+    <tr>
+      <td style="padding: 0 30px 30px;">
+        <h2 style="color: #dc2626; font-size: 16px; margin: 0 0 15px; padding-bottom: 10px; border-bottom: 2px solid #fecaca;">
+          ⚠️ Login Errors (${loginErrors.length} provider${loginErrors.length !== 1 ? 's' : ''})
+        </h2>
+        <p style="margin: 0 0 15px; font-size: 13px; color: #64748b;">
+          The following providers could not be synced due to login issues. Data shown may be outdated.
+        </p>
+        <table width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #fecaca; border-radius: 8px; overflow: hidden;">
+          <tr style="background-color: #fef2f2;">
+            <th style="padding: 10px; text-align: left; font-size: 12px; color: #991b1b; width: 25%;">Error Type</th>
+            <th style="padding: 10px; text-align: left; font-size: 12px; color: #991b1b; width: 40%;">Providers</th>
+            <th style="padding: 10px; text-align: left; font-size: 12px; color: #991b1b; width: 35%;">Recommended Action</th>
+          </tr>
+          ${errorRows}
+        </table>
+      </td>
+    </tr>
+  `;
+}
+
+/**
  * Generate HTML for renewal reminder email (90 days or less)
  */
-function generateRenewalReminderHTML(providers) {
+function generateRenewalReminderHTML(providers, loginErrors = []) {
   const sortedProviders = providers.sort((a, b) => a.daysLeft - b.daysLeft);
+  const loginErrorsSection = generateLoginErrorsHTML(loginErrors);
+  const hasLoginErrors = loginErrors && loginErrors.length > 0;
 
   return `
 <!DOCTYPE html>
@@ -342,7 +411,7 @@ function generateRenewalReminderHTML(providers) {
     <tr>
       <td style="background: linear-gradient(135deg, #ea580c 0%, #dc2626 100%); padding: 30px; text-align: center;">
         <h1 style="color: #ffffff; margin: 0; font-size: 24px;">CEU Renewal Reminder</h1>
-        <p style="color: #fed7aa; margin: 10px 0 0; font-size: 14px;">${providers.length} provider${providers.length !== 1 ? 's' : ''} with renewals due within 90 days</p>
+        <p style="color: #fed7aa; margin: 10px 0 0; font-size: 14px;">${sortedProviders.length} provider${sortedProviders.length !== 1 ? 's' : ''} with renewals due within 90 days${hasLoginErrors ? ` • ${loginErrors.length} login error${loginErrors.length !== 1 ? 's' : ''}` : ''}</p>
       </td>
     </tr>
 
@@ -350,11 +419,12 @@ function generateRenewalReminderHTML(providers) {
     <tr>
       <td style="padding: 20px 30px; background-color: #fef3c7; border-bottom: 2px solid #f59e0b;">
         <p style="margin: 0; font-size: 14px; color: #92400e; text-align: center;">
-          <strong>Action Required:</strong> The following providers have CE requirements due soon and may need follow-up.
+          <strong>Action Required:</strong> ${sortedProviders.length > 0 ? 'The following providers have CE requirements due soon and may need follow-up.' : 'Login errors detected that require attention.'}
         </p>
       </td>
     </tr>
 
+    ${sortedProviders.length > 0 ? `
     <!-- Providers List -->
     <tr>
       <td style="padding: 30px;">
@@ -386,6 +456,9 @@ function generateRenewalReminderHTML(providers) {
         </table>
       </td>
     </tr>
+    ` : ''}
+
+    ${loginErrorsSection}
 
     <!-- Action Section -->
     <tr>
@@ -396,6 +469,7 @@ function generateRenewalReminderHTML(providers) {
             <li>Contact providers who have not started their CE requirements</li>
             <li>Verify providers are aware of upcoming deadlines</li>
             <li>Check if providers need assistance finding approved courses</li>
+            ${hasLoginErrors ? '<li><strong>Resolve login errors</strong> to ensure data is up-to-date</li>' : ''}
           </ul>
         </div>
       </td>
@@ -501,29 +575,48 @@ async function sendRenewalReminders(options = {}) {
     }
   }
 
-  // If no providers need reminders, skip sending
-  if (providersNeedingReminder.length === 0) {
-    console.log('No providers with upcoming renewals (within 90 days) that are incomplete. Skipping reminder.');
+  // Get login errors from latest run (if available)
+  const loginErrors = latestRun.loginErrors || [];
+
+  // If no providers need reminders AND no login errors, skip sending
+  if (providersNeedingReminder.length === 0 && loginErrors.length === 0) {
+    console.log('No providers with upcoming renewals (within 90 days) that are incomplete, and no login errors. Skipping reminder.');
     return null;
   }
 
   // Create transporter and send
   const transporter = createTransporter(config);
 
+  // Build subject line
   const urgentCount = providersNeedingReminder.filter(p => p.daysLeft <= 14).length;
-  const subjectPrefix = urgentCount > 0 ? `🔥 URGENT: ${urgentCount} critical` : `⚠️ ${providersNeedingReminder.length}`;
+  let subjectParts = [];
+
+  if (urgentCount > 0) {
+    subjectParts.push(`🔥 ${urgentCount} URGENT renewal${urgentCount !== 1 ? 's' : ''}`);
+  } else if (providersNeedingReminder.length > 0) {
+    subjectParts.push(`⚠️ ${providersNeedingReminder.length} renewal${providersNeedingReminder.length !== 1 ? 's' : ''} due`);
+  }
+
+  if (loginErrors.length > 0) {
+    subjectParts.push(`🔐 ${loginErrors.length} login error${loginErrors.length !== 1 ? 's' : ''}`);
+  }
+
+  const subjectPrefix = subjectParts.join(' • ') || 'CEU Status Update';
 
   const mailOptions = {
     from: config.from,
     to: reminderRecipients.join(', '),
-    subject: `${subjectPrefix} CE renewal${providersNeedingReminder.length !== 1 ? 's' : ''} due within 90 days — ${new Date().toLocaleDateString()}`,
-    html: generateRenewalReminderHTML(providersNeedingReminder)
+    subject: `${subjectPrefix} — ${new Date().toLocaleDateString()}`,
+    html: generateRenewalReminderHTML(providersNeedingReminder, loginErrors)
   };
 
   const result = await transporter.sendMail(mailOptions);
   console.log(`Renewal reminder sent to ${reminderRecipients.length} recipient(s): ${result.messageId}`);
   console.log(`  - ${providersNeedingReminder.length} providers with renewals due within 90 days`);
   console.log(`  - ${urgentCount} critical (14 days or less)`);
+  if (loginErrors.length > 0) {
+    console.log(`  - ${loginErrors.length} login error(s) included`);
+  }
 
   return result;
 }

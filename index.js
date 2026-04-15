@@ -73,17 +73,29 @@ async function processProvider(browser, provider, index, total) {
     };
 
   } catch (err) {
-    logger.error(`Login error for ${provider.name}: ${err.message}`);
+    // Use classified error message if available
+    const errorMessage = err.errorMessage || err.message;
+    const errorCode = err.errorCode || 'unknown';
+    const errorAction = err.errorAction || 'Check screenshot for details';
+
+    logger.error(`Login error for ${provider.name}: ${errorMessage}`);
 
     // Send to Sentry with context
     captureError(err, {
       provider: provider.name,
       operation: 'ce_broker_scrape',
       providerType: provider.type,
+      errorCode: errorCode,
     });
 
     return {
-      result: { name: provider.name, status: 'login_error', error: err.message },
+      result: {
+        name: provider.name,
+        status: 'login_error',
+        error: errorMessage,
+        errorCode: errorCode,
+        errorAction: errorAction
+      },
       records: [{
         providerName:    provider.name,
         providerType:    provider.type,

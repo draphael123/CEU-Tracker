@@ -146,11 +146,22 @@ function saveHistory(allProviderRecords, runResults) {
   const loginErrors  = (runResults || []).filter(r => r.status === 'login_error' || r.status === 'failed').length;
 
   // Build a lean snapshot — just the numbers we need for charts
+  // Also include login errors with error codes for email notifications
+  const loginErrorDetails = (runResults || [])
+    .filter(r => r.status === 'login_error' || r.status === 'failed')
+    .map(r => ({
+      name: r.name,
+      errorCode: r.errorCode || 'unknown',
+      error: r.error || 'Login failed',
+      errorAction: r.errorAction || 'Check screenshot for details'
+    }));
+
   const snapshot = {
     timestamp: new Date().toISOString(),
     succeeded,
     failed: loginErrors,  // Keep 'failed' key for backward compatibility
     notConfigured,
+    loginErrors: loginErrorDetails,  // Detailed error info for emails
     providers: flat.map(rec => ({
       name:            rec.providerName,
       state:           rec.state,
@@ -834,7 +845,21 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     // Check if login failed
     const failedLogin = loginErrors.find(r => r.name === providerName);
     if (failedLogin) {
-      return { reason: 'Login Failed', detail: failedLogin.error || 'Platform login error', icon: '⚠', cls: 'unknown-error', platforms: [] };
+      // Map error codes to user-friendly labels
+      const errorLabels = {
+        'invalid_credentials': { reason: 'Invalid Credentials', icon: '🔐' },
+        'account_locked': { reason: 'Account Locked', icon: '🔒' },
+        'mfa_required': { reason: '2FA Required', icon: '📱' },
+        'timeout': { reason: 'Connection Timeout', icon: '⏱️' },
+        'site_changed': { reason: 'Site Changed', icon: '🔧' },
+        'network_error': { reason: 'Network Error', icon: '📡' },
+        'session_error': { reason: 'Session Error', icon: '🔄' },
+        'unknown': { reason: 'Login Failed', icon: '⚠' }
+      };
+      const errorCode = failedLogin.errorCode || 'unknown';
+      const errorInfo = errorLabels[errorCode] || errorLabels['unknown'];
+      const detail = failedLogin.errorAction || failedLogin.error || 'Platform login error';
+      return { reason: errorInfo.reason, detail: detail, icon: errorInfo.icon, cls: 'unknown-error', platforms: [] };
     }
 
     // Get platforms this provider has access to
@@ -5933,17 +5958,40 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     }
 
     if (failedLoginsCount > 0) {
-      const names = loginErrors.slice(0, 3).map(e => e.name);
-      const moreCount = failedLoginsCount - 3;
-      cards += '<div class="action-item-card action-critical">' +
-        '<div class="action-item-icon">❌</div>' +
-        '<div class="action-item-content">' +
-          '<div class="action-item-label">Login Failed</div>' +
-          '<div class="action-item-value">' + failedLoginsCount + ' provider' + (failedLoginsCount !== 1 ? 's' : '') + '</div>' +
-          '<div class="action-item-detail"><strong>Action:</strong> Ask providers for updated platform credentials</div>' +
-          '<div class="action-item-providers">' + names.map(n => '<span class="action-provider-chip">' + escHtml(n) + '</span>').join('') + (moreCount > 0 ? '<span class="action-provider-chip">+' + moreCount + ' more</span>' : '') + '</div>' +
-        '</div>' +
-      '</div>';
+      // Group login errors by error code for clearer messaging
+      const errorGroups = {};
+      const errorLabels = {
+        'invalid_credentials': { label: 'Invalid Credentials', icon: '🔐', action: 'Contact provider to verify their CE Broker login' },
+        'account_locked': { label: 'Account Locked', icon: '🔒', action: 'Provider needs to contact CE Broker to unlock' },
+        'mfa_required': { label: '2FA Required', icon: '📱', action: 'Provider has 2FA enabled - needs to disable it' },
+        'timeout': { label: 'Connection Timeout', icon: '⏱️', action: 'CE Broker was slow/down - will retry next run' },
+        'site_changed': { label: 'Site Changed', icon: '🔧', action: 'Contact support - scraper may need update' },
+        'network_error': { label: 'Network Error', icon: '📡', action: 'Check connection - will retry next run' },
+        'session_error': { label: 'Session Error', icon: '🔄', action: 'Login flow issue - will retry next run' },
+        'unknown': { label: 'Login Failed', icon: '❓', action: 'Check screenshot for details' }
+      };
+
+      loginErrors.forEach(e => {
+        const code = e.errorCode || 'unknown';
+        if (!errorGroups[code]) errorGroups[code] = [];
+        errorGroups[code].push(e.name);
+      });
+
+      // Build cards for each error type
+      Object.entries(errorGroups).forEach(([code, names]) => {
+        const info = errorLabels[code] || errorLabels['unknown'];
+        const displayNames = names.slice(0, 3);
+        const moreCount = names.length - 3;
+        cards += '<div class="action-item-card action-critical">' +
+          '<div class="action-item-icon">' + info.icon + '</div>' +
+          '<div class="action-item-content">' +
+            '<div class="action-item-label">' + escHtml(info.label) + '</div>' +
+            '<div class="action-item-value">' + names.length + ' provider' + (names.length !== 1 ? 's' : '') + '</div>' +
+            '<div class="action-item-detail"><strong>Action:</strong> ' + escHtml(info.action) + '</div>' +
+            '<div class="action-item-providers">' + displayNames.map(n => '<span class="action-provider-chip">' + escHtml(n) + '</span>').join('') + (moreCount > 0 ? '<span class="action-provider-chip">+' + moreCount + ' more</span>' : '') + '</div>' +
+          '</div>' +
+        '</div>';
+      });
     }
 
     // Count total issues for collapsed badge
@@ -7552,8 +7600,16 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
             <p>Data is scraped daily at 10:30 PM EST and the dashboard is automatically updated. The "Last scraped" timestamp in the footer shows when data was last refreshed.</p>
           </div>
           <div class="help-faq-item">
-            <h4>What does "Login Failed" mean?</h4>
-            <p>The stored credentials are no longer working. The provider may have changed their password. Contact them to get updated credentials.</p>
+            <h4>What do the different login error types mean?</h4>
+            <div class="help-error-list">
+              <p><strong>🔐 Invalid Credentials:</strong> Username or password is incorrect. The provider may have changed their CE Broker password. Contact them for updated credentials.</p>
+              <p><strong>🔒 Account Locked:</strong> The CE Broker account has been locked due to too many failed attempts or was disabled. Provider needs to contact CE Broker support.</p>
+              <p><strong>📱 2FA Required:</strong> The provider has enabled two-factor authentication on their CE Broker account. They need to disable 2FA or provide an alternative access method.</p>
+              <p><strong>⏱️ Connection Timeout:</strong> CE Broker was slow or down during the scrape. This usually resolves on the next automated run.</p>
+              <p><strong>🔧 Site Changed:</strong> CE Broker updated their website structure. Contact support - the scraper may need to be updated.</p>
+              <p><strong>📡 Network Error:</strong> Connection issue during scrape. Check internet and will retry on next run.</p>
+              <p><strong>🔄 Session Error:</strong> Login session couldn't be established. Will retry on next run.</p>
+            </div>
           </div>
           <div class="help-faq-item">
             <h4>Why are some subject areas highlighted in red?</h4>

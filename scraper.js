@@ -27,6 +27,99 @@ async function launchBrowser() {
 
 const MAX_LOGIN_RETRIES = 3;
 
+// ─── Error Classification ─────────────────────────────────────────────────────
+
+/**
+ * Classify login errors into user-friendly categories.
+ * Returns { code, message, action } for display in dashboard.
+ */
+function classifyLoginError(error, pageContent = '') {
+  const msg = (error?.message || '').toLowerCase();
+  const content = pageContent.toLowerCase();
+
+  // Check for invalid credentials (wrong password)
+  if (content.includes('invalid') || content.includes('incorrect') ||
+      content.includes('wrong password') || content.includes('password is incorrect') ||
+      content.includes('credentials') || content.includes('authentication failed')) {
+    return {
+      code: 'invalid_credentials',
+      message: 'Invalid username or password',
+      action: 'Contact provider to verify their CE Broker login credentials'
+    };
+  }
+
+  // Check for account locked/disabled
+  if (content.includes('locked') || content.includes('disabled') ||
+      content.includes('suspended') || content.includes('too many attempts') ||
+      content.includes('account has been')) {
+    return {
+      code: 'account_locked',
+      message: 'Account locked or disabled',
+      action: 'Provider needs to contact CE Broker support to unlock their account'
+    };
+  }
+
+  // Check for MFA/2FA required
+  if (content.includes('verification code') || content.includes('two-factor') ||
+      content.includes('2fa') || content.includes('mfa') ||
+      content.includes('authenticator') || content.includes('verify your identity') ||
+      content.includes('security code') || content.includes('one-time')) {
+    return {
+      code: 'mfa_required',
+      message: 'Two-factor authentication required',
+      action: 'Provider has 2FA enabled. They need to disable it or provide a workaround'
+    };
+  }
+
+  // Check for timeout errors
+  if (msg.includes('timeout') || msg.includes('timed out') ||
+      msg.includes('navigation timeout') || msg.includes('waiting for')) {
+    return {
+      code: 'timeout',
+      message: 'Login page took too long to respond',
+      action: 'CE Broker may be slow or down. Will retry on next run'
+    };
+  }
+
+  // Check for selector not found (site structure changed)
+  if (msg.includes('waiting for selector') || msg.includes('failed to find') ||
+      msg.includes('locator') || msg.includes('element not found')) {
+    return {
+      code: 'site_changed',
+      message: 'CE Broker login page has changed',
+      action: 'Contact support - the scraper may need to be updated'
+    };
+  }
+
+  // Check for network errors
+  if (msg.includes('net::') || msg.includes('network') ||
+      msg.includes('econnrefused') || msg.includes('enotfound') ||
+      msg.includes('connection') || msg.includes('dns')) {
+    return {
+      code: 'network_error',
+      message: 'Network connection failed',
+      action: 'Check internet connection. Will retry on next run'
+    };
+  }
+
+  // Check for session/redirect issues
+  if (msg.includes('redirect') || msg.includes('url') && msg.includes('expected') ||
+      content.includes('session expired') || content.includes('please log in again')) {
+    return {
+      code: 'session_error',
+      message: 'Login session failed to establish',
+      action: 'CE Broker may have changed their login flow. Will retry on next run'
+    };
+  }
+
+  // Default unknown error
+  return {
+    code: 'unknown',
+    message: 'Login failed for unknown reason',
+    action: 'Check screenshot for details. May need credential update'
+  };
+}
+
 /**
  * Two-step login on launchpad.cebroker.com/login:
  *   Step 1 → fill username → click Continue
@@ -88,18 +181,37 @@ async function loginProvider(browser, provider) {
 
     } catch (err) {
       lastError = err;
+
+      // Capture page content for error classification
+      let pageContent = '';
+      try {
+        pageContent = await page.locator('body').innerText().catch(() => '');
+      } catch { /* page may be closed */ }
+
+      // Classify the error
+      const classified = classifyLoginError(err, pageContent);
+      lastError.classified = classified;
+
       await screenshotOnError(page, name, `login_error_attempt${attempt}`);
       try { await context.close(); } catch { /* ignore */ }
 
       if (attempt < MAX_LOGIN_RETRIES) {
-        logger.warn(`Login attempt ${attempt}/${MAX_LOGIN_RETRIES} failed for ${name}, retrying in 3s...`);
+        logger.warn(`Login attempt ${attempt}/${MAX_LOGIN_RETRIES} failed for ${name}: ${classified.message}. Retrying in 3s...`);
         await sleep(3000);
       }
     }
   }
 
   // All retries exhausted
-  recordFailure(name, 'CE Broker', lastError?.message || 'Unknown error');
+  const finalClassified = lastError?.classified || classifyLoginError(lastError);
+  const errorDetail = `[${finalClassified.code}] ${finalClassified.message}`;
+  recordFailure(name, 'CE Broker', errorDetail);
+
+  // Attach classification to error for upstream handling
+  lastError.errorCode = finalClassified.code;
+  lastError.errorMessage = finalClassified.message;
+  lastError.errorAction = finalClassified.action;
+
   throw lastError;
 }
 
