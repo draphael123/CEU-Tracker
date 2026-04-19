@@ -554,8 +554,11 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
                    : info.licenses.some(l => getS(l) === 'In Progress') ? 'In Progress'
                    : info.licenses.every(l => getS(l) === 'Complete')   ? 'Complete'
                    : 'Unknown';
+    const drawerUnknownInfo = worstSt === 'Unknown' ? getUnknownReason(pName) : null;
     const ovCls   = { Complete:'status-complete','In Progress':'status-progress','At Risk':'status-risk',Unknown:'status-creds-needed' }[worstSt] || 'status-creds-needed';
-    const ovLabel = { Complete:'✓ Complete','In Progress':'◷ In Progress','At Risk':'⚠ At Risk',Unknown:'🔑 Credentials Needed' }[worstSt] || worstSt;
+    const ovLabel = worstSt === 'Unknown' && drawerUnknownInfo
+      ? `${drawerUnknownInfo.icon} ${drawerUnknownInfo.reason}`
+      : ({ Complete:'✓ Complete','In Progress':'◷ In Progress','At Risk':'⚠ At Risk',Unknown:'🔑 Credentials Needed' }[worstSt] || worstSt);
 
     const licCards = info.licenses.map(lic => {
       const st      = getS(lic);
@@ -563,8 +566,10 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       const barCls  = pct >= 100 ? '' : pct >= 50 ? 'partial' : 'low';
       const dlCls   = { Complete:'dl-complete','In Progress':'dl-progress','At Risk':'dl-risk',Unknown:'' }[st] || '';
       const stCls   = { Complete:'status-complete','In Progress':'status-progress','At Risk':'status-risk',Unknown:'status-creds-needed' }[st] || 'status-unknown';
-      const stLabel = { Complete:'✓ Complete','In Progress':'◷ In Progress','At Risk':'⚠ At Risk',Unknown:'○ Credentials Needed' }[st] || st;
-      const licState = lic.state || 'Credentials Needed';
+      const stLabel = st === 'Unknown' && drawerUnknownInfo
+        ? `${drawerUnknownInfo.icon} ${drawerUnknownInfo.reason}`
+        : ({ Complete:'✓ Complete','In Progress':'◷ In Progress','At Risk':'⚠ At Risk',Unknown:'○ Credentials Needed' }[st] || st);
+      const licState = lic.state || (drawerUnknownInfo ? drawerUnknownInfo.reason : 'Credentials Needed');
       const days    = daysUntil(parseDate(lic.renewalDeadline));
       const daysStr = days === null ? ''
         : days < 0   ? `<span class="overdue">${Math.abs(days)}d overdue</span>`
@@ -1065,6 +1070,9 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     const hasPlatformData = platformTotals && platformTotals.totalHours > 0;
 
     // For platform-only providers with data, show platform summary instead
+    // Pre-compute unknown reason for this provider (used in license blocks and card labels)
+    const earlyUnknownInfo = getUnknownReason(name);
+
     let licBadges;
     if (isPlatformOnly && hasPlatformData) {
       const platformBlocks = platformTotals.details.map(p => `
@@ -1097,7 +1105,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     } else {
       licBadges = info.licenses.map(lic => {
       const status    = getS(lic);
-      const state     = lic.state || 'Creds Needed';
+      const state     = lic.state || (earlyUnknownInfo ? earlyUnknownInfo.reason : 'Creds Needed');
       const deadline  = lic.renewalDeadline || '—';
       const days      = daysUntil(parseDate(lic.renewalDeadline));
 
@@ -1150,15 +1158,19 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
         Complete: 'Complete - All CEUs done',
         'In Progress': 'On Track - In progress, deadline far',
         'At Risk': 'Needs Attention - Deadline approaching!',
-        Unknown: 'Missing Credentials'
+        Unknown: earlyUnknownInfo ? earlyUnknownInfo.reason : 'Missing Credentials'
       }[status] || 'Unknown status';
+
+      const unknownStatusLabel = earlyUnknownInfo
+        ? `${earlyUnknownInfo.icon} ${earlyUnknownInfo.reason}`
+        : 'Credentials Needed';
 
       return `<div class="lic-block ${badgeCls}">
         <div class="lic-header">
           <span class="lic-dot ${dotCls}" title="${dotTooltip}"></span>
           <strong>${escHtml(state)}</strong>
           <span class="lic-type">${escHtml(lic.licenseType || info.type || '')}</span>
-          <span class="lic-status-text">${status === 'Unknown' ? 'Credentials Needed' : escHtml(status)}</span>
+          <span class="lic-status-text">${status === 'Unknown' ? unknownStatusLabel : escHtml(status)}</span>
         </div>
         <div class="lic-deadline">
           <span class="deadline-label">Renewal:</span>
@@ -1212,7 +1224,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       stateChips = info.licenses.map(lic => {
         const st  = getS(lic);
         const cls = { Complete: 'sc-green', 'In Progress': 'sc-yellow', 'At Risk': 'sc-red', Unknown: 'sc-orange' }[st] || 'sc-gray';
-        const stateLabel = lic.state || 'Creds Needed';
+        const stateLabel = lic.state || (earlyUnknownInfo ? earlyUnknownInfo.reason : 'Creds Needed');
         return `<span class="card-state-chip ${cls}">${escHtml(stateLabel)} ${escHtml(lic.licenseType || info.type || '')}</span>`;
       }).join('');
     }

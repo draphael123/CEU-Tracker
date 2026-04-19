@@ -23,7 +23,7 @@ const { getAllProviders } = require('./credentials-loader');
 const providers = getAllProviders();
 
 // ─── Parallel Processing Configuration ────────────────────────────────────────
-const CONCURRENCY = parseInt(process.env.SCRAPER_CONCURRENCY, 10) || 5;
+const CONCURRENCY = parseInt(process.env.SCRAPER_CONCURRENCY, 10) || 2;
 
 /**
  * Process a single provider (login + scrape)
@@ -147,7 +147,7 @@ async function processProvidersInParallel(browser, providers, concurrency) {
     // Delay between batches (skip after the last batch)
     if (i + concurrency < providers.length) {
       logger.info('Waiting between batches...');
-      await randomDelay(2000, 4000);
+      await randomDelay(5000, 10000);
     }
   }
 
