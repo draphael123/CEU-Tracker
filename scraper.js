@@ -168,6 +168,17 @@ async function loginProvider(browser, provider) {
       await sleep(300);
       await page.click('button[type="submit"]');   // "Log in"
 
+      // Handle "Security Update" prompt if it appears (skip email verification)
+      await sleep(2000);
+      try {
+        const skipBtn = page.locator('button:has-text("Skip for now")');
+        if (await skipBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+          logger.info(`  Security Update prompt detected for ${name} — clicking "Skip for now"`);
+          await skipBtn.click();
+          await sleep(1500);
+        }
+      } catch { /* No security prompt — continue */ }
+
       // Wait for URL to reach the licensees dashboard (handles redirect via /login?redirect_to=...)
       await page.waitForURL(
         u => u.toString().includes(cebrokerConfig.urls.dashboard.replace('https://', '')) && !u.toString().includes('/login'),
