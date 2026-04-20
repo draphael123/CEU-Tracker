@@ -324,6 +324,67 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
   const loginErrors = (runResults || []).filter(r => r.status === 'login_error' || r.status === 'failed');
   const errorCount = loginErrors.length;
 
+  // ── Providers without CE Broker credentials (moved early for getUnknownReason) ──
+  const noCEBrokerList = (runResults || [])
+    .filter(r => r.status === 'not_configured')
+    .map(r => r.name);
+
+  // ── Helper to determine why a provider has Unknown status ────────────────
+  // (Defined early so it can be used by drawerHtmlMap builder)
+  const getUnknownReason = (providerName) => {
+    // Check if login failed
+    const failedLogin = loginErrors.find(r => r.name === providerName);
+    if (failedLogin) {
+      // Map error codes to user-friendly labels
+      const errorLabels = {
+        'invalid_credentials': { reason: 'Invalid Credentials', icon: '🔐' },
+        'account_locked': { reason: 'Account Locked', icon: '🔒' },
+        'mfa_required': { reason: '2FA Required', icon: '📱' },
+        'timeout': { reason: 'Connection Timeout', icon: '⏱️' },
+        'site_changed': { reason: 'Site Changed', icon: '🔧' },
+        'network_error': { reason: 'Network Error', icon: '📡' },
+        'session_error': { reason: 'Session Error', icon: '🔄' },
+        'unknown': { reason: 'Login Failed', icon: '⚠' }
+      };
+      const errorCode = failedLogin.errorCode || 'unknown';
+      const errorInfo = errorLabels[errorCode] || errorLabels['unknown'];
+      const detail = failedLogin.errorAction || failedLogin.error || 'Platform login error';
+      return { reason: errorInfo.reason, detail: detail, icon: errorInfo.icon, cls: 'unknown-error', platforms: [] };
+    }
+
+    // Get platforms this provider has access to
+    const providerPlatforms = (platformByProvider[providerName] || [])
+      .filter(p => p.status === 'success')
+      .map(p => p.platform);
+
+    // Check if no CE Broker credentials
+    if (noCEBrokerList.includes(providerName)) {
+      if (providerPlatforms.length > 0) {
+        return {
+          reason: 'No CE Broker',
+          detail: 'See other credentials',
+          icon: '○',
+          cls: 'unknown-partial',
+          platforms: providerPlatforms
+        };
+      }
+      // Check if they have platform credentials configured but not yet scraped
+      const provider = providers.find(p => p.name === providerName);
+      const configuredPlatforms = (provider?.platforms || []).map(p => p.platform);
+      if (configuredPlatforms.length > 0) {
+        return {
+          reason: 'No CE Broker',
+          detail: 'See other credentials',
+          icon: '○',
+          cls: 'unknown-pending',
+          platforms: configuredPlatforms
+        };
+      }
+      return { reason: 'No CEU credentials', detail: 'Submit credentials for tracking', icon: '○', cls: 'unknown-none', platforms: [] };
+    }
+    return { reason: 'Awaiting Data', detail: 'Will sync on next scrape', icon: '◷', cls: 'unknown-default', platforms: [] };
+  };
+
   // ── Chart data (for embedded bar chart) ─────────────────────────────────
   const chartData = { labels: [], completed: [], required: [], colors: [] };
   for (const rec of flat) {
@@ -841,61 +902,6 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     return name.includes(', RN');
   };
 
-  // ── Helper to determine why a provider has Unknown status ────────────────
-  const getUnknownReason = (providerName) => {
-    // Check if login failed
-    const failedLogin = loginErrors.find(r => r.name === providerName);
-    if (failedLogin) {
-      // Map error codes to user-friendly labels
-      const errorLabels = {
-        'invalid_credentials': { reason: 'Invalid Credentials', icon: '🔐' },
-        'account_locked': { reason: 'Account Locked', icon: '🔒' },
-        'mfa_required': { reason: '2FA Required', icon: '📱' },
-        'timeout': { reason: 'Connection Timeout', icon: '⏱️' },
-        'site_changed': { reason: 'Site Changed', icon: '🔧' },
-        'network_error': { reason: 'Network Error', icon: '📡' },
-        'session_error': { reason: 'Session Error', icon: '🔄' },
-        'unknown': { reason: 'Login Failed', icon: '⚠' }
-      };
-      const errorCode = failedLogin.errorCode || 'unknown';
-      const errorInfo = errorLabels[errorCode] || errorLabels['unknown'];
-      const detail = failedLogin.errorAction || failedLogin.error || 'Platform login error';
-      return { reason: errorInfo.reason, detail: detail, icon: errorInfo.icon, cls: 'unknown-error', platforms: [] };
-    }
-
-    // Get platforms this provider has access to
-    const providerPlatforms = (platformByProvider[providerName] || [])
-      .filter(p => p.status === 'success')
-      .map(p => p.platform);
-
-    // Check if no CE Broker credentials
-    if (noCEBrokerList.includes(providerName)) {
-      if (providerPlatforms.length > 0) {
-        return {
-          reason: 'No CE Broker',
-          detail: 'See other credentials',
-          icon: '○',
-          cls: 'unknown-partial',
-          platforms: providerPlatforms
-        };
-      }
-      // Check if they have platform credentials configured but not yet scraped
-      const provider = providers.find(p => p.name === providerName);
-      const configuredPlatforms = (provider?.platforms || []).map(p => p.platform);
-      if (configuredPlatforms.length > 0) {
-        return {
-          reason: 'No CE Broker',
-          detail: 'See other credentials',
-          icon: '○',
-          cls: 'unknown-pending',
-          platforms: configuredPlatforms
-        };
-      }
-      return { reason: 'No CEU credentials', detail: 'Submit credentials for tracking', icon: '○', cls: 'unknown-none', platforms: [] };
-    }
-    return { reason: 'Awaiting Data', detail: 'Will sync on next scrape', icon: '◷', cls: 'unknown-default', platforms: [] };
-  };
-
   // ═══════════════════════════════════════════════════════════════════════════
   // ENHANCED FEATURES DATA - Timeline, Cost Comparison, ROI, Trends
   // ═══════════════════════════════════════════════════════════════════════════
@@ -1319,10 +1325,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
   };
 
   // ── Coverage gaps (no CE Broker and/or no platform credentials) ──────────
-  // Moved up so these lists are available when building provider cards
-  const noCEBrokerList = (runResults || [])
-    .filter(r => r.status === 'not_configured')
-    .map(r => r.name);
+  // noCEBrokerList is now defined earlier (line ~328) for getUnknownReason
   const withPlatforms = new Set(platformData.map(p => p.providerName));
   const noPlatformList = Object.keys(providerMap).filter(name => !withPlatforms.has(name) && noCEBrokerList.includes(name));
   const noCredentialsList = noCEBrokerList.filter(name => noPlatformList.includes(name));
@@ -10035,6 +10038,20 @@ if (require.main === module) {
   let allProviderRecords = [];
   let runResults = [];
 
+  // Load providers.json to determine CE Broker credential status
+  let providersConfig = [];
+  try {
+    providersConfig = JSON.parse(fs.readFileSync(path.join(__dirname, 'providers.json'), 'utf8'));
+  } catch (e) {
+    console.log('No providers.json found');
+  }
+
+  // Build a map of provider names to their config
+  const providerConfigMap = {};
+  for (const p of providersConfig) {
+    providerConfigMap[p.name] = p;
+  }
+
   if (latestSnapshot && latestSnapshot.providers) {
     // Each provider becomes a single-item array containing its record
     allProviderRecords = latestSnapshot.providers.map(p => [{
@@ -10047,7 +10064,17 @@ if (require.main === module) {
       renewalDeadline: p.renewalDeadline,
       courses: p.courses || []
     }]);
-    runResults = latestSnapshot.providers.map(p => ({ name: p.name, status: 'success' }));
+
+    // Determine run status based on providers.json credentials
+    runResults = latestSnapshot.providers.map(p => {
+      const config = providerConfigMap[p.name];
+      // Provider has CE Broker credentials if they have username AND password at root level
+      const hasCEBroker = config && config.username && config.password;
+      return {
+        name: p.name,
+        status: hasCEBroker ? 'success' : 'not_configured'
+      };
+    });
   }
 
   const outputPath = buildDashboard(allProviderRecords, runResults, [], null);
