@@ -126,6 +126,44 @@ function generateEmailHTML(providers, summary) {
     </tr>
     ` : ''}
 
+    ${(() => {
+      const needsTraining = providers.filter(p => p.status !== 'Complete' && p.remaining > 0);
+      if (needsTraining.length === 0) return '';
+      return `
+    <!-- Training Required Section -->
+    <tr>
+      <td style="padding: 0 30px 30px;">
+        <h2 style="color: #2563eb; font-size: 16px; margin: 0 0 15px; padding-bottom: 10px; border-bottom: 2px solid #bfdbfe;">
+          📚 Training Required (${needsTraining.length} providers)
+        </h2>
+        <p style="margin: 0 0 15px; font-size: 13px; color: #64748b;">
+          The following providers have CEU hours remaining to complete before their renewal deadline:
+        </p>
+        <table width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+          <tr style="background-color: #eff6ff;">
+            <th style="padding: 10px; text-align: left; font-size: 12px; color: #1e40af;">Provider</th>
+            <th style="padding: 10px; text-align: left; font-size: 12px; color: #1e40af;">State</th>
+            <th style="padding: 10px; text-align: center; font-size: 12px; color: #1e40af;">Training Needed</th>
+            <th style="padding: 10px; text-align: center; font-size: 12px; color: #1e40af;">Deadline</th>
+          </tr>
+          ${needsTraining.map((p, i) => `
+          <tr style="background-color: ${i % 2 === 0 ? '#ffffff' : '#f8fafc'};">
+            <td style="padding: 10px; font-size: 13px; color: #1e293b; font-weight: 500;">${p.name}</td>
+            <td style="padding: 10px; font-size: 13px; color: #64748b;">${p.state || 'N/A'}</td>
+            <td style="padding: 10px; text-align: center;">
+              <span style="display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; background-color: #dbeafe; color: #1e40af;">
+                ${p.remaining}h of CEUs
+              </span>
+            </td>
+            <td style="padding: 10px; text-align: center; font-size: 12px; color: #64748b;">${p.deadline || 'N/A'}</td>
+          </tr>
+          `).join('')}
+        </table>
+      </td>
+    </tr>
+      `;
+    })()}
+
     <!-- All Providers Summary -->
     <tr>
       <td style="padding: 0 30px 30px;">
