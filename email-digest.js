@@ -42,6 +42,162 @@ function createTransporter(config) {
 }
 
 /**
+ * Generate Training Required section HTML
+ */
+function generateTrainingRequiredHTML(providers) {
+  const needsTraining = providers.filter(p => p.status !== 'Complete' && p.remaining > 0);
+  if (needsTraining.length === 0) return '';
+
+  const rows = needsTraining.map((p, i) => {
+    // Build training requirements list
+    const requirements = [];
+    if (p.subjectAreas && p.subjectAreas.length > 0) {
+      for (const sa of p.subjectAreas) {
+        if (sa.needed > 0) {
+          requirements.push(`${sa.needed}h ${sa.topic}`);
+        }
+      }
+    }
+    // Add general CEUs if there's remaining hours not covered by specific topics
+    const specificTotal = (p.subjectAreas || []).reduce((sum, sa) => sum + (sa.needed || 0), 0);
+    const generalNeeded = p.remaining - specificTotal;
+    if (generalNeeded > 0 || requirements.length === 0) {
+      requirements.push(`${p.remaining}h General CEUs`);
+    }
+
+    const reqHtml = requirements.map(r => `<div style="margin-bottom: 2px;">• ${r}</div>`).join('');
+    const bgColor = i % 2 === 0 ? '#ffffff' : '#f8fafc';
+
+    return `
+      <tr style="background-color: ${bgColor};">
+        <td style="padding: 10px; font-size: 13px; color: #1e293b; font-weight: 500;">${p.name}</td>
+        <td style="padding: 10px; font-size: 13px; color: #64748b;">${p.state || 'N/A'}</td>
+        <td style="padding: 10px; font-size: 12px; color: #1e40af;">${reqHtml}</td>
+        <td style="padding: 10px; text-align: center; font-size: 12px; color: #64748b;">${p.deadline || 'N/A'}</td>
+      </tr>`;
+  }).join('');
+
+  return `
+    <tr>
+      <td style="padding: 0 30px 30px;">
+        <h2 style="color: #2563eb; font-size: 16px; margin: 0 0 15px; padding-bottom: 10px; border-bottom: 2px solid #bfdbfe;">
+          📚 Training Required (${needsTraining.length} providers)
+        </h2>
+        <p style="margin: 0 0 15px; font-size: 13px; color: #64748b;">
+          The following providers have CEU hours remaining to complete before their renewal deadline:
+        </p>
+        <table width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+          <tr style="background-color: #eff6ff;">
+            <th style="padding: 10px; text-align: left; font-size: 12px; color: #1e40af;">Provider</th>
+            <th style="padding: 10px; text-align: left; font-size: 12px; color: #1e40af;">State</th>
+            <th style="padding: 10px; text-align: left; font-size: 12px; color: #1e40af;">Training Needed</th>
+            <th style="padding: 10px; text-align: center; font-size: 12px; color: #1e40af;">Deadline</th>
+          </tr>
+          ${rows}
+        </table>
+      </td>
+    </tr>`;
+}
+
+/**
+ * Generate Progress Since Last Run section HTML
+ */
+function generateProgressHTML(providers) {
+  const improved = providers.filter(p => p.progressChange?.type === 'improved');
+  const regressed = providers.filter(p => p.progressChange?.type === 'regressed');
+  if (improved.length === 0 && regressed.length === 0) return '';
+
+  let improvedHtml = '';
+  if (improved.length > 0) {
+    const items = improved.map(p => `
+      <div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px;">
+        <span style="color: #1e293b;">${p.name}</span>
+        <span style="color: #059669; font-weight: 600;">+${p.progressChange.hours}h</span>
+      </div>`).join('');
+    improvedHtml = `
+      <div style="margin-bottom: 15px;">
+        <div style="font-size: 13px; font-weight: 600; color: #059669; margin-bottom: 8px;">✓ Providers who completed more training:</div>
+        <div style="background-color: #ecfdf5; border-radius: 8px; padding: 12px;">${items}</div>
+      </div>`;
+  }
+
+  let regressedHtml = '';
+  if (regressed.length > 0) {
+    const items = regressed.map(p => `
+      <div style="display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px;">
+        <span style="color: #1e293b;">${p.name}</span>
+        <span style="color: #dc2626; font-weight: 600;">-${p.progressChange.hours}h</span>
+      </div>`).join('');
+    regressedHtml = `
+      <div>
+        <div style="font-size: 13px; font-weight: 600; color: #dc2626; margin-bottom: 8px;">⚠ Hours decreased (requirements may have changed):</div>
+        <div style="background-color: #fef2f2; border-radius: 8px; padding: 12px;">${items}</div>
+      </div>`;
+  }
+
+  return `
+    <tr>
+      <td style="padding: 0 30px 30px;">
+        <h2 style="color: #059669; font-size: 16px; margin: 0 0 15px; padding-bottom: 10px; border-bottom: 2px solid #a7f3d0;">
+          📈 Progress Since Last Run
+        </h2>
+        ${improvedHtml}
+        ${regressedHtml}
+      </td>
+    </tr>`;
+}
+
+/**
+ * Generate Platform Coverage section HTML
+ */
+function generatePlatformCoverageHTML(providers) {
+  const noPlatforms = providers.filter(p => !p.platforms || p.platforms.length === 0);
+  const hasCEBrokerOnly = providers.filter(p => p.platforms?.length === 1 && p.platforms[0] === 'CE Broker');
+  const hasMultiple = providers.filter(p => p.platforms?.length > 1);
+
+  let missingCredsHtml = '';
+  if (noPlatforms.length > 0) {
+    missingCredsHtml = `
+      <div style="background-color: #fef2f2; border-radius: 8px; padding: 12px; margin-top: 10px;">
+        <div style="font-size: 12px; font-weight: 600; color: #991b1b; margin-bottom: 5px;">Providers missing credentials:</div>
+        <div style="font-size: 12px; color: #7f1d1d;">${noPlatforms.map(p => p.name).join(', ')}</div>
+      </div>`;
+  }
+
+  return `
+    <tr>
+      <td style="padding: 0 30px 30px;">
+        <h2 style="color: #7c3aed; font-size: 16px; margin: 0 0 15px; padding-bottom: 10px; border-bottom: 2px solid #ddd6fe;">
+          🔗 Platform Coverage
+        </h2>
+        <table width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td width="33%" style="text-align: center; padding: 10px;">
+              <div style="background-color: #faf5ff; border-radius: 8px; padding: 15px;">
+                <div style="font-size: 24px; font-weight: 700; color: #7c3aed;">${hasMultiple.length}</div>
+                <div style="font-size: 11px; color: #6b21a8;">Multiple Platforms</div>
+              </div>
+            </td>
+            <td width="33%" style="text-align: center; padding: 10px;">
+              <div style="background-color: #f0fdf4; border-radius: 8px; padding: 15px;">
+                <div style="font-size: 24px; font-weight: 700; color: #059669;">${hasCEBrokerOnly.length}</div>
+                <div style="font-size: 11px; color: #065f46;">CE Broker Only</div>
+              </div>
+            </td>
+            <td width="33%" style="text-align: center; padding: 10px;">
+              <div style="background-color: #fef2f2; border-radius: 8px; padding: 15px;">
+                <div style="font-size: 24px; font-weight: 700; color: #dc2626;">${noPlatforms.length}</div>
+                <div style="font-size: 11px; color: #991b1b;">No Credentials</div>
+              </div>
+            </td>
+          </tr>
+        </table>
+        ${missingCredsHtml}
+      </td>
+    </tr>`;
+}
+
+/**
  * Generate HTML email content
  */
 function generateEmailHTML(providers, summary) {
@@ -126,43 +282,11 @@ function generateEmailHTML(providers, summary) {
     </tr>
     ` : ''}
 
-    ${(() => {
-      const needsTraining = providers.filter(p => p.status !== 'Complete' && p.remaining > 0);
-      if (needsTraining.length === 0) return '';
-      return `
-    <!-- Training Required Section -->
-    <tr>
-      <td style="padding: 0 30px 30px;">
-        <h2 style="color: #2563eb; font-size: 16px; margin: 0 0 15px; padding-bottom: 10px; border-bottom: 2px solid #bfdbfe;">
-          📚 Training Required (${needsTraining.length} providers)
-        </h2>
-        <p style="margin: 0 0 15px; font-size: 13px; color: #64748b;">
-          The following providers have CEU hours remaining to complete before their renewal deadline:
-        </p>
-        <table width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
-          <tr style="background-color: #eff6ff;">
-            <th style="padding: 10px; text-align: left; font-size: 12px; color: #1e40af;">Provider</th>
-            <th style="padding: 10px; text-align: left; font-size: 12px; color: #1e40af;">State</th>
-            <th style="padding: 10px; text-align: center; font-size: 12px; color: #1e40af;">Training Needed</th>
-            <th style="padding: 10px; text-align: center; font-size: 12px; color: #1e40af;">Deadline</th>
-          </tr>
-          ${needsTraining.map((p, i) => `
-          <tr style="background-color: ${i % 2 === 0 ? '#ffffff' : '#f8fafc'};">
-            <td style="padding: 10px; font-size: 13px; color: #1e293b; font-weight: 500;">${p.name}</td>
-            <td style="padding: 10px; font-size: 13px; color: #64748b;">${p.state || 'N/A'}</td>
-            <td style="padding: 10px; text-align: center;">
-              <span style="display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; background-color: #dbeafe; color: #1e40af;">
-                ${p.remaining}h of CEUs
-              </span>
-            </td>
-            <td style="padding: 10px; text-align: center; font-size: 12px; color: #64748b;">${p.deadline || 'N/A'}</td>
-          </tr>
-          `).join('')}
-        </table>
-      </td>
-    </tr>
-      `;
-    })()}
+    ${generateTrainingRequiredHTML(providers)}
+
+    ${generateProgressHTML(providers)}
+
+    ${generatePlatformCoverageHTML(providers)}
 
     <!-- All Providers Summary -->
     <tr>
@@ -243,9 +367,47 @@ async function sendDigest(options = {}) {
 
   const history = JSON.parse(fs.readFileSync(historyPath, 'utf8'));
   const latestRun = history[history.length - 1];
+  const previousRun = history.length > 1 ? history[history.length - 2] : null;
 
   if (!latestRun || !latestRun.providers) {
     throw new Error('No provider data found in history.');
+  }
+
+  // Load providers.json for platform coverage
+  let providersConfig = [];
+  try {
+    const providersPath = path.join(__dirname, 'providers.json');
+    if (fs.existsSync(providersPath)) {
+      providersConfig = JSON.parse(fs.readFileSync(providersPath, 'utf8'));
+    }
+  } catch (e) {
+    console.log('Could not load providers.json for platform coverage');
+  }
+
+  // Build platform coverage map
+  const platformCoverage = {};
+  for (const p of providersConfig) {
+    const platforms = [];
+    if (p.username && p.password) platforms.push('CE Broker');
+    if (p.platforms) {
+      for (const plat of p.platforms) {
+        if (plat.platform && !platforms.includes(plat.platform)) {
+          platforms.push(plat.platform);
+        }
+      }
+    }
+    platformCoverage[p.name] = platforms;
+  }
+
+  // Build previous run lookup for progress comparison
+  const previousData = {};
+  if (previousRun && previousRun.providers) {
+    for (const p of previousRun.providers) {
+      previousData[p.name] = {
+        completed: p.hoursCompleted || 0,
+        remaining: p.hoursRemaining || 0
+      };
+    }
   }
 
   // Flatten provider data (map field names from history.json format)
@@ -271,6 +433,15 @@ async function sendDigest(options = {}) {
       }
     }
 
+    // Calculate progress since last run
+    const prev = previousData[p.name];
+    let progressChange = null;
+    if (prev) {
+      const hoursGained = completed - prev.completed;
+      if (hoursGained > 0) progressChange = { type: 'improved', hours: hoursGained };
+      else if (hoursGained < 0) progressChange = { type: 'regressed', hours: Math.abs(hoursGained) };
+    }
+
     return {
       name: p.name,
       state: p.states?.[0]?.state || p.state || 'N/A',
@@ -278,7 +449,10 @@ async function sendDigest(options = {}) {
       completed,
       required,
       remaining,
-      deadline
+      deadline,
+      subjectAreas: p.subjectAreas || [],
+      platforms: platformCoverage[p.name] || [],
+      progressChange
     };
   });
 

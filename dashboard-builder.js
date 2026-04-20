@@ -165,6 +165,13 @@ function saveHistory(allProviderRecords, runResults) {
       hoursCompleted:  rec.hoursCompleted,
       hoursRemaining:  rec.hoursRemaining,
       renewalDeadline: rec.renewalDeadline,
+      // Include subject area requirements for email notifications
+      subjectAreas:    (rec.subjectAreas || []).filter(sa => sa.hoursNeeded > 0).map(sa => ({
+        topic: sa.topicName,
+        required: sa.hoursRequired,
+        completed: sa.hoursCompleted,
+        needed: sa.hoursNeeded
+      }))
     })),
   };
 
