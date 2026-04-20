@@ -871,9 +871,9 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     if (noCEBrokerList.includes(providerName)) {
       if (providerPlatforms.length > 0) {
         return {
-          reason: 'Platform Access',
-          detail: providerPlatforms.join(', '),
-          icon: '✓',
+          reason: 'No CE Broker',
+          detail: 'See other credentials',
+          icon: '○',
           cls: 'unknown-partial',
           platforms: providerPlatforms
         };
@@ -883,14 +883,14 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       const configuredPlatforms = (provider?.platforms || []).map(p => p.platform);
       if (configuredPlatforms.length > 0) {
         return {
-          reason: 'Platform Configured',
-          detail: configuredPlatforms.join(', ') + ' (pending sync)',
-          icon: '◷',
+          reason: 'No CE Broker',
+          detail: 'See other credentials',
+          icon: '○',
           cls: 'unknown-pending',
           platforms: configuredPlatforms
         };
       }
-      return { reason: 'No Access Configured', detail: 'Submit credentials for tracking', icon: '○', cls: 'unknown-none', platforms: [] };
+      return { reason: 'No CEU credentials', detail: 'Submit credentials for tracking', icon: '○', cls: 'unknown-none', platforms: [] };
     }
     return { reason: 'Awaiting Data', detail: 'Will sync on next scrape', icon: '◷', cls: 'unknown-default', platforms: [] };
   };
