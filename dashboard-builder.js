@@ -322,6 +322,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
 
   // ── Login errors from run results ─────────────────────────────────────
   const loginErrors = (runResults || []).filter(r => r.status === 'login_error' || r.status === 'failed');
+  const errorCount = loginErrors.length;
 
   // ── Chart data (for embedded bar chart) ─────────────────────────────────
   const chartData = { labels: [], completed: [], required: [], colors: [] };
@@ -1291,6 +1292,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
         data-required="${info.licenses?.[0]?.hoursRequired || 0}"
         data-remaining="${info.licenses?.[0]?.hoursRemaining || 0}"
         data-no-creds="${noCredentialsProviders.includes(name) || noCEBrokerList.includes(name)}"
+        data-error="${unknownInfo?.cls === 'unknown-error' || loginErrors.some(e => e.name === name)}"
         onclick="openProvider(this.dataset.provider)">
       ${unknownBanner}
       <div class="card-top">
@@ -3731,11 +3733,14 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .qf-pill-dot { width: 6px; height: 6px; border-radius: 50%; }
     .qf-pill-dot.urgent { background: var(--status-red); }
     .qf-pill-dot.complete { background: var(--status-green); }
+    .qf-pill-dot.error { background: #dc2626; }
     .qf-pill-count { font-size: 0.68rem; opacity: 0.8; }
     .qf-pill-urgent { border-color: rgba(239,68,68,0.3); color: var(--status-red); }
     .qf-pill-urgent:hover, .qf-pill-urgent.active { background: var(--status-red); color: #fff; border-color: var(--status-red); }
     .qf-pill-complete { border-color: rgba(16,185,129,0.3); color: var(--status-green); }
     .qf-pill-complete:hover, .qf-pill-complete.active { background: var(--status-green); color: #fff; border-color: var(--status-green); }
+    .qf-pill-error { border-color: rgba(220,38,38,0.3); color: #dc2626; }
+    .qf-pill-error:hover, .qf-pill-error.active { background: #dc2626; color: #fff; border-color: #dc2626; }
 
     /* ─ View Toggle Bar (Consolidated) ─ */
     .view-toggle-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 16px 40px 12px; flex-wrap: wrap; border-bottom: 1px solid var(--border-color); margin-bottom: 12px; }
@@ -6175,6 +6180,9 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
         <button class="qf-pill qf-pill-complete" onclick="applyQuickFilter('complete')" id="qf-complete" title="Show complete providers">
           <span class="qf-pill-dot complete"></span>Done <span class="qf-pill-count">${completeCount}</span>
         </button>
+        ${errorCount > 0 ? `<button class="qf-pill qf-pill-error" onclick="applyQuickFilter('errors')" id="qf-errors" title="Show providers with errors">
+          <span class="qf-pill-dot error"></span>Errors <span class="qf-pill-count">${errorCount}</span>
+        </button>` : ''}
         <button class="qf-pill qf-pill-all" onclick="applyQuickFilter('all')" id="qf-all" title="Show all providers">
           All
         </button>
@@ -8716,6 +8724,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
   let cardFilter = 'all';
   let typeFilter = 'all';
   let platformFilter = 'all';
+  let errorFilter = false;
 
   function setStateFilter(s) {
     stateFilter = s;
@@ -8769,6 +8778,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       const states = (card.dataset.states || '').split(',');
       const type   = card.dataset.type || '';
       const noCreds = card.dataset.noCreds === 'true';
+      const hasError = card.dataset.error === 'true';
       const deadline = parseInt(card.dataset.deadline) || 9999;
 
       const matchQ = !q || name.includes(q);
@@ -8776,6 +8786,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       const matchS = stateFilter === 'all' || states.includes(stateFilter);
       const matchT = typeFilter === 'all' || type === typeFilter;
       const matchC = !noCredsOnly || noCreds;
+      const matchE = !errorFilter || hasError;
 
       // Platform filter - check for platform tags in the card
       let matchP = platformFilterVal === 'all';
@@ -8799,7 +8810,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       const matchOverdue = !filterOverdue || deadline < 0;
       const matchUrgent = !filterUrgent || (deadline >= 0 && deadline <= 30);
 
-      const visible = matchQ && matchF && matchS && matchT && matchC && matchP && matchDeadlineMin && matchDeadlineMax && ((!filterOverdue && !filterUrgent) || matchOverdue || matchUrgent);
+      const visible = matchQ && matchF && matchS && matchT && matchC && matchP && matchE && matchDeadlineMin && matchDeadlineMax && ((!filterOverdue && !filterUrgent) || matchOverdue || matchUrgent);
       card.style.display = visible ? '' : 'none';
       if (visible) visibleCount++;
     });
@@ -8835,6 +8846,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     cardFilter = 'all';
     typeFilter = 'all';
     platformFilter = 'all';
+    errorFilter = false;
     filterCards();
     sortCards();
   }
@@ -9337,6 +9349,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     if (deadlineMax) deadlineMax.value = '';
     if (statusFilter) statusFilter.value = 'all';
     cardFilter = 'all';
+    errorFilter = false;
 
     switch(filter) {
       case 'urgent':
@@ -9352,6 +9365,9 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       case 'complete':
         if (statusFilter) statusFilter.value = 'Complete';
         cardFilter = 'Complete';
+        break;
+      case 'errors':
+        errorFilter = true;
         break;
     }
     filterCards();
