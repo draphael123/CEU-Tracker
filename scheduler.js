@@ -1,7 +1,7 @@
 // scheduler.js — Run CEU scraper on a schedule with optional email digest
 // Usage: node scheduler.js
-// Leave this running and it will scrape daily at 8:00 AM
-// Email digest sent weekly on Mondays at 9:00 AM (if configured)
+// Leave this running and it will scrape daily at 10:30 PM
+// Email digest and renewal reminders sent weekly on Mondays at 8:00 AM (if configured)
 
 const cron = require('node-cron');
 const { execSync } = require('child_process');
@@ -22,11 +22,9 @@ console.log('═'.repeat(50));
 console.log('  CEU Tracker Scheduler Started');
 console.log('  Scraping will run daily at 10:30 PM EST');
 if (isEmailConfigured()) {
-  console.log('  Email digest will be sent Mondays at 9:00 AM EST');
-  console.log('  Renewal reminders will be sent daily at 8:00 AM EST');
+  console.log('  Email digest & reminders: Mondays at 8:00 AM EST');
 } else {
-  console.log('  Email digest: Not configured');
-  console.log('  Renewal reminders: Not configured');
+  console.log('  Email: Not configured');
   console.log('  (Run "node email-digest.js --setup" to configure)');
 }
 console.log('  Press Ctrl+C to stop');
@@ -48,43 +46,30 @@ cron.schedule('30 22 * * *', () => {
   timezone: 'America/New_York'
 });
 
-// Schedule: 8:00 AM EST every day - Send renewal reminders (if configured)
-cron.schedule('0 8 * * *', async () => {
+// Schedule: 8:00 AM EST every Monday - Send email digest and renewal reminders (if configured)
+cron.schedule('0 8 * * 1', async () => {
   if (!isEmailConfigured()) {
-    console.log(`[${new Date().toLocaleString()}] Skipping renewal reminders (not configured)`);
+    console.log(`[${new Date().toLocaleString()}] Skipping emails (not configured)`);
     return;
   }
 
-  console.log(`\n[${new Date().toLocaleString()}] Checking for renewal reminders...`);
+  console.log(`\n[${new Date().toLocaleString()}] Sending weekly email digest and renewal reminders...`);
   try {
-    const { sendRenewalReminders } = require('./email-digest');
-    const result = await sendRenewalReminders();
-    if (result) {
+    const { sendDigest, sendRenewalReminders } = require('./email-digest');
+
+    // Send renewal reminders
+    const reminderResult = await sendRenewalReminders();
+    if (reminderResult) {
       console.log(`[${new Date().toLocaleString()}] Renewal reminders sent successfully`);
     } else {
-      console.log(`[${new Date().toLocaleString()}] No renewal reminders needed today`);
+      console.log(`[${new Date().toLocaleString()}] No renewal reminders needed`);
     }
-  } catch (err) {
-    console.error(`[${new Date().toLocaleString()}] Renewal reminders failed:`, err.message);
-  }
-}, {
-  timezone: 'America/New_York'
-});
 
-// Schedule: 9:00 AM EST every Monday - Send email digest (if configured)
-cron.schedule('0 9 * * 1', async () => {
-  if (!isEmailConfigured()) {
-    console.log(`[${new Date().toLocaleString()}] Skipping email digest (not configured)`);
-    return;
-  }
-
-  console.log(`\n[${new Date().toLocaleString()}] Sending weekly email digest...`);
-  try {
-    const { sendDigest } = require('./email-digest');
+    // Send digest
     await sendDigest();
     console.log(`[${new Date().toLocaleString()}] Email digest sent successfully`);
   } catch (err) {
-    console.error(`[${new Date().toLocaleString()}] Email digest failed:`, err.message);
+    console.error(`[${new Date().toLocaleString()}] Email failed:`, err.message);
   }
 }, {
   timezone: 'America/New_York'
@@ -97,6 +82,6 @@ if (isEmailConfigured()) {
   const daysUntilMonday = (8 - now.getDay()) % 7 || 7;
   const nextMonday = new Date(now);
   nextMonday.setDate(now.getDate() + daysUntilMonday);
-  console.log(`Next email digest: Monday ${nextMonday.toLocaleDateString()}`);
+  console.log(`Next email: Monday ${nextMonday.toLocaleDateString()} at 8:00 AM EST`);
 }
 console.log(`Current time: ${new Date().toLocaleString()}\n`);
