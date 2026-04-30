@@ -35524,5 +35524,412 @@
         "subjectAreas": []
       }
     ]
+  },
+  {
+    "timestamp": "2026-04-30T02:57:20.355Z",
+    "succeeded": 11,
+    "failed": 0,
+    "notConfigured": 21,
+    "loginErrors": [],
+    "providers": [
+      {
+        "name": "Ashley Grout, NP",
+        "state": "Florida",
+        "hoursRequired": 24,
+        "hoursCompleted": 48,
+        "hoursRemaining": 6,
+        "renewalDeadline": "04/30/2027",
+        "subjectAreas": [
+          {
+            "topic": "Medical Errors",
+            "required": 2,
+            "completed": 0,
+            "needed": 2
+          },
+          {
+            "topic": "Laws and Rules of the Board",
+            "required": 2,
+            "completed": 0,
+            "needed": 2
+          },
+          {
+            "topic": "Human Trafficking",
+            "required": 2,
+            "completed": 0,
+            "needed": 2
+          }
+        ]
+      },
+      {
+        "name": "Bill Carbonneau, NP",
+        "state": "Florida",
+        "hoursRequired": 26,
+        "hoursCompleted": 134,
+        "hoursRemaining": 0,
+        "renewalDeadline": "07/31/2026",
+        "subjectAreas": []
+      },
+      {
+        "name": "Bryana Anderson, NP",
+        "state": "New Mexico",
+        "hoursRequired": 50,
+        "hoursCompleted": 219.5,
+        "hoursRemaining": 0,
+        "renewalDeadline": "06/30/2027",
+        "subjectAreas": [
+          {
+            "topic": "Continuing education related to non-cancer pain management",
+            "required": 5,
+            "completed": 0,
+            "needed": 5
+          },
+          {
+            "topic": "Continuing education related to pharmacology",
+            "required": 10,
+            "completed": 0,
+            "needed": 10
+          },
+          {
+            "topic": "Continuing education relevant to CNP nursing specialty",
+            "required": 5,
+            "completed": 0,
+            "needed": 5
+          },
+          {
+            "topic": "Continuing education relevant to nursing practice",
+            "required": 30,
+            "completed": 0,
+            "needed": 30
+          }
+        ]
+      },
+      {
+        "name": "Bryce Amos, NP",
+        "state": "New York",
+        "hoursRequired": 0,
+        "hoursCompleted": 0,
+        "hoursRemaining": 0,
+        "renewalDeadline": "02/29/2028",
+        "subjectAreas": []
+      },
+      {
+        "name": "Catherine Herrington, MD",
+        "state": "Texas",
+        "hoursRequired": 48,
+        "hoursCompleted": 7,
+        "hoursRemaining": 41,
+        "renewalDeadline": "05/31/2027",
+        "subjectAreas": [
+          {
+            "topic": "Medical Ethics and/or Professional Responsibility (Category 1 or 1A)",
+            "required": 2,
+            "completed": 0,
+            "needed": 2
+          },
+          {
+            "topic": "Formal Category 1 or 1A Hours",
+            "required": 24,
+            "completed": 0,
+            "needed": 24
+          },
+          {
+            "topic": "Pain Management and the Prescription of Opioids (Category 1 or 1A)",
+            "required": 2,
+            "completed": 0,
+            "needed": 2
+          }
+        ]
+      },
+      {
+        "name": "Doron Stember, MD",
+        "state": "Texas",
+        "hoursRequired": 48,
+        "hoursCompleted": 106,
+        "hoursRemaining": 4,
+        "renewalDeadline": "02/28/2028",
+        "subjectAreas": [
+          {
+            "topic": "Medical Ethics and/or Professional Responsibility (Category 1 or 1A)",
+            "required": 2,
+            "completed": 0,
+            "needed": 2
+          },
+          {
+            "topic": "Pain Management and the Prescription of Opioids (Category 1 or 1A)",
+            "required": 2,
+            "completed": 0,
+            "needed": 2
+          }
+        ]
+      },
+      {
+        "name": "Hilary Morgan, RN",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Lindsay Burden, NP",
+        "state": "West Virginia",
+        "hoursRequired": 24,
+        "hoursCompleted": 8.5,
+        "hoursRemaining": 15.5,
+        "renewalDeadline": "06/30/2027",
+        "subjectAreas": [
+          {
+            "topic": "Pharmacotherapeutics CE courses",
+            "required": 12,
+            "completed": 6,
+            "needed": 6
+          },
+          {
+            "topic": "Clinical Management of Patients",
+            "required": 12,
+            "completed": 2.5,
+            "needed": 9.5
+          }
+        ]
+      },
+      {
+        "name": "Liz Gloor, NP",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Priya Chaudhari, NP",
+        "state": "Florida",
+        "hoursRequired": 21,
+        "hoursCompleted": 69,
+        "hoursRemaining": 2,
+        "renewalDeadline": "04/30/2026",
+        "subjectAreas": [
+          {
+            "topic": "General",
+            "required": 12,
+            "completed": 60,
+            "needed": 2
+          }
+        ]
+      },
+      {
+        "name": "Rachel Razi, NP",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Summer Denny, NP",
+        "state": "Ohio",
+        "hoursRequired": 0,
+        "hoursCompleted": 0,
+        "hoursRemaining": 0,
+        "renewalDeadline": "10/31/2027",
+        "subjectAreas": []
+      },
+      {
+        "name": "Terray Humphrey, NP",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Tim Mack, NP",
+        "state": "Arizona",
+        "hoursRequired": 3,
+        "hoursCompleted": 0,
+        "hoursRemaining": 3,
+        "renewalDeadline": "04/01/2030",
+        "subjectAreas": [
+          {
+            "topic": "CE Related to Opioids, Substance Use Disorder, or Addiction",
+            "required": 3,
+            "completed": 0,
+            "needed": 3
+          }
+        ]
+      },
+      {
+        "name": "Tzvi Doron, DO",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Vivien Lee, NP",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Victor Lopez, NP",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Camryn Burden, RN",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Alexis Foster-Horton, NP",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Megan Ryan-Riffle, NP",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Michele Foster, NP",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Danielle Board, NP",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "DeAnna Maher, NP",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Ashley Escoe, NP",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Brooklyn Kimble, RN",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Daniel Fis, RN",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Bryce Hanley, RN",
+        "state": "Tennessee",
+        "hoursRequired": 10,
+        "hoursCompleted": 0,
+        "hoursRemaining": 10,
+        "renewalDeadline": "09/30/2026",
+        "subjectAreas": [
+          {
+            "topic": "CE Applicable to Licensee's Practice",
+            "required": 10,
+            "completed": 0,
+            "needed": 10
+          }
+        ]
+      },
+      {
+        "name": "Shelby Bailey, RN",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Brittany Alexander, RN",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Emmanuel Sonaike, MD",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Naureen Majid Adam, MD",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Nicole Tahira Perrotte, MD",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      }
+    ]
   }
 ]
