@@ -36411,5 +36411,369 @@
         "subjectAreas": []
       }
     ]
+  },
+  {
+    "timestamp": "2026-05-08T12:19:49.779Z",
+    "succeeded": 0,
+    "failed": 11,
+    "notConfigured": 21,
+    "loginErrors": [
+      {
+        "name": "Ashley Grout, NP",
+        "errorCode": "timeout",
+        "error": "Login page took too long to respond",
+        "errorAction": "CE Broker may be slow or down. Will retry on next run"
+      },
+      {
+        "name": "Bill Carbonneau, NP",
+        "errorCode": "timeout",
+        "error": "Login page took too long to respond",
+        "errorAction": "CE Broker may be slow or down. Will retry on next run"
+      },
+      {
+        "name": "Bryana Anderson, NP",
+        "errorCode": "timeout",
+        "error": "Login page took too long to respond",
+        "errorAction": "CE Broker may be slow or down. Will retry on next run"
+      },
+      {
+        "name": "Bryce Amos, NP",
+        "errorCode": "timeout",
+        "error": "Login page took too long to respond",
+        "errorAction": "CE Broker may be slow or down. Will retry on next run"
+      },
+      {
+        "name": "Catherine Herrington, MD",
+        "errorCode": "timeout",
+        "error": "Login page took too long to respond",
+        "errorAction": "CE Broker may be slow or down. Will retry on next run"
+      },
+      {
+        "name": "Doron Stember, MD",
+        "errorCode": "timeout",
+        "error": "Login page took too long to respond",
+        "errorAction": "CE Broker may be slow or down. Will retry on next run"
+      },
+      {
+        "name": "Lindsay Burden, NP",
+        "errorCode": "timeout",
+        "error": "Login page took too long to respond",
+        "errorAction": "CE Broker may be slow or down. Will retry on next run"
+      },
+      {
+        "name": "Priya Chaudhari, NP",
+        "errorCode": "timeout",
+        "error": "Login page took too long to respond",
+        "errorAction": "CE Broker may be slow or down. Will retry on next run"
+      },
+      {
+        "name": "Summer Denny, NP",
+        "errorCode": "timeout",
+        "error": "Login page took too long to respond",
+        "errorAction": "CE Broker may be slow or down. Will retry on next run"
+      },
+      {
+        "name": "Tim Mack, NP",
+        "errorCode": "timeout",
+        "error": "Login page took too long to respond",
+        "errorAction": "CE Broker may be slow or down. Will retry on next run"
+      },
+      {
+        "name": "Bryce Hanley, RN",
+        "errorCode": "timeout",
+        "error": "Login page took too long to respond",
+        "errorAction": "CE Broker may be slow or down. Will retry on next run"
+      }
+    ],
+    "providers": [
+      {
+        "name": "Ashley Grout, NP",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Bill Carbonneau, NP",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Bryana Anderson, NP",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Bryce Amos, NP",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Catherine Herrington, MD",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Doron Stember, MD",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Hilary Morgan, RN",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Lindsay Burden, NP",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Liz Gloor, NP",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Priya Chaudhari, NP",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Rachel Razi, NP",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Summer Denny, NP",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Terray Humphrey, NP",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Tim Mack, NP",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Tzvi Doron, DO",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Vivien Lee, NP",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Victor Lopez, NP",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Camryn Burden, RN",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Alexis Foster-Horton, NP",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Megan Ryan-Riffle, NP",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Michele Foster, NP",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Danielle Board, NP",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "DeAnna Maher, NP",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Ashley Escoe, NP",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Brooklyn Kimble, RN",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Daniel Fis, RN",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Bryce Hanley, RN",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Shelby Bailey, RN",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Brittany Alexander, RN",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Emmanuel Sonaike, MD",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Naureen Majid Adam, MD",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      },
+      {
+        "name": "Nicole Tahira Perrotte, MD",
+        "state": null,
+        "hoursRequired": null,
+        "hoursCompleted": null,
+        "hoursRemaining": null,
+        "renewalDeadline": null,
+        "subjectAreas": []
+      }
+    ]
   }
 ]
