@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-05-25T02:55:40.923Z",
+  "lastUpdated": "2026-05-31T02:55:53.603Z",
   "providers": {
     "Ashley Grout, NP": {
       "providerType": "NP",
@@ -13,7 +13,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:45:21.774Z",
+          "lastVerified": "2026-05-31T02:45:22.365Z",
           "disciplineActions": false
         },
         {
@@ -25,7 +25,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:45:21.774Z",
+          "lastVerified": "2026-05-31T02:45:22.366Z",
           "disciplineActions": false
         },
         {
@@ -37,34 +37,34 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:45:21.774Z",
+          "lastVerified": "2026-05-31T02:45:22.366Z",
           "disciplineActions": false
         }
       ],
       "statesSearched": 2,
       "statesWithLicense": 3,
-      "lastFullScan": "2026-05-25T02:45:32.251Z"
+      "lastFullScan": "2026-05-31T02:45:34.349Z"
     },
     "Bill Carbonneau, NP": {
       "providerType": "NP",
       "licenses": [],
       "statesSearched": 2,
       "statesWithLicense": 0,
-      "lastFullScan": "2026-05-25T02:45:51.279Z"
+      "lastFullScan": "2026-05-31T02:45:53.416Z"
     },
     "Bryana Anderson, NP": {
       "providerType": "NP",
       "licenses": [],
       "statesSearched": 2,
       "statesWithLicense": 0,
-      "lastFullScan": "2026-05-25T02:46:10.610Z"
+      "lastFullScan": "2026-05-31T02:46:13.830Z"
     },
     "Bryce Amos, NP": {
       "providerType": "NP",
       "licenses": [],
       "statesSearched": 2,
       "statesWithLicense": 0,
-      "lastFullScan": "2026-05-25T02:46:30.391Z"
+      "lastFullScan": "2026-05-31T02:46:33.591Z"
     },
     "Hilary Morgan, RN": {
       "providerType": "RN",
@@ -78,7 +78,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:47:17.197Z",
+          "lastVerified": "2026-05-31T02:47:22.756Z",
           "disciplineActions": false
         },
         {
@@ -90,13 +90,13 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:47:17.197Z",
+          "lastVerified": "2026-05-31T02:47:22.756Z",
           "disciplineActions": false
         }
       ],
       "statesSearched": 2,
       "statesWithLicense": 2,
-      "lastFullScan": "2026-05-25T02:47:27.640Z"
+      "lastFullScan": "2026-05-31T02:47:33.507Z"
     },
     "Jacquelyn Sexton, NP": {
       "providerType": "NP",
@@ -117,7 +117,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:47:36.220Z",
+          "lastVerified": "2026-05-31T02:47:42.170Z",
           "disciplineActions": false
         },
         {
@@ -129,7 +129,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:47:36.220Z",
+          "lastVerified": "2026-05-31T02:47:42.170Z",
           "disciplineActions": false
         },
         {
@@ -141,20 +141,20 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "New Hampshire Board",
-          "lastVerified": "2026-05-25T02:47:45.117Z",
+          "lastVerified": "2026-05-31T02:47:51.189Z",
           "disciplineActions": false
         }
       ],
       "statesSearched": 2,
       "statesWithLicense": 3,
-      "lastFullScan": "2026-05-25T02:47:46.633Z"
+      "lastFullScan": "2026-05-31T02:47:52.708Z"
     },
     "Liz Gloor, NP": {
       "providerType": "NP",
       "licenses": [],
       "statesSearched": 2,
       "statesWithLicense": 0,
-      "lastFullScan": "2026-05-25T02:48:05.595Z"
+      "lastFullScan": "2026-05-31T02:48:18.746Z"
     },
     "Mackinzie Johnson, RN": {
       "providerType": "RN",
@@ -175,14 +175,14 @@
       "licenses": [],
       "statesSearched": 2,
       "statesWithLicense": 0,
-      "lastFullScan": "2026-05-25T02:48:24.912Z"
+      "lastFullScan": "2026-05-31T02:48:38.875Z"
     },
     "Rachel Razi, NP": {
       "providerType": "NP",
       "licenses": [],
       "statesSearched": 2,
       "statesWithLicense": 0,
-      "lastFullScan": "2026-05-25T02:48:43.738Z"
+      "lastFullScan": "2026-05-31T02:48:57.983Z"
     },
     "Summer Denny, NP": {
       "providerType": "NP",
@@ -196,7 +196,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:48:53.203Z",
+          "lastVerified": "2026-05-31T02:49:06.544Z",
           "disciplineActions": false
         },
         {
@@ -208,20 +208,20 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:48:53.203Z",
+          "lastVerified": "2026-05-31T02:49:06.544Z",
           "disciplineActions": false
         }
       ],
       "statesSearched": 2,
       "statesWithLicense": 2,
-      "lastFullScan": "2026-05-25T02:49:04.686Z"
+      "lastFullScan": "2026-05-31T02:49:17.146Z"
     },
     "Terray Humphrey, NP": {
       "providerType": "NP",
       "licenses": [],
       "statesSearched": 2,
       "statesWithLicense": 0,
-      "lastFullScan": "2026-05-25T02:49:23.608Z"
+      "lastFullScan": "2026-05-31T02:49:36.337Z"
     },
     "Tim Mack, NP": {
       "providerType": "NP",
@@ -235,7 +235,19 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:49:32.114Z",
+          "lastVerified": "2026-05-31T02:49:45.339Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "APRN11047886",
+          "licenseType": "RN",
+          "status": "Active",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-05-31T02:49:45.339Z",
           "disciplineActions": false
         },
         {
@@ -247,7 +259,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:49:32.114Z",
+          "lastVerified": "2026-05-31T02:49:45.339Z",
           "disciplineActions": false
         },
         {
@@ -259,7 +271,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:49:32.114Z",
+          "lastVerified": "2026-05-31T02:49:45.339Z",
           "disciplineActions": false
         },
         {
@@ -271,7 +283,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:49:32.114Z",
+          "lastVerified": "2026-05-31T02:49:45.339Z",
           "disciplineActions": false
         },
         {
@@ -283,20 +295,20 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "New Hampshire Board",
-          "lastVerified": "2026-05-25T02:49:41.145Z",
+          "lastVerified": "2026-05-31T02:49:55.760Z",
           "disciplineActions": false
         }
       ],
       "statesSearched": 2,
-      "statesWithLicense": 5,
-      "lastFullScan": "2026-05-25T02:49:42.660Z"
+      "statesWithLicense": 6,
+      "lastFullScan": "2026-05-31T02:49:57.279Z"
     },
     "Vivien Lee, NP": {
       "providerType": "NP",
       "licenses": [],
       "statesSearched": 2,
       "statesWithLicense": 0,
-      "lastFullScan": "2026-05-25T02:50:21.493Z"
+      "lastFullScan": "2026-05-31T02:50:35.764Z"
     },
     "Victor Lopez, NP": {
       "providerType": "NP",
@@ -310,7 +322,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:50:30.049Z",
+          "lastVerified": "2026-05-31T02:50:44.341Z",
           "disciplineActions": false
         },
         {
@@ -322,7 +334,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:50:30.049Z",
+          "lastVerified": "2026-05-31T02:50:44.341Z",
           "disciplineActions": false
         },
         {
@@ -334,7 +346,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:50:30.049Z",
+          "lastVerified": "2026-05-31T02:50:44.341Z",
           "disciplineActions": false
         },
         {
@@ -346,7 +358,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:50:30.049Z",
+          "lastVerified": "2026-05-31T02:50:44.341Z",
           "disciplineActions": false
         },
         {
@@ -358,7 +370,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:50:30.049Z",
+          "lastVerified": "2026-05-31T02:50:44.341Z",
           "disciplineActions": false
         },
         {
@@ -370,19 +382,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:50:30.049Z",
-          "disciplineActions": false
-        },
-        {
-          "state": "FL",
-          "stateFullName": "Florida",
-          "licenseNumber": null,
-          "licenseType": "RN",
-          "status": "Active",
-          "expirationDate": null,
-          "issuedDate": null,
-          "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:50:30.049Z",
+          "lastVerified": "2026-05-31T02:50:44.341Z",
           "disciplineActions": false
         },
         {
@@ -394,7 +394,19 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:50:30.049Z",
+          "lastVerified": "2026-05-31T02:50:44.341Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": null,
+          "licenseType": "RN",
+          "status": "Active",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-05-31T02:50:44.341Z",
           "disciplineActions": false
         },
         {
@@ -406,19 +418,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:50:30.049Z",
-          "disciplineActions": false
-        },
-        {
-          "state": "FL",
-          "stateFullName": "Florida",
-          "licenseNumber": "DH20421",
-          "licenseType": "RN",
-          "status": "Inactive",
-          "expirationDate": null,
-          "issuedDate": null,
-          "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:50:30.049Z",
+          "lastVerified": "2026-05-31T02:50:44.341Z",
           "disciplineActions": false
         },
         {
@@ -430,7 +430,19 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:50:30.049Z",
+          "lastVerified": "2026-05-31T02:50:44.341Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "DH20421",
+          "licenseType": "RN",
+          "status": "Inactive",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-05-31T02:50:44.341Z",
           "disciplineActions": false
         },
         {
@@ -442,7 +454,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:50:30.049Z",
+          "lastVerified": "2026-05-31T02:50:44.341Z",
           "disciplineActions": false
         },
         {
@@ -454,7 +466,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:50:30.049Z",
+          "lastVerified": "2026-05-31T02:50:44.341Z",
           "disciplineActions": false
         },
         {
@@ -466,7 +478,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:50:30.049Z",
+          "lastVerified": "2026-05-31T02:50:44.341Z",
           "disciplineActions": false
         },
         {
@@ -478,7 +490,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:50:30.049Z",
+          "lastVerified": "2026-05-31T02:50:44.341Z",
           "disciplineActions": false
         },
         {
@@ -490,7 +502,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:50:30.049Z",
+          "lastVerified": "2026-05-31T02:50:44.341Z",
           "disciplineActions": false
         },
         {
@@ -502,7 +514,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:50:30.049Z",
+          "lastVerified": "2026-05-31T02:50:44.341Z",
           "disciplineActions": false
         },
         {
@@ -514,7 +526,19 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:50:30.049Z",
+          "lastVerified": "2026-05-31T02:50:44.341Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "TN38003",
+          "licenseType": "RN",
+          "status": "Active",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-05-31T02:50:44.341Z",
           "disciplineActions": false
         },
         {
@@ -526,25 +550,13 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:50:30.049Z",
-          "disciplineActions": false
-        },
-        {
-          "state": "FL",
-          "stateFullName": "Florida",
-          "licenseNumber": "RPT85986",
-          "licenseType": "RN",
-          "status": "Active",
-          "expirationDate": null,
-          "issuedDate": null,
-          "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:50:30.049Z",
+          "lastVerified": "2026-05-31T02:50:44.341Z",
           "disciplineActions": false
         }
       ],
       "statesSearched": 2,
       "statesWithLicense": 20,
-      "lastFullScan": "2026-05-25T02:50:40.580Z"
+      "lastFullScan": "2026-05-31T02:50:55.060Z"
     },
     "Camryn Burden, RN": {
       "providerType": "RN",
@@ -558,7 +570,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:50:50.050Z",
+          "lastVerified": "2026-05-31T02:51:03.988Z",
           "disciplineActions": false
         },
         {
@@ -570,27 +582,27 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:50:50.050Z",
+          "lastVerified": "2026-05-31T02:51:03.988Z",
           "disciplineActions": false
         }
       ],
       "statesSearched": 2,
       "statesWithLicense": 2,
-      "lastFullScan": "2026-05-25T02:51:00.484Z"
+      "lastFullScan": "2026-05-31T02:51:14.657Z"
     },
     "Alexis Foster-Horton, NP": {
       "providerType": "NP",
       "licenses": [],
       "statesSearched": 2,
       "statesWithLicense": 0,
-      "lastFullScan": "2026-05-25T02:51:20.435Z"
+      "lastFullScan": "2026-05-31T02:51:35.517Z"
     },
     "Megan Ryan-Riffle, NP": {
       "providerType": "NP",
       "licenses": [],
       "statesSearched": 2,
       "statesWithLicense": 0,
-      "lastFullScan": "2026-05-25T02:51:39.753Z"
+      "lastFullScan": "2026-05-31T02:51:54.980Z"
     },
     "Michele Foster, NP": {
       "providerType": "NP",
@@ -604,7 +616,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:51:48.181Z",
+          "lastVerified": "2026-05-31T02:52:06.053Z",
           "disciplineActions": false
         },
         {
@@ -616,7 +628,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:51:48.181Z",
+          "lastVerified": "2026-05-31T02:52:06.053Z",
           "disciplineActions": false
         },
         {
@@ -628,7 +640,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:51:48.181Z",
+          "lastVerified": "2026-05-31T02:52:06.053Z",
           "disciplineActions": false
         },
         {
@@ -640,27 +652,27 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:51:48.181Z",
+          "lastVerified": "2026-05-31T02:52:06.053Z",
           "disciplineActions": false
         }
       ],
       "statesSearched": 2,
       "statesWithLicense": 4,
-      "lastFullScan": "2026-05-25T02:51:58.709Z"
+      "lastFullScan": "2026-05-31T02:52:18.236Z"
     },
     "Danielle Board, NP": {
       "providerType": "NP",
       "licenses": [],
       "statesSearched": 2,
       "statesWithLicense": 0,
-      "lastFullScan": "2026-05-25T02:52:17.615Z"
+      "lastFullScan": "2026-05-31T02:52:37.372Z"
     },
     "DeAnna Maher, NP": {
       "providerType": "NP",
       "licenses": [],
       "statesSearched": 2,
       "statesWithLicense": 0,
-      "lastFullScan": "2026-05-25T02:52:37.577Z"
+      "lastFullScan": "2026-05-31T02:52:57.872Z"
     },
     "Skye Sauls, NP": {
       "providerType": "NP",
@@ -711,7 +723,7 @@
       "licenses": [],
       "statesSearched": 2,
       "statesWithLicense": 0,
-      "lastFullScan": "2026-05-25T02:53:16.373Z"
+      "lastFullScan": "2026-05-31T02:53:36.931Z"
     },
     "Daniel Fis, RN": {
       "providerType": "RN",
@@ -725,7 +737,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:53:25.071Z",
+          "lastVerified": "2026-05-31T02:53:45.394Z",
           "disciplineActions": false
         },
         {
@@ -737,7 +749,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:53:25.071Z",
+          "lastVerified": "2026-05-31T02:53:45.394Z",
           "disciplineActions": false
         },
         {
@@ -749,19 +761,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:53:25.071Z",
-          "disciplineActions": false
-        },
-        {
-          "state": "FL",
-          "stateFullName": "Florida",
-          "licenseNumber": "PMD517352",
-          "licenseType": "RN",
-          "status": "Active",
-          "expirationDate": null,
-          "issuedDate": null,
-          "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:53:25.071Z",
+          "lastVerified": "2026-05-31T02:53:45.394Z",
           "disciplineActions": false
         },
         {
@@ -773,7 +773,19 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:53:25.071Z",
+          "lastVerified": "2026-05-31T02:53:45.394Z",
+          "disciplineActions": false
+        },
+        {
+          "state": "FL",
+          "stateFullName": "Florida",
+          "licenseNumber": "PMD517352",
+          "licenseType": "RN",
+          "status": "Active",
+          "expirationDate": null,
+          "issuedDate": null,
+          "verificationSource": "FL DOH MQA",
+          "lastVerified": "2026-05-31T02:53:45.394Z",
           "disciplineActions": false
         },
         {
@@ -785,7 +797,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:53:25.071Z",
+          "lastVerified": "2026-05-31T02:53:45.394Z",
           "disciplineActions": false
         },
         {
@@ -797,7 +809,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:53:25.071Z",
+          "lastVerified": "2026-05-31T02:53:45.394Z",
           "disciplineActions": false
         },
         {
@@ -809,7 +821,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:53:25.071Z",
+          "lastVerified": "2026-05-31T02:53:45.394Z",
           "disciplineActions": false
         },
         {
@@ -821,7 +833,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:53:25.071Z",
+          "lastVerified": "2026-05-31T02:53:45.394Z",
           "disciplineActions": false
         },
         {
@@ -833,7 +845,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:53:25.071Z",
+          "lastVerified": "2026-05-31T02:53:45.394Z",
           "disciplineActions": false
         },
         {
@@ -845,7 +857,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:53:25.071Z",
+          "lastVerified": "2026-05-31T02:53:45.394Z",
           "disciplineActions": false
         },
         {
@@ -857,7 +869,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:53:25.071Z",
+          "lastVerified": "2026-05-31T02:53:45.394Z",
           "disciplineActions": false
         },
         {
@@ -869,7 +881,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:53:25.071Z",
+          "lastVerified": "2026-05-31T02:53:45.394Z",
           "disciplineActions": false
         },
         {
@@ -881,7 +893,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:53:25.071Z",
+          "lastVerified": "2026-05-31T02:53:45.394Z",
           "disciplineActions": false
         },
         {
@@ -893,7 +905,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:53:25.071Z",
+          "lastVerified": "2026-05-31T02:53:45.394Z",
           "disciplineActions": false
         },
         {
@@ -905,7 +917,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:53:25.071Z",
+          "lastVerified": "2026-05-31T02:53:45.394Z",
           "disciplineActions": false
         },
         {
@@ -917,7 +929,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:53:25.071Z",
+          "lastVerified": "2026-05-31T02:53:45.394Z",
           "disciplineActions": false
         },
         {
@@ -929,7 +941,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:53:25.071Z",
+          "lastVerified": "2026-05-31T02:53:45.394Z",
           "disciplineActions": false
         },
         {
@@ -941,7 +953,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:53:25.071Z",
+          "lastVerified": "2026-05-31T02:53:45.394Z",
           "disciplineActions": false
         },
         {
@@ -953,7 +965,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:53:25.071Z",
+          "lastVerified": "2026-05-31T02:53:45.394Z",
           "disciplineActions": false
         },
         {
@@ -965,20 +977,20 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "New Hampshire Board",
-          "lastVerified": "2026-05-25T02:53:34.140Z",
+          "lastVerified": "2026-05-31T02:53:54.403Z",
           "disciplineActions": false
         }
       ],
       "statesSearched": 2,
       "statesWithLicense": 21,
-      "lastFullScan": "2026-05-25T02:53:35.662Z"
+      "lastFullScan": "2026-05-31T02:53:55.925Z"
     },
     "Bryce Hanley, RN": {
       "providerType": "RN",
       "licenses": [],
       "statesSearched": 2,
       "statesWithLicense": 0,
-      "lastFullScan": "2026-05-25T02:53:54.567Z"
+      "lastFullScan": "2026-05-31T02:54:15.252Z"
     },
     "Shelby Bailey, RN": {
       "providerType": "RN",
@@ -992,13 +1004,13 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "New Hampshire Board",
-          "lastVerified": "2026-05-25T02:54:12.270Z",
+          "lastVerified": "2026-05-31T02:54:33.135Z",
           "disciplineActions": false
         }
       ],
       "statesSearched": 2,
       "statesWithLicense": 1,
-      "lastFullScan": "2026-05-25T02:54:13.786Z"
+      "lastFullScan": "2026-05-31T02:54:34.656Z"
     },
     "Brittany Alexander, RN": {
       "providerType": "RN",
@@ -1012,7 +1024,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:54:32.061Z",
+          "lastVerified": "2026-05-31T02:54:44.482Z",
           "disciplineActions": false
         },
         {
@@ -1024,7 +1036,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:54:32.061Z",
+          "lastVerified": "2026-05-31T02:54:44.482Z",
           "disciplineActions": false
         },
         {
@@ -1036,7 +1048,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:54:32.061Z",
+          "lastVerified": "2026-05-31T02:54:44.482Z",
           "disciplineActions": false
         },
         {
@@ -1048,7 +1060,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:54:32.061Z",
+          "lastVerified": "2026-05-31T02:54:44.482Z",
           "disciplineActions": false
         },
         {
@@ -1060,7 +1072,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:54:32.061Z",
+          "lastVerified": "2026-05-31T02:54:44.482Z",
           "disciplineActions": false
         },
         {
@@ -1072,13 +1084,13 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:54:32.061Z",
+          "lastVerified": "2026-05-31T02:54:44.482Z",
           "disciplineActions": false
         }
       ],
       "statesSearched": 2,
       "statesWithLicense": 6,
-      "lastFullScan": "2026-05-25T02:54:42.501Z"
+      "lastFullScan": "2026-05-31T02:54:55.407Z"
     },
     "Lauren Dovin, RN": {
       "providerType": "RN",
@@ -1099,7 +1111,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:46:38.853Z",
+          "lastVerified": "2026-05-31T02:46:42.305Z",
           "disciplineActions": false
         },
         {
@@ -1111,7 +1123,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:46:38.853Z",
+          "lastVerified": "2026-05-31T02:46:42.305Z",
           "disciplineActions": false
         },
         {
@@ -1123,20 +1135,20 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:46:38.853Z",
+          "lastVerified": "2026-05-31T02:46:42.305Z",
           "disciplineActions": false
         }
       ],
       "statesSearched": 2,
       "statesWithLicense": 3,
-      "lastFullScan": "2026-05-25T02:46:49.352Z"
+      "lastFullScan": "2026-05-31T02:46:52.875Z"
     },
     "Doron Stember, MD": {
       "providerType": "MD",
       "licenses": [],
       "statesSearched": 2,
       "statesWithLicense": 0,
-      "lastFullScan": "2026-05-25T02:47:08.786Z"
+      "lastFullScan": "2026-05-31T02:47:14.090Z"
     },
     "Tzvi Doron, DO": {
       "providerType": "DO",
@@ -1150,7 +1162,7 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:49:51.185Z",
+          "lastVerified": "2026-05-31T02:50:05.901Z",
           "disciplineActions": false
         },
         {
@@ -1162,13 +1174,13 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "FL DOH MQA",
-          "lastVerified": "2026-05-25T02:49:51.185Z",
+          "lastVerified": "2026-05-31T02:50:05.901Z",
           "disciplineActions": false
         }
       ],
       "statesSearched": 2,
       "statesWithLicense": 2,
-      "lastFullScan": "2026-05-25T02:50:01.601Z"
+      "lastFullScan": "2026-05-31T02:50:16.519Z"
     },
     "Ashley Escoe, NP": {
       "providerType": "NP",
@@ -1182,42 +1194,42 @@
           "expirationDate": null,
           "issuedDate": null,
           "verificationSource": "New Hampshire Board",
-          "lastVerified": "2026-05-25T02:52:55.501Z",
+          "lastVerified": "2026-05-31T02:53:16.471Z",
           "disciplineActions": false
         }
       ],
       "statesSearched": 2,
       "statesWithLicense": 1,
-      "lastFullScan": "2026-05-25T02:52:57.022Z"
+      "lastFullScan": "2026-05-31T02:53:17.982Z"
     },
     "Emmanuel Sonaike, MD": {
       "providerType": "MD",
       "licenses": [],
       "statesSearched": 2,
       "statesWithLicense": 0,
-      "lastFullScan": "2026-05-25T02:55:01.395Z"
+      "lastFullScan": "2026-05-31T02:55:14.404Z"
     },
     "Naureen Majid Adam, MD": {
       "providerType": "MD",
       "licenses": [],
       "statesSearched": 2,
       "statesWithLicense": 0,
-      "lastFullScan": "2026-05-25T02:55:21.062Z"
+      "lastFullScan": "2026-05-31T02:55:34.042Z"
     },
     "Nicole Tahira Perrotte, MD": {
       "providerType": "MD",
       "licenses": [],
       "statesSearched": 2,
       "statesWithLicense": 0,
-      "lastFullScan": "2026-05-25T02:55:40.923Z"
+      "lastFullScan": "2026-05-31T02:55:53.603Z"
     }
   },
   "verificationStats": {
     "totalProviders": 37,
-    "totalLicensesFound": 78,
-    "activeLicenses": 42,
+    "totalLicensesFound": 79,
+    "activeLicenses": 43,
     "expiringWithin90Days": 0,
     "manualEntries": 0,
-    "scrapedEntries": 78
+    "scrapedEntries": 79
   }
 }
