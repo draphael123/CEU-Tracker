@@ -2832,8 +2832,8 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
 
     .data-table { width: 100%; border-collapse: collapse; margin: 0 40px 40px; max-width: calc(100% - 80px); font-size: 0.86rem; background: var(--bg-primary); border-radius: 16px; overflow: hidden; box-shadow: var(--shadow-md); }
     .data-table th, .data-table td { padding: 14px 18px; text-align: left; border-bottom: 1px solid var(--border-color); }
-    .data-table th { background: linear-gradient(135deg, #1e3a5f, #1e1b4b); color: #fff; font-weight: 700; cursor: pointer; white-space: nowrap; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; }
-    .data-table th:hover { background: linear-gradient(135deg, #2563eb, #4f46e5); }
+    .data-table th { background: #0f2444; color: #fff; font-weight: 700; cursor: pointer; white-space: nowrap; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; }
+    .data-table th:hover { background: #0d9488; }
     .data-table tbody tr { transition: all var(--transition-fast); }
     .data-table tbody tr:hover { background: var(--bg-secondary); }
     .data-table code { background: var(--bg-tertiary); padding: 4px 8px; border-radius: 6px; font-size: 0.82rem; font-weight: 500; }
@@ -2842,7 +2842,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     /* ─ Provider Table View ─ */
     .table-view-container { padding: 0 40px; overflow-x: auto; }
     .provider-table { width: 100%; border-collapse: collapse; background: var(--bg-primary); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-md); font-size: 0.85rem; }
-    .provider-table th { padding: 14px 16px; text-align: left; background: linear-gradient(135deg, #1e3a5f, #1e1b4b); color: #fff; font-weight: 600; cursor: pointer; white-space: nowrap; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; user-select: none; }
+    .provider-table th { padding: 14px 16px; text-align: left; background: #0f2444; color: #fff; font-weight: 600; cursor: pointer; white-space: nowrap; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; user-select: none; }
     .provider-table th:hover { background: linear-gradient(135deg, #2563eb, #4f46e5); }
     .provider-table td { padding: 12px 16px; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
     .provider-table tbody tr { cursor: pointer; transition: background 0.1s; }
@@ -3583,7 +3583,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
 
     /* ─ Compliance Scorecard ─ */
     .scorecard-panel { margin: 0 40px 24px; background: var(--bg-primary); border-radius: 16px; box-shadow: var(--shadow-md); overflow: hidden; border: 2px solid var(--border-color); }
-    .scorecard-header { padding: 20px 24px; background: linear-gradient(135deg, #0f766e 0%, #134e4a 50%, #064e3b 100%); display: flex; align-items: center; justify-content: space-between; }
+    .scorecard-header { padding: 20px 24px; background: #0f766e; display: flex; align-items: center; justify-content: space-between; }
     .scorecard-title { margin: 0; font-size: 1.1rem; font-weight: 700; color: #fff; }
     .scorecard-overall { display: flex; flex-direction: column; align-items: flex-end; }
     .overall-pct { font-size: 2rem; font-weight: 800; line-height: 1; }
@@ -4830,7 +4830,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .matrix-wrap { padding: 0 40px; overflow-x: auto; }
     .coverage-matrix { width: 100%; border-collapse: collapse; font-size: 0.85rem; border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-md); }
     .coverage-matrix th, .coverage-matrix td { padding: 14px 18px; text-align: center; border: 1px solid var(--border-color); }
-    .coverage-matrix th { background: linear-gradient(135deg, #1e3a5f, #1e1b4b); color: #fff; font-weight: 700; white-space: nowrap; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; }
+    .coverage-matrix th { background: #0f2444; color: #fff; font-weight: 700; white-space: nowrap; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; }
     .coverage-matrix .cov-provider-hdr { text-align: left; }
     .coverage-matrix .cov-provider { text-align: left; font-weight: 600; cursor: pointer; color: var(--accent-primary); }
     .coverage-matrix .cov-provider:hover { text-decoration: underline; }
@@ -5608,6 +5608,19 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
         <div class="dash-stat-num">$${spendingStats.totalOrgSpend.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</div>
         <div class="dash-stat-label">12-Month Spend</div>
       </div>
+    </div>
+  </div>
+
+  <!-- Glanceable status summary bar (mirrors the email) -->
+  <div style="margin: 0 40px 22px;">
+    <div style="display:flex; height:30px; border-radius:8px; overflow:hidden; font-size:0.72rem; font-weight:700; color:#fff;">
+      ${complete > 0 ? `<div style="flex:${complete}; min-width:fit-content; padding:0 6px; background:#059669; display:flex; align-items:center; justify-content:center;" title="Complete">${complete}</div>` : ''}
+      ${inProg > 0 ? `<div style="flex:${inProg}; min-width:fit-content; padding:0 6px; background:#d97706; display:flex; align-items:center; justify-content:center;" title="In progress">${inProg}</div>` : ''}
+      ${atRisk > 0 ? `<div style="flex:${atRisk}; min-width:fit-content; padding:0 6px; background:#dc2626; display:flex; align-items:center; justify-content:center;" title="At risk">${atRisk}</div>` : ''}
+      ${untrackedCount > 0 ? `<div style="flex:${untrackedCount}; min-width:fit-content; padding:0 8px; background:#94a3b8; display:flex; align-items:center; justify-content:center;" title="No CE data yet">${untrackedCount} no data</div>` : ''}
+    </div>
+    <div style="font-size:0.7rem; color:var(--text-secondary); margin-top:7px;">
+      <span style="color:#059669;">■</span> Complete &nbsp; <span style="color:#d97706;">■</span> In progress &nbsp; <span style="color:#dc2626;">■</span> At risk${untrackedCount > 0 ? ` &nbsp; <span style="color:#94a3b8;">■</span> No CE data` : ''}
     </div>
   </div>
 
