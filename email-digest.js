@@ -17,6 +17,15 @@ const BRAND = {
   noData: '#94a3b8',
 };
 
+// The Fountain logo, embedded via CID (reliable across email clients, unlike
+// remote URLs — which would 401 behind the site login — or data URIs, which many
+// clients block). Referenced in the masthead as <img src="cid:fountainlogo">.
+const LOGO_ATTACHMENT = {
+  filename: 'fountain-logo.png',
+  path: path.join(__dirname, 'public', 'fountain-logo-mark.png'),
+  cid: 'fountainlogo',
+};
+
 /** Navy masthead with the Fountain wordmark — identical across all emails. */
 function emailMasthead(title, subtitle) {
   return `
@@ -24,8 +33,7 @@ function emailMasthead(title, subtitle) {
       <td style="background: ${BRAND.navy}; padding: 26px 30px;">
         <table width="100%" cellpadding="0" cellspacing="0" role="presentation"><tr>
           <td style="vertical-align: middle;">
-            <span style="display:inline-block; width:13px; height:13px; border-radius:50%; background:${BRAND.teal}; vertical-align:middle; margin-right:8px;"></span>
-            <span style="color:#ffffff; font-size:17px; font-weight:600; vertical-align:middle; letter-spacing:.2px;">Fountain</span>
+            <img src="cid:fountainlogo" alt="Fountain" height="30" style="height:30px; width:auto; display:inline-block; background:#ffffff; border-radius:5px; vertical-align:middle;" />
           </td>
           <td style="text-align:right; vertical-align: middle;">
             <span style="color:${BRAND.muted}; font-size:12px;">${subtitle || ''}</span>
@@ -536,6 +544,7 @@ async function sendDigest(options = {}) {
     subject: `CEU Compliance Digest — ${summary.atRisk > 0 ? `⚠️ ${summary.atRisk} At Risk` : '✅ All On Track'} — ${new Date().toLocaleDateString()}`,
     html: generateEmailHTML(providers, summary),
     attachments: [
+      LOGO_ATTACHMENT,
       {
         filename: `CEU_Compliance_Report_${new Date().toISOString().split('T')[0]}.pdf`,
         path: pdfPath
@@ -869,7 +878,8 @@ async function sendRenewalReminders(options = {}) {
     from: config.from,
     to: reminderRecipients.join(', '),
     subject: `${subjectPrefix} — ${new Date().toLocaleDateString()}`,
-    html: generateRenewalReminderHTML(providersNeedingReminder, loginErrors)
+    html: generateRenewalReminderHTML(providersNeedingReminder, loginErrors),
+    attachments: [LOGO_ATTACHMENT]
   };
 
   const result = await transporter.sendMail(mailOptions);
