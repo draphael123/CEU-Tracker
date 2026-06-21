@@ -7829,9 +7829,15 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       const el = document.getElementById('welcomeBanner');
       if (el) el.style.display = 'none';
     }
-    if (localStorage.getItem('ceu-getting-started-dismissed')) {
-      const el = document.getElementById('gettingStarted');
-      if (el) el.style.display = 'none';
+    // Quick Start guide is first-run only: show it once to a brand-new visitor,
+    // then auto-hide on every later visit (the full guide lives in Help). An
+    // explicit "Don't show again" still hides it immediately.
+    const gs = document.getElementById('gettingStarted');
+    if (gs) {
+      const alreadySeen = localStorage.getItem('ceu-gs-seen');
+      const dismissed   = localStorage.getItem('ceu-getting-started-dismissed');
+      if (alreadySeen || dismissed) gs.style.display = 'none';
+      localStorage.setItem('ceu-gs-seen', '1');
     }
     if (localStorage.getItem('ceu-action-banner-collapsed')) {
       const wrap = document.querySelector('.action-banner-wrap');
