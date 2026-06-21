@@ -5456,11 +5456,11 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       <span id="sidebarCollapseIcon">▶</span>
     </button>
     <nav class="sidebar-nav">
-      <button class="nav-item active" onclick="showTab('summary')" data-tab="summary">
+      <button class="nav-item active" onclick="showTab('dashboard')" data-tab="dashboard">
         <span class="nav-icon">📋</span>
         <div class="nav-label-wrap">
           <span class="nav-label">Overview</span>
-          <span class="nav-desc">Summary & at-a-glance</span>
+          <span class="nav-desc">Status, urgency & trends</span>
         </div>
       </button>
       <button class="nav-item" onclick="showTab('providers')" data-tab="providers">
@@ -5650,9 +5650,8 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       </div>
     </div>
 
-<!-- ── Tab: Overview ──────────────────────────────────────────────────── -->
-<!-- ── Tab: Dashboard (Consolidated Overview) ────────────────────────────── -->
-<div class="tab-panel" id="tab-dashboard">
+<!-- ── Tab: Overview (Consolidated Dashboard — the default landing) ──────── -->
+<div class="tab-panel active" id="tab-dashboard">
   <!-- Compact Status Cards Row -->
   <div class="dashboard-stats-row">
     <div class="dash-stat-card dash-stat-risk">
@@ -7658,16 +7657,11 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
         ${generateUpdatesHtml()}
       </div>
     </div>
-  </div>
-</div>
-
-<!-- ── Tab: Overview ────────────────────────────────────────────────── -->
-<div class="tab-panel active" id="tab-summary">
-  <div class="help-page">
-    <div class="help-header">
-      <h1>Overview</h1>
-      <p class="help-subtitle">CEU Compliance Dashboard — Generated ${escHtml(runDate)}</p>
-    </div>
+    <!-- ── About & how to use (folded in from the former Overview tab) ── -->
+    <h2 class="help-section-title" style="margin-top: 8px; padding-top: 24px; border-top: 1px solid var(--border-color);">
+      <span class="help-icon">📋</span>
+      About &amp; How to Use
+    </h2>
 
     <!-- Service Overview -->
     <div class="help-section">
