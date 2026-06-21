@@ -5456,7 +5456,14 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       <span id="sidebarCollapseIcon">▶</span>
     </button>
     <nav class="sidebar-nav">
-      <button class="nav-item active" onclick="showTab('providers')" data-tab="providers">
+      <button class="nav-item active" onclick="showTab('summary')" data-tab="summary">
+        <span class="nav-icon">📋</span>
+        <div class="nav-label-wrap">
+          <span class="nav-label">Overview</span>
+          <span class="nav-desc">Summary & at-a-glance</span>
+        </div>
+      </button>
+      <button class="nav-item" onclick="showTab('providers')" data-tab="providers">
         <span class="nav-icon">👥</span>
         <div class="nav-label-wrap">
           <span class="nav-label">Team View</span>
@@ -5488,15 +5495,8 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       <button class="nav-item" onclick="showTab('help')" data-tab="help">
         <span class="nav-icon">❓</span>
         <div class="nav-label-wrap">
-          <span class="nav-label">Help & FAQ</span>
+          <span class="nav-label">Help &amp; FAQ</span>
           <span class="nav-desc">How it works</span>
-        </div>
-      </button>
-      <button class="nav-item" onclick="showTab('summary')" data-tab="summary">
-        <span class="nav-icon">📋</span>
-        <div class="nav-label-wrap">
-          <span class="nav-label">Overview</span>
-          <span class="nav-desc">Summary & info</span>
         </div>
       </button>
     </nav>
@@ -5917,7 +5917,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
 </div>
 
 <!-- ── Tab: Providers ─────────────────────────────────────────────────── -->
-<div class="tab-panel active" id="tab-providers">
+<div class="tab-panel" id="tab-providers">
   <!-- Action Items Banner -->
   ${(() => {
     const criticalProviders = flat.filter(r => {
@@ -7662,7 +7662,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
 </div>
 
 <!-- ── Tab: Overview ────────────────────────────────────────────────── -->
-<div class="tab-panel" id="tab-summary">
+<div class="tab-panel active" id="tab-summary">
   <div class="help-page">
     <div class="help-header">
       <h1>Overview</h1>
