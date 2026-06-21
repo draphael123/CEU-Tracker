@@ -5479,14 +5479,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
         <span class="nav-icon">👥</span>
         <div class="nav-label-wrap">
           <span class="nav-label">Team View</span>
-          <span class="nav-desc">All providers & status</span>
-        </div>
-      </button>
-      <button class="nav-item" onclick="showTab('compliance')" data-tab="compliance">
-        <span class="nav-icon">✓</span>
-        <div class="nav-label-wrap">
-          <span class="nav-label">Compliance</span>
-          <span class="nav-desc">CE requirements tracking</span>
+          <span class="nav-desc">Providers, status & compliance</span>
         </div>
         ${lookbackNotMet > 0 ? `<span class="nav-badge">${lookbackNotMet}</span>` : ''}
       </button>
@@ -6009,6 +6002,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       <button class="view-toggle" onclick="showProviderView('type')">By Type</button>
       <button class="view-toggle" onclick="showProviderView('favorites')">Pinned <span class="view-count" id="pinnedCount">0</span></button>
       <button class="view-toggle" onclick="showProviderView('aanp')">AANP</button>
+      <button class="view-toggle" onclick="showProviderView('compliance')">Compliance${lookbackNotMet > 0 ? ` <span class="view-count warning">${lookbackNotMet}</span>` : ''}</button>
     </div>
     <div class="toolbar-actions">
       <div class="export-dropdown">
@@ -6594,10 +6588,9 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       <span>No timeline data available. Course completion dates are needed to display the timeline.</span>
     </div>
   </div>
-</div>
 
-<!-- ── Tab: Compliance (Lookback Requirements) ─────────────────────────────── -->
-<div class="tab-panel" id="tab-compliance">
+  <!-- ── Compliance view (folded in from the former Compliance tab) ──────── -->
+  <div class="provider-view" id="provider-compliance">
   <div class="compliance-header">
     <div class="compliance-title">
       <h2>State Lookback Requirements</h2>
@@ -6670,6 +6663,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     <p class="empty-hint">Lookback requirements are configured in state-requirements.json</p>
   </div>
   `}
+  </div>
 </div>
 
 <!-- ── Tab: Platforms ───────────────────────────────────────────────────── -->
@@ -8083,7 +8077,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     providersTab.querySelectorAll('.view-toggle').forEach(b => b.classList.remove('active'));
     document.getElementById('provider-' + name)?.classList.add('active');
     const btns = providersTab.querySelectorAll('.view-toggle');
-    const labels = ['all','table','priority','kanban','deadline','state','type','favorites','aanp','stats','timeline'];
+    const labels = ['all','table','priority','kanban','deadline','state','type','favorites','aanp','compliance','stats','timeline'];
     btns[labels.indexOf(name)]?.classList.add('active');
     // Initialize timeline when selected
     if (name === 'timeline' && typeof updateTimeline === 'function') {
