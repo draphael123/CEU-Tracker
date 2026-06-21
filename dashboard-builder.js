@@ -947,10 +947,13 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
         .map(w => w[0].toUpperCase()).join('');
       // Determine status based on provider overall status
       const providerInfo = providerMap[r.providerName];
+      // getStatus(hoursRemaining, daysToDeadline, hoursRequired) — must be called
+      // with the three license fields, not the license object itself.
+      const licStatus = (l) => getStatus(l.hoursRemaining, daysUntil(parseDate(l.renewalDeadline)), l.hoursRequired);
       const status = providerInfo ? (
-        providerInfo.licenses.some(l => getStatus(l) === 'At Risk') ? 'At Risk' :
-        providerInfo.licenses.some(l => getStatus(l) === 'In Progress') ? 'In Progress' :
-        providerInfo.licenses.every(l => getStatus(l) === 'Complete') ? 'Complete' : 'Unknown'
+        providerInfo.licenses.some(l => licStatus(l) === 'At Risk') ? 'At Risk' :
+        providerInfo.licenses.some(l => licStatus(l) === 'In Progress') ? 'In Progress' :
+        providerInfo.licenses.every(l => licStatus(l) === 'Complete') ? 'Complete' : 'Unknown'
       ) : 'Unknown';
       return {
         name: r.providerName,
@@ -1779,6 +1782,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
   <title>CEU Tracker</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -8013,16 +8017,22 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     } else {
       results.innerHTML = matches.map(p => {
         const badgeClass = p.status === 'Complete' ? 'ok' : p.status === 'At Risk' ? 'risk' : 'prog';
+        // Escape every interpolated value; the provider name also lives in a
+        // data attribute (read back in the click handler) instead of an inline
+        // onclick string, so a name containing quotes/HTML cannot break out.
         return \`
-          <div class="search-result-item" onclick="jumpToProvider('\${p.name.replace(/'/g, "\\\\'")}')">
+          <div class="search-result-item" data-provider="\${escapeHtml(p.name)}">
             <div>
-              <div class="search-result-name">\${p.name}</div>
-              <div class="search-result-meta">\${p.state || 'N/A'} · \${p.type || ''}</div>
+              <div class="search-result-name">\${escapeHtml(p.name)}</div>
+              <div class="search-result-meta">\${escapeHtml(p.state || 'N/A')} · \${escapeHtml(p.type || '')}</div>
             </div>
-            <span class="search-result-badge \${badgeClass}">\${p.status || 'Unknown'}</span>
+            <span class="search-result-badge \${badgeClass}">\${escapeHtml(p.status || 'Unknown')}</span>
           </div>
         \`;
       }).join('');
+      results.querySelectorAll('.search-result-item').forEach(el => {
+        el.addEventListener('click', () => jumpToProvider(el.dataset.provider));
+      });
     }
     results.classList.add('active');
 
@@ -8943,9 +8953,12 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     }).join('');
   }
   function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+    return String(text == null ? '' : text)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
   function showNoteForm(provider) {
     const formId = getFormId(provider);
