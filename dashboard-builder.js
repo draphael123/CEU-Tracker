@@ -2830,10 +2830,10 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .status-unknown  { background: var(--bg-tertiary); color: var(--text-secondary); }
     .status-creds-needed { background: linear-gradient(135deg, rgba(249,115,22,0.15), rgba(251,146,60,0.15)); color: #ea580c; font-weight: 600; border: 1px solid rgba(249,115,22,0.3); }
 
-    .data-table { width: 100%; border-collapse: collapse; margin: 0 40px 40px; max-width: calc(100% - 80px); font-size: 0.86rem; background: var(--bg-primary); border-radius: 16px; overflow: hidden; box-shadow: var(--shadow-md); }
+    .data-table { width: 100%; border-collapse: collapse; margin: 0 40px 40px; max-width: calc(100% - 80px); font-size: 0.86rem; background: var(--bg-primary); border-radius: var(--card-border-radius); overflow: hidden; box-shadow: var(--shadow-md); }
     .data-table th, .data-table td { padding: 14px 18px; text-align: left; border-bottom: 1px solid var(--border-color); }
-    .data-table th { background: linear-gradient(135deg, #1e3a5f, #1e1b4b); color: #fff; font-weight: 700; cursor: pointer; white-space: nowrap; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; }
-    .data-table th:hover { background: linear-gradient(135deg, #2563eb, #4f46e5); }
+    .data-table th { background: #0f2444; color: #fff; font-weight: 700; cursor: pointer; white-space: nowrap; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; }
+    .data-table th:hover { background: #0d9488; }
     .data-table tbody tr { transition: all var(--transition-fast); }
     .data-table tbody tr:hover { background: var(--bg-secondary); }
     .data-table code { background: var(--bg-tertiary); padding: 4px 8px; border-radius: 6px; font-size: 0.82rem; font-weight: 500; }
@@ -2842,7 +2842,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     /* ─ Provider Table View ─ */
     .table-view-container { padding: 0 40px; overflow-x: auto; }
     .provider-table { width: 100%; border-collapse: collapse; background: var(--bg-primary); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-md); font-size: 0.85rem; }
-    .provider-table th { padding: 14px 16px; text-align: left; background: linear-gradient(135deg, #1e3a5f, #1e1b4b); color: #fff; font-weight: 600; cursor: pointer; white-space: nowrap; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; user-select: none; }
+    .provider-table th { padding: 14px 16px; text-align: left; background: #0f2444; color: #fff; font-weight: 600; cursor: pointer; white-space: nowrap; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; user-select: none; }
     .provider-table th:hover { background: linear-gradient(135deg, #2563eb, #4f46e5); }
     .provider-table td { padding: 12px 16px; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
     .provider-table tbody tr { cursor: pointer; transition: background 0.1s; }
@@ -2993,7 +2993,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .action-banner {
       margin: 20px 40px;
       background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
-      border-radius: 16px;
+      border-radius: var(--card-border-radius);
       padding: 20px 24px;
       box-shadow: var(--shadow-md);
       border: 1px solid var(--border-color);
@@ -3546,7 +3546,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     [data-theme="dark"] .dash-stat-cost .dash-stat-icon, [data-theme="dark"] .dash-stat-cost .dash-stat-num { color: #34d399; }
 
     /* ─ Urgency Panel ─ */
-    .urgency-panel { margin: 0 40px 24px; background: var(--bg-primary); border-radius: 16px; box-shadow: var(--shadow-md); overflow: hidden; border: 2px solid var(--border-color); }
+    .urgency-panel { margin: 0 40px 24px; background: var(--bg-primary); border-radius: var(--card-border-radius); box-shadow: var(--shadow-md); overflow: hidden; border: 2px solid var(--border-color); }
     .urgency-header { padding: 20px 24px; background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 50%, #1e1b4b 100%); display: flex; align-items: center; justify-content: space-between; }
     .urgency-title { margin: 0; font-size: 1.1rem; font-weight: 700; color: #fff; }
     .urgency-subtitle { font-size: 0.8rem; color: rgba(255,255,255,0.7); }
@@ -3582,8 +3582,8 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     @keyframes pulse-urgent { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
 
     /* ─ Compliance Scorecard ─ */
-    .scorecard-panel { margin: 0 40px 24px; background: var(--bg-primary); border-radius: 16px; box-shadow: var(--shadow-md); overflow: hidden; border: 2px solid var(--border-color); }
-    .scorecard-header { padding: 20px 24px; background: linear-gradient(135deg, #0f766e 0%, #134e4a 50%, #064e3b 100%); display: flex; align-items: center; justify-content: space-between; }
+    .scorecard-panel { margin: 0 40px 24px; background: var(--bg-primary); border-radius: var(--card-border-radius); box-shadow: var(--shadow-md); overflow: hidden; border: 2px solid var(--border-color); }
+    .scorecard-header { padding: 20px 24px; background: #0f766e; display: flex; align-items: center; justify-content: space-between; }
     .scorecard-title { margin: 0; font-size: 1.1rem; font-weight: 700; color: #fff; }
     .scorecard-overall { display: flex; flex-direction: column; align-items: flex-end; }
     .overall-pct { font-size: 2rem; font-weight: 800; line-height: 1; }
@@ -3610,7 +3610,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .sc-pct { position: absolute; right: 8px; font-size: 0.65rem; font-weight: 700; color: var(--text-primary); text-shadow: 0 0 4px var(--bg-primary), 0 0 8px var(--bg-primary); }
 
     /* ─ 12-Month Timeline ─ */
-    .timeline-panel { margin: 0 40px 24px; background: var(--bg-primary); border-radius: 16px; box-shadow: var(--shadow-md); overflow: hidden; border: 2px solid var(--border-color); }
+    .timeline-panel { margin: 0 40px 24px; background: var(--bg-primary); border-radius: var(--card-border-radius); box-shadow: var(--shadow-md); overflow: hidden; border: 2px solid var(--border-color); }
     .timeline-header { padding: 20px 24px; background: linear-gradient(135deg, #4f46e5 0%, #3730a3 50%, #312e81 100%); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
     .timeline-title { margin: 0; font-size: 1.1rem; font-weight: 700; color: #fff; }
     .timeline-legend { display: flex; gap: 16px; flex-wrap: wrap; }
@@ -4197,7 +4197,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
 
     /* ─ Status Page ─ */
     .status-page { padding: 24px 40px; }
-    .status-section { background: var(--bg-primary); border-radius: 16px; padding: 24px; margin-bottom: 24px; box-shadow: var(--shadow-sm); }
+    .status-section { background: var(--bg-primary); border-radius: var(--card-border-radius); padding: 24px; margin-bottom: 24px; box-shadow: var(--shadow-sm); }
     .status-section-title { display: flex; align-items: center; gap: 10px; font-size: 1.1rem; font-weight: 700; color: var(--text-primary); margin-bottom: 20px; }
     .status-icon { font-size: 1.3rem; }
     .status-cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; }
@@ -4351,7 +4351,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .cred-header-dark { background: linear-gradient(135deg, #475569, #334155); }
     .cred-header-dark .cred-tracker-icon { background: rgba(255,255,255,0.2); }
     .cred-tracker-title { flex: 1; font-weight: 700; color: #fff; font-size: 0.95rem; }
-    .cred-tracker-count { background: rgba(255,255,255,0.2); color: #fff; padding: 4px 12px; border-radius: 16px; font-weight: 700; font-size: 0.85rem; }
+    .cred-tracker-count { background: rgba(255,255,255,0.2); color: #fff; padding: 4px 12px; border-radius: var(--card-border-radius); font-weight: 700; font-size: 0.85rem; }
 
     .cred-tracker-body { padding: 16px 20px; }
     .cred-tracker-desc { font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px; }
@@ -4416,7 +4416,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .help-header { margin-bottom: 32px; }
     .help-header h1 { font-size: 2rem; font-weight: 800; color: var(--text-primary); margin: 0 0 8px; }
     .help-subtitle { font-size: 1rem; color: var(--text-secondary); margin: 0; }
-    .help-section { background: var(--bg-primary); border-radius: 16px; padding: 24px; margin-bottom: 24px; box-shadow: var(--shadow-sm); }
+    .help-section { background: var(--bg-primary); border-radius: var(--card-border-radius); padding: 24px; margin-bottom: 24px; box-shadow: var(--shadow-sm); }
     .help-section-title { display: flex; align-items: center; gap: 10px; font-size: 1.2rem; font-weight: 700; color: var(--text-primary); margin: 0 0 20px; padding-bottom: 12px; border-bottom: 2px solid var(--border-color); }
     .help-icon { font-size: 1.3rem; }
     .help-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
@@ -4830,7 +4830,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .matrix-wrap { padding: 0 40px; overflow-x: auto; }
     .coverage-matrix { width: 100%; border-collapse: collapse; font-size: 0.85rem; border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-md); }
     .coverage-matrix th, .coverage-matrix td { padding: 14px 18px; text-align: center; border: 1px solid var(--border-color); }
-    .coverage-matrix th { background: linear-gradient(135deg, #1e3a5f, #1e1b4b); color: #fff; font-weight: 700; white-space: nowrap; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; }
+    .coverage-matrix th { background: #0f2444; color: #fff; font-weight: 700; white-space: nowrap; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; }
     .coverage-matrix .cov-provider-hdr { text-align: left; }
     .coverage-matrix .cov-provider { text-align: left; font-weight: 600; cursor: pointer; color: var(--accent-primary); }
     .coverage-matrix .cov-provider:hover { text-decoration: underline; }
@@ -5246,7 +5246,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     ═══════════════════════════════════════════════════════════════════════════ */
 
     /* ─ Daily Briefing Banner ─ */
-    .daily-briefing { background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: #fff; padding: 16px 24px; margin: 0 24px 20px; border-radius: 16px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap; box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
+    .daily-briefing { background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: #fff; padding: 16px 24px; margin: 0 24px 20px; border-radius: var(--card-border-radius); display: flex; align-items: center; gap: 20px; flex-wrap: wrap; box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
     .briefing-date { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.7; }
     .briefing-stats { display: flex; gap: 24px; flex: 1; flex-wrap: wrap; }
     .briefing-stat { display: flex; align-items: center; gap: 8px; }
@@ -5273,7 +5273,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .focus-mode-banner .exit-focus { background: #991b1b; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
 
     /* ─ Deadline Timeline ─ */
-    .deadline-timeline { background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px 24px; margin: 0 24px 20px; }
+    .deadline-timeline { background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: var(--card-border-radius); padding: 20px 24px; margin: 0 24px 20px; }
     .timeline-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
     .timeline-title { font-size: 0.9rem; font-weight: 700; color: var(--text-primary); }
     .timeline-subtitle { font-size: 0.75rem; color: var(--text-secondary); }
@@ -5335,7 +5335,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .timeline-today::before { content: 'Today'; position: absolute; top: -16px; left: 50%; transform: translateX(-50%); font-size: 0.6rem; font-weight: 600; color: var(--accent-primary); white-space: nowrap; }
 
     /* ─ Cost Comparison ─ */
-    .cost-comparison { background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px 24px; margin: 0 24px 20px; }
+    .cost-comparison { background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: var(--card-border-radius); padding: 20px 24px; margin: 0 24px 20px; }
     .cost-comparison-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
     .cost-comparison-title { font-size: 0.9rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
     .cost-comparison-title .title-icon { font-size: 1.1rem; }
@@ -5360,7 +5360,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .trend-direction.flat { color: #64748b; }
 
     /* ─ Platform ROI Section ─ */
-    .platform-roi { background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px 24px; margin: 0 24px 20px; }
+    .platform-roi { background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: var(--card-border-radius); padding: 20px 24px; margin: 0 24px 20px; }
     .roi-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
     .roi-title { font-size: 0.9rem; font-weight: 700; color: var(--text-primary); }
     .roi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
@@ -5381,7 +5381,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     /* ─ Keyboard Shortcuts Overlay ─ */
     .shortcuts-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 9999; display: none; align-items: center; justify-content: center; }
     .shortcuts-overlay.visible { display: flex; }
-    .shortcuts-modal { background: var(--bg-primary); border-radius: 16px; padding: 24px 32px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+    .shortcuts-modal { background: var(--bg-primary); border-radius: var(--card-border-radius); padding: 24px 32px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
     .shortcuts-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
     .shortcuts-title { font-size: 1.1rem; font-weight: 700; color: var(--text-primary); }
     .shortcuts-close { background: none; border: none; font-size: 1.5rem; color: var(--text-secondary); cursor: pointer; padding: 4px; }
@@ -5608,6 +5608,19 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
         <div class="dash-stat-num">$${spendingStats.totalOrgSpend.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</div>
         <div class="dash-stat-label">12-Month Spend</div>
       </div>
+    </div>
+  </div>
+
+  <!-- Glanceable status summary bar (mirrors the email) -->
+  <div style="margin: 0 40px 22px;">
+    <div style="display:flex; height:30px; border-radius:8px; overflow:hidden; font-size:0.72rem; font-weight:700; color:#fff;">
+      ${complete > 0 ? `<div style="flex:${complete}; min-width:fit-content; padding:0 6px; background:#059669; display:flex; align-items:center; justify-content:center;" title="Complete">${complete}</div>` : ''}
+      ${inProg > 0 ? `<div style="flex:${inProg}; min-width:fit-content; padding:0 6px; background:#d97706; display:flex; align-items:center; justify-content:center;" title="In progress">${inProg}</div>` : ''}
+      ${atRisk > 0 ? `<div style="flex:${atRisk}; min-width:fit-content; padding:0 6px; background:#dc2626; display:flex; align-items:center; justify-content:center;" title="At risk">${atRisk}</div>` : ''}
+      ${untrackedCount > 0 ? `<div style="flex:${untrackedCount}; min-width:fit-content; padding:0 8px; background:#94a3b8; display:flex; align-items:center; justify-content:center;" title="No CE data yet">${untrackedCount} no data</div>` : ''}
+    </div>
+    <div style="font-size:0.7rem; color:var(--text-secondary); margin-top:7px;">
+      <span style="color:#059669;">■</span> Complete &nbsp; <span style="color:#d97706;">■</span> In progress &nbsp; <span style="color:#dc2626;">■</span> At risk${untrackedCount > 0 ? ` &nbsp; <span style="color:#94a3b8;">■</span> No CE data` : ''}
     </div>
   </div>
 
