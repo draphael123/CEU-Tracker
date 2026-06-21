@@ -25,7 +25,7 @@ export const config = {
 const COOKIE = 'ceu_session';
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
 // Public assets the login page itself needs — served without auth (no data here).
-const PUBLIC_PATHS = new Set(['/fountain-logo.png', '/favicon.svg', '/favicon.ico', '/robots.txt']);
+const PUBLIC_PATHS = new Set(['/fountain-logo-mark.png', '/fountain-logo.png', '/favicon.svg', '/favicon.ico', '/robots.txt']);
 
 async function sessionToken(password) {
   const data = new TextEncoder().encode('ceu-tracker:v1:' + password);
@@ -142,7 +142,7 @@ function loginPage({ error }) {
 </head>
 <body>
   <main class="card">
-    <img class="logo" src="/fountain-logo.png" alt="Fountain" onerror="this.style.display='none'" />
+    <img class="logo" src="/fountain-logo-mark.png" alt="Fountain" onerror="this.style.display='none'" />
     <h1>CEU Tracker</h1>
     <p class="sub">This dashboard is restricted. Please sign in to continue.</p>
     <form method="POST" action="/__auth" autocomplete="off">
