@@ -1664,12 +1664,20 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
   const urgencyNoCreds = urgencyList.filter(p => p.urgency === 'no-creds');
 
   // ── Compliance Scorecard Data ────────────────────────────────────────────
+  // Compliance is measured ONLY over providers we actually have CE data for.
+  // An "Unknown" status means no scraped hours (missing credentials, platform-
+  // only providers, or a failed/not-yet-run scrape) — that is a data-coverage
+  // gap, NOT non-compliance. Counting those as failures previously dragged the
+  // headline number down (e.g. showing "18%" when 0 providers were at risk and
+  // most simply had no data). They are excluded here and surfaced separately.
+  const licStatusOf = (p) => getStatus(p.hoursRemaining, daysUntil(parseDate(p.renewalDeadline)), p.hoursRequired);
   const complianceByType = {};
   const complianceByState = {};
   for (const p of flat) {
+    const status = licStatusOf(p);
+    if (status === 'Unknown') continue; // no data — neither for nor against compliance
     const type = p.providerType || 'Other';
     const state = p.state || 'Unknown';
-    const status = getStatus(p.hoursRemaining, daysUntil(parseDate(p.renewalDeadline)), p.hoursRequired);
     const isCompliant = status === 'Complete';
     // By type
     if (!complianceByType[type]) complianceByType[type] = { total: 0, compliant: 0 };
@@ -1686,7 +1694,11 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
   const scorecardByState = Object.entries(complianceByState)
     .map(([state, data]) => ({ state, ...data, pct: Math.round((data.compliant / data.total) * 100) }))
     .sort((a, b) => a.pct - b.pct);
-  const overallCompliance = flat.length > 0 ? Math.round((flat.filter(p => getStatus(p.hoursRemaining, daysUntil(parseDate(p.renewalDeadline)), p.hoursRequired) === 'Complete').length / flat.length) * 100) : 0;
+  // Headline = completion rate among TRACKED licenses (those with CE data).
+  const trackedLicenses  = flat.filter(p => licStatusOf(p) !== 'Unknown');
+  const completedTracked = trackedLicenses.filter(p => licStatusOf(p) === 'Complete').length;
+  const untrackedCount   = flat.length - trackedLicenses.length;
+  const overallCompliance = trackedLicenses.length > 0 ? Math.round((completedTracked / trackedLicenses.length) * 100) : 0;
 
   // ── Build 12-Month Timeline Data ───────────────────────────────────────────
   const renewalNow = new Date();
@@ -5678,8 +5690,9 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     <div class="scorecard-header">
       <h3 class="scorecard-title">📊 Team Compliance Scorecard</h3>
       <div class="scorecard-overall">
-        <span class="overall-pct ${overallCompliance >= 80 ? 'pct-good' : overallCompliance >= 50 ? 'pct-warn' : 'pct-bad'}">${overallCompliance}%</span>
-        <span class="overall-label">Overall Compliance</span>
+        <span class="overall-pct ${overallCompliance >= 80 ? 'pct-good' : overallCompliance >= 50 ? 'pct-warn' : 'pct-bad'}">${trackedLicenses.length > 0 ? overallCompliance + '%' : '—'}</span>
+        <span class="overall-label">Completed${trackedLicenses.length > 0 ? ` · ${completedTracked}/${trackedLicenses.length} tracked` : ''}</span>
+        ${untrackedCount > 0 ? `<span class="overall-sublabel" style="font-size:0.7rem; color:#fff; opacity:0.8; margin-top:2px;">${untrackedCount} not yet tracked (no CE data)</span>` : ''}
       </div>
     </div>
     <div class="scorecard-grid">
