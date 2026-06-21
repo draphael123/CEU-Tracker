@@ -202,6 +202,64 @@ function getStatus(hoursRemaining, daysToDeadline, hoursRequired) {
 }
 
 /**
+ * Traffic-light status for a license record, derived from its own fields.
+ * @param {{hoursRemaining:number|null, renewalDeadline:string|null, hoursRequired:number|null}} rec
+ * @returns {'Complete'|'At Risk'|'In Progress'|'Unknown'}
+ */
+function licenseStatus(rec) {
+  return getStatus(rec.hoursRemaining, daysUntil(parseDate(rec.renewalDeadline)), rec.hoursRequired);
+}
+
+/**
+ * Summarise compliance across a flat list of license records.
+ *
+ * Compliance is measured ONLY over records we have CE data for. A status of
+ * "Unknown" (no scraped hours — missing credentials, platform-only providers,
+ * or a not-yet-run scrape) is a data-coverage gap, NOT non-compliance, so those
+ * records are EXCLUDED from every denominator and reported separately as
+ * `untracked`. (Counting them as failures previously produced a misleading
+ * headline — e.g. "18%" when 0 providers were at risk and most had no data.)
+ *
+ * @param {Array<{hoursRemaining:number|null, renewalDeadline:string|null, hoursRequired:number|null, providerType?:string, state?:string}>} records
+ * @returns {{total:number, tracked:number, completed:number, untracked:number, overallPct:number, byType:Array<{type:string,total:number,compliant:number,pct:number}>, byState:Array<{state:string,total:number,compliant:number,pct:number}>}}
+ */
+function computeComplianceSummary(records) {
+  const list = records || [];
+  const byType = {};
+  const byState = {};
+  let tracked = 0;
+  let completed = 0;
+  for (const rec of list) {
+    const status = licenseStatus(rec);
+    if (status === 'Unknown') continue; // no data — neither for nor against compliance
+    tracked++;
+    const isComplete = status === 'Complete';
+    if (isComplete) completed++;
+    const type = rec.providerType || 'Other';
+    const state = rec.state || 'Unknown';
+    if (!byType[type]) byType[type] = { total: 0, compliant: 0 };
+    byType[type].total++;
+    if (isComplete) byType[type].compliant++;
+    if (!byState[state]) byState[state] = { total: 0, compliant: 0 };
+    byState[state].total++;
+    if (isComplete) byState[state].compliant++;
+  }
+  const total = list.length;
+  const toRows = (obj, key) => Object.entries(obj)
+    .map(([k, d]) => ({ [key]: k, ...d, pct: Math.round((d.compliant / d.total) * 100) }))
+    .sort((a, b) => a.pct - b.pct);
+  return {
+    total,
+    tracked,
+    completed,
+    untracked: total - tracked,
+    overallPct: tracked > 0 ? Math.round((completed / tracked) * 100) : 0,
+    byType: toRows(byType, 'type'),
+    byState: toRows(byState, 'state'),
+  };
+}
+
+/**
  * Build the course-search URL for a given state + license type.
  */
 function courseSearchUrl(state, licenseType) {
@@ -333,6 +391,8 @@ module.exports = {
   parseDate,
   daysUntil,
   getStatus,
+  licenseStatus,
+  computeComplianceSummary,
   courseSearchUrl,
   // Lookback utilities
   filterCoursesByLookback,

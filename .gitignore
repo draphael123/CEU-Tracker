@@ -1,6 +1,7 @@
 # ── Credentials — NEVER commit these ─────────────────────────────────────────
 providers.json
 credentials.json
+credentials.enc
 
 # ── Dependencies ──────────────────────────────────────────────────────────────
 node_modules/

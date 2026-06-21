@@ -47,6 +47,24 @@ function cellBorder() {
   };
 }
 
+// ─── Formula-injection guard ─────────────────────────────────────────────────
+// Scraped course/provider names could begin with =, +, -, @ (or a leading
+// tab/CR), which spreadsheet apps interpret as a formula. Prefix such string
+// cells with an apostrophe so they render as literal text.
+const FORMULA_TRIGGER = /^[=+\-@\t\r]/;
+
+function sanitizeFormulaInjection(workbook) {
+  workbook.eachSheet((sheet) => {
+    sheet.eachRow((row) => {
+      row.eachCell((cell) => {
+        if (typeof cell.value === 'string' && FORMULA_TRIGGER.test(cell.value)) {
+          cell.value = "'" + cell.value;
+        }
+      });
+    });
+  });
+}
+
 // ─── Main Export Function ────────────────────────────────────────────────────
 
 /**
@@ -80,6 +98,11 @@ async function buildReport(allProviderRecords, platformData = []) {
   await buildSummarySheet(workbook, flat, spendingStats);
   await buildDetailSheet(workbook, flat);
   await buildSpendingSheet(workbook, flat, spendingStats, platformData);
+
+  // Guard against spreadsheet formula injection: any string cell that starts
+  // with a formula trigger (= + - @, or a leading tab/CR) is neutralised with a
+  // leading apostrophe so Excel/Sheets treats it as literal text, not a formula.
+  sanitizeFormulaInjection(workbook);
 
   await workbook.xlsx.writeFile(OUTPUT_FILE);
   logger.success(`Report saved: ${OUTPUT_FILE}`);

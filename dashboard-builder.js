@@ -2,7 +2,7 @@
 
 const fs   = require('fs');
 const path = require('path');
-const { daysUntil, parseDate, getStatus, courseSearchUrl, calculateSubjectHoursWithLookback, formatLookbackCutoff, loadJson, saveJson } = require('./utils');
+const { daysUntil, parseDate, getStatus, computeComplianceSummary, courseSearchUrl, calculateSubjectHoursWithLookback, formatLookbackCutoff, loadJson, saveJson } = require('./utils');
 const { getHealthSummary } = require('./credential-health');
 const { loadCosts, calculateAllProviderSpending, calculateRolling12MonthSpending } = require('./cost-utils');
 const { getAllUpdates } = require('./change-detector');
@@ -947,10 +947,13 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
         .map(w => w[0].toUpperCase()).join('');
       // Determine status based on provider overall status
       const providerInfo = providerMap[r.providerName];
+      // getStatus(hoursRemaining, daysToDeadline, hoursRequired) — must be called
+      // with the three license fields, not the license object itself.
+      const licStatus = (l) => getStatus(l.hoursRemaining, daysUntil(parseDate(l.renewalDeadline)), l.hoursRequired);
       const status = providerInfo ? (
-        providerInfo.licenses.some(l => getStatus(l) === 'At Risk') ? 'At Risk' :
-        providerInfo.licenses.some(l => getStatus(l) === 'In Progress') ? 'In Progress' :
-        providerInfo.licenses.every(l => getStatus(l) === 'Complete') ? 'Complete' : 'Unknown'
+        providerInfo.licenses.some(l => licStatus(l) === 'At Risk') ? 'At Risk' :
+        providerInfo.licenses.some(l => licStatus(l) === 'In Progress') ? 'In Progress' :
+        providerInfo.licenses.every(l => licStatus(l) === 'Complete') ? 'Complete' : 'Unknown'
       ) : 'Unknown';
       return {
         name: r.providerName,
@@ -1661,29 +1664,17 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
   const urgencyNoCreds = urgencyList.filter(p => p.urgency === 'no-creds');
 
   // ── Compliance Scorecard Data ────────────────────────────────────────────
-  const complianceByType = {};
-  const complianceByState = {};
-  for (const p of flat) {
-    const type = p.providerType || 'Other';
-    const state = p.state || 'Unknown';
-    const status = getStatus(p.hoursRemaining, daysUntil(parseDate(p.renewalDeadline)), p.hoursRequired);
-    const isCompliant = status === 'Complete';
-    // By type
-    if (!complianceByType[type]) complianceByType[type] = { total: 0, compliant: 0 };
-    complianceByType[type].total++;
-    if (isCompliant) complianceByType[type].compliant++;
-    // By state
-    if (!complianceByState[state]) complianceByState[state] = { total: 0, compliant: 0 };
-    complianceByState[state].total++;
-    if (isCompliant) complianceByState[state].compliant++;
-  }
-  const scorecardByType = Object.entries(complianceByType)
-    .map(([type, data]) => ({ type, ...data, pct: Math.round((data.compliant / data.total) * 100) }))
-    .sort((a, b) => a.pct - b.pct);
-  const scorecardByState = Object.entries(complianceByState)
-    .map(([state, data]) => ({ state, ...data, pct: Math.round((data.compliant / data.total) * 100) }))
-    .sort((a, b) => a.pct - b.pct);
-  const overallCompliance = flat.length > 0 ? Math.round((flat.filter(p => getStatus(p.hoursRemaining, daysUntil(parseDate(p.renewalDeadline)), p.hoursRequired) === 'Complete').length / flat.length) * 100) : 0;
+  // Logic lives in utils.computeComplianceSummary so it is unit-tested and shared.
+  // "Unknown" (no CE data) licenses are excluded from the denominators and
+  // reported as untracked, rather than counted as non-compliant.
+  const {
+    byType:     scorecardByType,
+    byState:    scorecardByState,
+    tracked:    trackedCount,
+    completed:  completedTracked,
+    untracked:  untrackedCount,
+    overallPct: overallCompliance,
+  } = computeComplianceSummary(flat);
 
   // ── Build 12-Month Timeline Data ───────────────────────────────────────────
   const renewalNow = new Date();
@@ -1779,6 +1770,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
   <title>CEU Tracker</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -2838,10 +2830,10 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .status-unknown  { background: var(--bg-tertiary); color: var(--text-secondary); }
     .status-creds-needed { background: linear-gradient(135deg, rgba(249,115,22,0.15), rgba(251,146,60,0.15)); color: #ea580c; font-weight: 600; border: 1px solid rgba(249,115,22,0.3); }
 
-    .data-table { width: 100%; border-collapse: collapse; margin: 0 40px 40px; max-width: calc(100% - 80px); font-size: 0.86rem; background: var(--bg-primary); border-radius: 16px; overflow: hidden; box-shadow: var(--shadow-md); }
+    .data-table { width: 100%; border-collapse: collapse; margin: 0 40px 40px; max-width: calc(100% - 80px); font-size: 0.86rem; background: var(--bg-primary); border-radius: var(--card-border-radius); overflow: hidden; box-shadow: var(--shadow-md); }
     .data-table th, .data-table td { padding: 14px 18px; text-align: left; border-bottom: 1px solid var(--border-color); }
-    .data-table th { background: linear-gradient(135deg, #1e3a5f, #1e1b4b); color: #fff; font-weight: 700; cursor: pointer; white-space: nowrap; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; }
-    .data-table th:hover { background: linear-gradient(135deg, #2563eb, #4f46e5); }
+    .data-table th { background: #0f2444; color: #fff; font-weight: 700; cursor: pointer; white-space: nowrap; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; }
+    .data-table th:hover { background: #0d9488; }
     .data-table tbody tr { transition: all var(--transition-fast); }
     .data-table tbody tr:hover { background: var(--bg-secondary); }
     .data-table code { background: var(--bg-tertiary); padding: 4px 8px; border-radius: 6px; font-size: 0.82rem; font-weight: 500; }
@@ -2850,7 +2842,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     /* ─ Provider Table View ─ */
     .table-view-container { padding: 0 40px; overflow-x: auto; }
     .provider-table { width: 100%; border-collapse: collapse; background: var(--bg-primary); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-md); font-size: 0.85rem; }
-    .provider-table th { padding: 14px 16px; text-align: left; background: linear-gradient(135deg, #1e3a5f, #1e1b4b); color: #fff; font-weight: 600; cursor: pointer; white-space: nowrap; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; user-select: none; }
+    .provider-table th { padding: 14px 16px; text-align: left; background: #0f2444; color: #fff; font-weight: 600; cursor: pointer; white-space: nowrap; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; user-select: none; }
     .provider-table th:hover { background: linear-gradient(135deg, #2563eb, #4f46e5); }
     .provider-table td { padding: 12px 16px; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
     .provider-table tbody tr { cursor: pointer; transition: background 0.1s; }
@@ -3001,7 +2993,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .action-banner {
       margin: 20px 40px;
       background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
-      border-radius: 16px;
+      border-radius: var(--card-border-radius);
       padding: 20px 24px;
       box-shadow: var(--shadow-md);
       border: 1px solid var(--border-color);
@@ -3554,7 +3546,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     [data-theme="dark"] .dash-stat-cost .dash-stat-icon, [data-theme="dark"] .dash-stat-cost .dash-stat-num { color: #34d399; }
 
     /* ─ Urgency Panel ─ */
-    .urgency-panel { margin: 0 40px 24px; background: var(--bg-primary); border-radius: 16px; box-shadow: var(--shadow-md); overflow: hidden; border: 2px solid var(--border-color); }
+    .urgency-panel { margin: 0 40px 24px; background: var(--bg-primary); border-radius: var(--card-border-radius); box-shadow: var(--shadow-md); overflow: hidden; border: 2px solid var(--border-color); }
     .urgency-header { padding: 20px 24px; background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 50%, #1e1b4b 100%); display: flex; align-items: center; justify-content: space-between; }
     .urgency-title { margin: 0; font-size: 1.1rem; font-weight: 700; color: #fff; }
     .urgency-subtitle { font-size: 0.8rem; color: rgba(255,255,255,0.7); }
@@ -3590,8 +3582,8 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     @keyframes pulse-urgent { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
 
     /* ─ Compliance Scorecard ─ */
-    .scorecard-panel { margin: 0 40px 24px; background: var(--bg-primary); border-radius: 16px; box-shadow: var(--shadow-md); overflow: hidden; border: 2px solid var(--border-color); }
-    .scorecard-header { padding: 20px 24px; background: linear-gradient(135deg, #0f766e 0%, #134e4a 50%, #064e3b 100%); display: flex; align-items: center; justify-content: space-between; }
+    .scorecard-panel { margin: 0 40px 24px; background: var(--bg-primary); border-radius: var(--card-border-radius); box-shadow: var(--shadow-md); overflow: hidden; border: 2px solid var(--border-color); }
+    .scorecard-header { padding: 20px 24px; background: #0f766e; display: flex; align-items: center; justify-content: space-between; }
     .scorecard-title { margin: 0; font-size: 1.1rem; font-weight: 700; color: #fff; }
     .scorecard-overall { display: flex; flex-direction: column; align-items: flex-end; }
     .overall-pct { font-size: 2rem; font-weight: 800; line-height: 1; }
@@ -3618,7 +3610,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .sc-pct { position: absolute; right: 8px; font-size: 0.65rem; font-weight: 700; color: var(--text-primary); text-shadow: 0 0 4px var(--bg-primary), 0 0 8px var(--bg-primary); }
 
     /* ─ 12-Month Timeline ─ */
-    .timeline-panel { margin: 0 40px 24px; background: var(--bg-primary); border-radius: 16px; box-shadow: var(--shadow-md); overflow: hidden; border: 2px solid var(--border-color); }
+    .timeline-panel { margin: 0 40px 24px; background: var(--bg-primary); border-radius: var(--card-border-radius); box-shadow: var(--shadow-md); overflow: hidden; border: 2px solid var(--border-color); }
     .timeline-header { padding: 20px 24px; background: linear-gradient(135deg, #4f46e5 0%, #3730a3 50%, #312e81 100%); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
     .timeline-title { margin: 0; font-size: 1.1rem; font-weight: 700; color: #fff; }
     .timeline-legend { display: flex; gap: 16px; flex-wrap: wrap; }
@@ -4205,7 +4197,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
 
     /* ─ Status Page ─ */
     .status-page { padding: 24px 40px; }
-    .status-section { background: var(--bg-primary); border-radius: 16px; padding: 24px; margin-bottom: 24px; box-shadow: var(--shadow-sm); }
+    .status-section { background: var(--bg-primary); border-radius: var(--card-border-radius); padding: 24px; margin-bottom: 24px; box-shadow: var(--shadow-sm); }
     .status-section-title { display: flex; align-items: center; gap: 10px; font-size: 1.1rem; font-weight: 700; color: var(--text-primary); margin-bottom: 20px; }
     .status-icon { font-size: 1.3rem; }
     .status-cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; }
@@ -4359,7 +4351,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .cred-header-dark { background: linear-gradient(135deg, #475569, #334155); }
     .cred-header-dark .cred-tracker-icon { background: rgba(255,255,255,0.2); }
     .cred-tracker-title { flex: 1; font-weight: 700; color: #fff; font-size: 0.95rem; }
-    .cred-tracker-count { background: rgba(255,255,255,0.2); color: #fff; padding: 4px 12px; border-radius: 16px; font-weight: 700; font-size: 0.85rem; }
+    .cred-tracker-count { background: rgba(255,255,255,0.2); color: #fff; padding: 4px 12px; border-radius: var(--card-border-radius); font-weight: 700; font-size: 0.85rem; }
 
     .cred-tracker-body { padding: 16px 20px; }
     .cred-tracker-desc { font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px; }
@@ -4424,7 +4416,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .help-header { margin-bottom: 32px; }
     .help-header h1 { font-size: 2rem; font-weight: 800; color: var(--text-primary); margin: 0 0 8px; }
     .help-subtitle { font-size: 1rem; color: var(--text-secondary); margin: 0; }
-    .help-section { background: var(--bg-primary); border-radius: 16px; padding: 24px; margin-bottom: 24px; box-shadow: var(--shadow-sm); }
+    .help-section { background: var(--bg-primary); border-radius: var(--card-border-radius); padding: 24px; margin-bottom: 24px; box-shadow: var(--shadow-sm); }
     .help-section-title { display: flex; align-items: center; gap: 10px; font-size: 1.2rem; font-weight: 700; color: var(--text-primary); margin: 0 0 20px; padding-bottom: 12px; border-bottom: 2px solid var(--border-color); }
     .help-icon { font-size: 1.3rem; }
     .help-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
@@ -4838,7 +4830,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .matrix-wrap { padding: 0 40px; overflow-x: auto; }
     .coverage-matrix { width: 100%; border-collapse: collapse; font-size: 0.85rem; border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-md); }
     .coverage-matrix th, .coverage-matrix td { padding: 14px 18px; text-align: center; border: 1px solid var(--border-color); }
-    .coverage-matrix th { background: linear-gradient(135deg, #1e3a5f, #1e1b4b); color: #fff; font-weight: 700; white-space: nowrap; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; }
+    .coverage-matrix th { background: #0f2444; color: #fff; font-weight: 700; white-space: nowrap; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; }
     .coverage-matrix .cov-provider-hdr { text-align: left; }
     .coverage-matrix .cov-provider { text-align: left; font-weight: 600; cursor: pointer; color: var(--accent-primary); }
     .coverage-matrix .cov-provider:hover { text-decoration: underline; }
@@ -5254,7 +5246,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     ═══════════════════════════════════════════════════════════════════════════ */
 
     /* ─ Daily Briefing Banner ─ */
-    .daily-briefing { background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: #fff; padding: 16px 24px; margin: 0 24px 20px; border-radius: 16px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap; box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
+    .daily-briefing { background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: #fff; padding: 16px 24px; margin: 0 24px 20px; border-radius: var(--card-border-radius); display: flex; align-items: center; gap: 20px; flex-wrap: wrap; box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
     .briefing-date { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.7; }
     .briefing-stats { display: flex; gap: 24px; flex: 1; flex-wrap: wrap; }
     .briefing-stat { display: flex; align-items: center; gap: 8px; }
@@ -5281,7 +5273,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .focus-mode-banner .exit-focus { background: #991b1b; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
 
     /* ─ Deadline Timeline ─ */
-    .deadline-timeline { background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px 24px; margin: 0 24px 20px; }
+    .deadline-timeline { background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: var(--card-border-radius); padding: 20px 24px; margin: 0 24px 20px; }
     .timeline-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
     .timeline-title { font-size: 0.9rem; font-weight: 700; color: var(--text-primary); }
     .timeline-subtitle { font-size: 0.75rem; color: var(--text-secondary); }
@@ -5343,7 +5335,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .timeline-today::before { content: 'Today'; position: absolute; top: -16px; left: 50%; transform: translateX(-50%); font-size: 0.6rem; font-weight: 600; color: var(--accent-primary); white-space: nowrap; }
 
     /* ─ Cost Comparison ─ */
-    .cost-comparison { background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px 24px; margin: 0 24px 20px; }
+    .cost-comparison { background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: var(--card-border-radius); padding: 20px 24px; margin: 0 24px 20px; }
     .cost-comparison-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
     .cost-comparison-title { font-size: 0.9rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
     .cost-comparison-title .title-icon { font-size: 1.1rem; }
@@ -5368,7 +5360,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     .trend-direction.flat { color: #64748b; }
 
     /* ─ Platform ROI Section ─ */
-    .platform-roi { background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px 24px; margin: 0 24px 20px; }
+    .platform-roi { background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: var(--card-border-radius); padding: 20px 24px; margin: 0 24px 20px; }
     .roi-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
     .roi-title { font-size: 0.9rem; font-weight: 700; color: var(--text-primary); }
     .roi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
@@ -5389,7 +5381,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     /* ─ Keyboard Shortcuts Overlay ─ */
     .shortcuts-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 9999; display: none; align-items: center; justify-content: center; }
     .shortcuts-overlay.visible { display: flex; }
-    .shortcuts-modal { background: var(--bg-primary); border-radius: 16px; padding: 24px 32px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+    .shortcuts-modal { background: var(--bg-primary); border-radius: var(--card-border-radius); padding: 24px 32px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
     .shortcuts-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
     .shortcuts-title { font-size: 1.1rem; font-weight: 700; color: var(--text-primary); }
     .shortcuts-close { background: none; border: none; font-size: 1.5rem; color: var(--text-secondary); cursor: pointer; padding: 4px; }
@@ -5431,10 +5423,10 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       </div>
     </div>
     <div class="global-search-wrap">
-      <input type="text" class="global-search" id="globalSearch" placeholder="Quick search..." onkeyup="globalSearchHandler(event)" />
+      <input type="text" class="global-search" id="globalSearch" placeholder="Quick search..." onkeyup="globalSearchHandler(event)" aria-label="Quick search providers" />
       <div class="global-search-results" id="globalSearchResults"></div>
     </div>
-    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark/light mode" id="themeToggle">
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark/light mode" id="themeToggle" aria-label="Toggle dark mode">
       <span class="theme-icon">🌙</span>
       <span class="theme-toggle-label">Dark</span>
     </button>
@@ -5448,22 +5440,22 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
 <div class="app-layout">
   <!-- Sidebar Navigation -->
   <aside class="sidebar collapsed" id="sidebar">
-    <button class="sidebar-collapse-btn" onclick="toggleSidebarCollapse()" title="Expand sidebar" id="sidebarCollapseBtn">
+    <button class="sidebar-collapse-btn" onclick="toggleSidebarCollapse()" title="Expand sidebar" id="sidebarCollapseBtn" aria-label="Collapse or expand sidebar">
       <span id="sidebarCollapseIcon">▶</span>
     </button>
     <nav class="sidebar-nav">
-      <button class="nav-item active" onclick="showTab('providers')" data-tab="providers">
+      <button class="nav-item active" onclick="showTab('dashboard')" data-tab="dashboard">
+        <span class="nav-icon">📋</span>
+        <div class="nav-label-wrap">
+          <span class="nav-label">Overview</span>
+          <span class="nav-desc">Status, urgency & trends</span>
+        </div>
+      </button>
+      <button class="nav-item" onclick="showTab('providers')" data-tab="providers">
         <span class="nav-icon">👥</span>
         <div class="nav-label-wrap">
           <span class="nav-label">Team View</span>
-          <span class="nav-desc">All providers & status</span>
-        </div>
-      </button>
-      <button class="nav-item" onclick="showTab('compliance')" data-tab="compliance">
-        <span class="nav-icon">✓</span>
-        <div class="nav-label-wrap">
-          <span class="nav-label">Compliance</span>
-          <span class="nav-desc">CE requirements tracking</span>
+          <span class="nav-desc">Providers, status & compliance</span>
         </div>
         ${lookbackNotMet > 0 ? `<span class="nav-badge">${lookbackNotMet}</span>` : ''}
       </button>
@@ -5484,15 +5476,8 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       <button class="nav-item" onclick="showTab('help')" data-tab="help">
         <span class="nav-icon">❓</span>
         <div class="nav-label-wrap">
-          <span class="nav-label">Help & FAQ</span>
+          <span class="nav-label">Help &amp; FAQ</span>
           <span class="nav-desc">How it works</span>
-        </div>
-      </button>
-      <button class="nav-item" onclick="showTab('summary')" data-tab="summary">
-        <span class="nav-icon">📋</span>
-        <div class="nav-label-wrap">
-          <span class="nav-label">Overview</span>
-          <span class="nav-desc">Summary & info</span>
         </div>
       </button>
     </nav>
@@ -5505,7 +5490,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
   </aside>
 
   <!-- Mobile Sidebar Toggle -->
-  <button class="sidebar-toggle" onclick="toggleSidebar()" id="sidebarToggle">☰</button>
+  <button class="sidebar-toggle" onclick="toggleSidebar()" id="sidebarToggle" aria-label="Toggle navigation menu">☰</button>
 
   <!-- Main Content Area -->
   <main class="main-content">
@@ -5557,42 +5542,8 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       <button class="exit-focus" onclick="toggleFocusMode()">Exit Focus Mode</button>
     </div>
 
-    <!-- ── Deadline Timeline (12-month view) ──────────────────────────────── -->
-    <div class="deadline-timeline" id="deadlineTimeline">
-      <div class="timeline-header">
-        <div class="timeline-title">Deadline Timeline</div>
-        <div class="timeline-subtitle">${timelineDeadlines.length} renewals in the next 12 months</div>
-      </div>
-      <div class="timeline-track">
-        <div class="timeline-months">
-          ${timelineMonths.map(m => `<div class="timeline-month${m.isCurrent ? ' current' : ''}">${m.label}</div>`).join('')}
-        </div>
-        <div class="timeline-markers">
-          ${timelineDeadlines.map(d => {
-            const statusLabel = d.status === 'Complete' ? 'Complete' : d.status === 'At Risk' ? 'Needs Attention' : d.status === 'In Progress' ? 'On Track' : 'Missing Info';
-            const statusClass = d.status === 'Complete' ? 'complete' : d.status === 'At Risk' ? 'urgent' : d.status === 'In Progress' ? 'warning' : 'unknown';
-            return `<div class="timeline-marker-wrap" style="left: ${d.pct}%">
-              <div class="timeline-marker ${statusClass}" data-tooltip="${escHtml(d.name)}${d.state ? ' (' + escHtml(d.state) + ')' : ''} | ${escHtml(d.date)} | ${statusLabel}"></div>
-              <div class="timeline-marker-label">${escHtml(d.initials)}</div>
-            </div>`;
-          }).join('')}
-        </div>
-        <div class="timeline-today" style="left: ${(1/365) * 100}%"></div>
-      </div>
-    </div>
-
-    <!-- ── Quick Stats Summary ────────────────────────────────────────────── -->
-    <div class="quick-summary">
-      <div class="quick-summary-icon">📈</div>
-      <div class="quick-summary-text">
-        ${atRisk === 0 && trulyNoCredentialsProviders.length === 0
-          ? `<span class="quick-summary-highlight">All ${total} providers are on track!</span> No immediate action needed.`
-          : atRisk > 0
-            ? `<strong>${complete} of ${total}</strong> providers are on track. <span class="quick-summary-warning">${atRisk} need${atRisk === 1 ? 's' : ''} attention</span> before their renewal deadline${atRisk === 1 ? '' : 's'}.`
-            : `<strong>${complete} of ${total}</strong> providers are on track. ${trulyNoCredentialsProviders.length} still need platform credentials.`
-        }
-      </div>
-    </div>
+    <!-- Deadline Timeline and Quick Stats removed — now shown once on the
+         Overview tab (renewal timeline + status cards there). -->
 
     <!-- ── Getting Started (First-time users) ─────────────────────────────── -->
     <div class="getting-started" id="gettingStarted">
@@ -5617,38 +5568,10 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       <button class="getting-started-dismiss" onclick="dismissGettingStarted()">Don't show this again</button>
     </div>
 
-    <!-- ── Stats with Tooltips ────────────────────────────────────────────── -->
-    <div class="stats">
-      <div class="stat-card total has-tooltip">
-        <div class="tooltip">Total clinical staff being tracked</div>
-        <div class="num">${total}</div>
-        <div class="lbl">Team Members</div>
-        <div class="stat-sublbl">Total providers tracked</div>
-      </div>
-      <div class="stat-card ok has-tooltip${complete === total ? ' all-complete' : ''}">
-        <div class="tooltip">All CE requirements met - no action needed</div>
-        ${complete === total ? '<div class="celebration-indicator">✓</div>' : ''}
-        <div class="num">${complete}</div>
-        <div class="lbl">Complete</div>
-        <div class="stat-sublbl">All CE hours fulfilled</div>
-      </div>
-      <div class="stat-card prog has-tooltip">
-        <div class="tooltip">CEUs remaining but deadline is 60+ days away</div>
-        <div class="num">${inProg}</div>
-        <div class="lbl">On Track</div>
-        <div class="stat-sublbl">In progress, deadline is far</div>
-      </div>
-      <div class="stat-card risk has-tooltip${atRisk > 0 ? ' has-risk' : ''}">
-        <div class="tooltip">CEUs remaining AND deadline within 60 days - urgent!</div>
-        <div class="num">${atRisk}</div>
-        <div class="lbl">Needs Attention</div>
-        <div class="stat-sublbl">Deadline approaching or overdue</div>
-      </div>
-    </div>
+    <!-- Header status cards removed — shown once on the Overview tab. -->
 
-<!-- ── Tab: Overview ──────────────────────────────────────────────────── -->
-<!-- ── Tab: Dashboard (Consolidated Overview) ────────────────────────────── -->
-<div class="tab-panel" id="tab-dashboard">
+<!-- ── Tab: Overview (Consolidated Dashboard — the default landing) ──────── -->
+<div class="tab-panel active" id="tab-dashboard">
   <!-- Compact Status Cards Row -->
   <div class="dashboard-stats-row">
     <div class="dash-stat-card dash-stat-risk">
@@ -5685,6 +5608,19 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
         <div class="dash-stat-num">$${spendingStats.totalOrgSpend.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</div>
         <div class="dash-stat-label">12-Month Spend</div>
       </div>
+    </div>
+  </div>
+
+  <!-- Glanceable status summary bar (mirrors the email) -->
+  <div style="margin: 0 40px 22px;">
+    <div style="display:flex; height:30px; border-radius:8px; overflow:hidden; font-size:0.72rem; font-weight:700; color:#fff;">
+      ${complete > 0 ? `<div style="flex:${complete}; min-width:fit-content; padding:0 6px; background:#059669; display:flex; align-items:center; justify-content:center;" title="Complete">${complete}</div>` : ''}
+      ${inProg > 0 ? `<div style="flex:${inProg}; min-width:fit-content; padding:0 6px; background:#d97706; display:flex; align-items:center; justify-content:center;" title="In progress">${inProg}</div>` : ''}
+      ${atRisk > 0 ? `<div style="flex:${atRisk}; min-width:fit-content; padding:0 6px; background:#dc2626; display:flex; align-items:center; justify-content:center;" title="At risk">${atRisk}</div>` : ''}
+      ${untrackedCount > 0 ? `<div style="flex:${untrackedCount}; min-width:fit-content; padding:0 8px; background:#94a3b8; display:flex; align-items:center; justify-content:center;" title="No CE data yet">${untrackedCount} no data</div>` : ''}
+    </div>
+    <div style="font-size:0.7rem; color:var(--text-secondary); margin-top:7px;">
+      <span style="color:#059669;">■</span> Complete &nbsp; <span style="color:#d97706;">■</span> In progress &nbsp; <span style="color:#dc2626;">■</span> At risk${untrackedCount > 0 ? ` &nbsp; <span style="color:#94a3b8;">■</span> No CE data` : ''}
     </div>
   </div>
 
@@ -5736,8 +5672,9 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     <div class="scorecard-header">
       <h3 class="scorecard-title">📊 Team Compliance Scorecard</h3>
       <div class="scorecard-overall">
-        <span class="overall-pct ${overallCompliance >= 80 ? 'pct-good' : overallCompliance >= 50 ? 'pct-warn' : 'pct-bad'}">${overallCompliance}%</span>
-        <span class="overall-label">Overall Compliance</span>
+        <span class="overall-pct ${overallCompliance >= 80 ? 'pct-good' : overallCompliance >= 50 ? 'pct-warn' : 'pct-bad'}">${trackedCount > 0 ? overallCompliance + '%' : '—'}</span>
+        <span class="overall-label">Completed${trackedCount > 0 ? ` · ${completedTracked}/${trackedCount} tracked` : ''}</span>
+        ${untrackedCount > 0 ? `<span class="overall-sublabel" style="font-size:0.7rem; color:#fff; opacity:0.8; margin-top:2px;">${untrackedCount} not yet tracked (no CE data)</span>` : ''}
       </div>
     </div>
     <div class="scorecard-grid">
@@ -5913,7 +5850,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
 </div>
 
 <!-- ── Tab: Providers ─────────────────────────────────────────────────── -->
-<div class="tab-panel active" id="tab-providers">
+<div class="tab-panel" id="tab-providers">
   <!-- Action Items Banner -->
   ${(() => {
     const criticalProviders = flat.filter(r => {
@@ -6054,6 +5991,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       <button class="view-toggle" onclick="showProviderView('type')">By Type</button>
       <button class="view-toggle" onclick="showProviderView('favorites')">Pinned <span class="view-count" id="pinnedCount">0</span></button>
       <button class="view-toggle" onclick="showProviderView('aanp')">AANP</button>
+      <button class="view-toggle" onclick="showProviderView('compliance')">Compliance${lookbackNotMet > 0 ? ` <span class="view-count warning">${lookbackNotMet}</span>` : ''}</button>
     </div>
     <div class="toolbar-actions">
       <div class="export-dropdown">
@@ -6101,7 +6039,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
   <div class="provider-view active" id="provider-all">
     <!-- Filter Bar -->
     <div class="providers-filter-bar">
-      <input class="search-box" type="text" id="cardSearch" placeholder="Search providers..." oninput="filterCards()" />
+      <input class="search-box" type="text" id="cardSearch" placeholder="Search providers..." oninput="filterCards()" aria-label="Search providers" />
       <select class="filter-select" id="statusFilter" onchange="setCardFilter(this.value)">
         <option value="all">All Statuses</option>
         <option value="At Risk">At Risk</option>
@@ -6149,17 +6087,17 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       <div class="adv-filter-group">
         <label>Deadline (days)</label>
         <div class="range-inputs">
-          <input type="number" id="deadlineMin" placeholder="Min" min="0" onchange="filterCards()">
+          <input type="number" id="deadlineMin" placeholder="Min" min="0" onchange="filterCards()" aria-label="Minimum days to deadline">
           <span>to</span>
-          <input type="number" id="deadlineMax" placeholder="Max" min="0" onchange="filterCards()">
+          <input type="number" id="deadlineMax" placeholder="Max" min="0" onchange="filterCards()" aria-label="Maximum days to deadline">
         </div>
       </div>
       <div class="adv-filter-group">
         <label>Hours Completed</label>
         <div class="range-inputs">
-          <input type="number" id="hoursMin" placeholder="Min" min="0" onchange="filterCards()">
+          <input type="number" id="hoursMin" placeholder="Min" min="0" onchange="filterCards()" aria-label="Minimum hours completed">
           <span>to</span>
-          <input type="number" id="hoursMax" placeholder="Max" min="0" onchange="filterCards()">
+          <input type="number" id="hoursMax" placeholder="Max" min="0" onchange="filterCards()" aria-label="Maximum hours completed">
         </div>
       </div>
       <div class="adv-filter-group">
@@ -6639,10 +6577,9 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       <span>No timeline data available. Course completion dates are needed to display the timeline.</span>
     </div>
   </div>
-</div>
 
-<!-- ── Tab: Compliance (Lookback Requirements) ─────────────────────────────── -->
-<div class="tab-panel" id="tab-compliance">
+  <!-- ── Compliance view (folded in from the former Compliance tab) ──────── -->
+  <div class="provider-view" id="provider-compliance">
   <div class="compliance-header">
     <div class="compliance-title">
       <h2>State Lookback Requirements</h2>
@@ -6715,6 +6652,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     <p class="empty-hint">Lookback requirements are configured in state-requirements.json</p>
   </div>
   `}
+  </div>
 </div>
 
 <!-- ── Tab: Platforms ───────────────────────────────────────────────────── -->
@@ -7654,16 +7592,11 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
         ${generateUpdatesHtml()}
       </div>
     </div>
-  </div>
-</div>
-
-<!-- ── Tab: Overview ────────────────────────────────────────────────── -->
-<div class="tab-panel" id="tab-summary">
-  <div class="help-page">
-    <div class="help-header">
-      <h1>Overview</h1>
-      <p class="help-subtitle">CEU Compliance Dashboard — Generated ${escHtml(runDate)}</p>
-    </div>
+    <!-- ── About & how to use (folded in from the former Overview tab) ── -->
+    <h2 class="help-section-title" style="margin-top: 8px; padding-top: 24px; border-top: 1px solid var(--border-color);">
+      <span class="help-icon">📋</span>
+      About &amp; How to Use
+    </h2>
 
     <!-- Service Overview -->
     <div class="help-section">
@@ -7879,9 +7812,15 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       const el = document.getElementById('welcomeBanner');
       if (el) el.style.display = 'none';
     }
-    if (localStorage.getItem('ceu-getting-started-dismissed')) {
-      const el = document.getElementById('gettingStarted');
-      if (el) el.style.display = 'none';
+    // Quick Start guide is first-run only: show it once to a brand-new visitor,
+    // then auto-hide on every later visit (the full guide lives in Help). An
+    // explicit "Don't show again" still hides it immediately.
+    const gs = document.getElementById('gettingStarted');
+    if (gs) {
+      const alreadySeen = localStorage.getItem('ceu-gs-seen');
+      const dismissed   = localStorage.getItem('ceu-getting-started-dismissed');
+      if (alreadySeen || dismissed) gs.style.display = 'none';
+      localStorage.setItem('ceu-gs-seen', '1');
     }
     if (localStorage.getItem('ceu-action-banner-collapsed')) {
       const wrap = document.querySelector('.action-banner-wrap');
@@ -8013,16 +7952,22 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     } else {
       results.innerHTML = matches.map(p => {
         const badgeClass = p.status === 'Complete' ? 'ok' : p.status === 'At Risk' ? 'risk' : 'prog';
+        // Escape every interpolated value; the provider name also lives in a
+        // data attribute (read back in the click handler) instead of an inline
+        // onclick string, so a name containing quotes/HTML cannot break out.
         return \`
-          <div class="search-result-item" onclick="jumpToProvider('\${p.name.replace(/'/g, "\\\\'")}')">
+          <div class="search-result-item" data-provider="\${escapeHtml(p.name)}">
             <div>
-              <div class="search-result-name">\${p.name}</div>
-              <div class="search-result-meta">\${p.state || 'N/A'} · \${p.type || ''}</div>
+              <div class="search-result-name">\${escapeHtml(p.name)}</div>
+              <div class="search-result-meta">\${escapeHtml(p.state || 'N/A')} · \${escapeHtml(p.type || '')}</div>
             </div>
-            <span class="search-result-badge \${badgeClass}">\${p.status || 'Unknown'}</span>
+            <span class="search-result-badge \${badgeClass}">\${escapeHtml(p.status || 'Unknown')}</span>
           </div>
         \`;
       }).join('');
+      results.querySelectorAll('.search-result-item').forEach(el => {
+        el.addEventListener('click', () => jumpToProvider(el.dataset.provider));
+      });
     }
     results.classList.add('active');
 
@@ -8121,7 +8066,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     providersTab.querySelectorAll('.view-toggle').forEach(b => b.classList.remove('active'));
     document.getElementById('provider-' + name)?.classList.add('active');
     const btns = providersTab.querySelectorAll('.view-toggle');
-    const labels = ['all','table','priority','kanban','deadline','state','type','favorites','aanp','stats','timeline'];
+    const labels = ['all','table','priority','kanban','deadline','state','type','favorites','aanp','compliance','stats','timeline'];
     btns[labels.indexOf(name)]?.classList.add('active');
     // Initialize timeline when selected
     if (name === 'timeline' && typeof updateTimeline === 'function') {
@@ -8943,9 +8888,12 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
     }).join('');
   }
   function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+    return String(text == null ? '' : text)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
   function showNoteForm(provider) {
     const formId = getFormId(provider);
