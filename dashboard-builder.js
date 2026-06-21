@@ -5423,10 +5423,10 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       </div>
     </div>
     <div class="global-search-wrap">
-      <input type="text" class="global-search" id="globalSearch" placeholder="Quick search..." onkeyup="globalSearchHandler(event)" />
+      <input type="text" class="global-search" id="globalSearch" placeholder="Quick search..." onkeyup="globalSearchHandler(event)" aria-label="Quick search providers" />
       <div class="global-search-results" id="globalSearchResults"></div>
     </div>
-    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark/light mode" id="themeToggle">
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark/light mode" id="themeToggle" aria-label="Toggle dark mode">
       <span class="theme-icon">🌙</span>
       <span class="theme-toggle-label">Dark</span>
     </button>
@@ -5440,7 +5440,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
 <div class="app-layout">
   <!-- Sidebar Navigation -->
   <aside class="sidebar collapsed" id="sidebar">
-    <button class="sidebar-collapse-btn" onclick="toggleSidebarCollapse()" title="Expand sidebar" id="sidebarCollapseBtn">
+    <button class="sidebar-collapse-btn" onclick="toggleSidebarCollapse()" title="Expand sidebar" id="sidebarCollapseBtn" aria-label="Collapse or expand sidebar">
       <span id="sidebarCollapseIcon">▶</span>
     </button>
     <nav class="sidebar-nav">
@@ -5490,7 +5490,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
   </aside>
 
   <!-- Mobile Sidebar Toggle -->
-  <button class="sidebar-toggle" onclick="toggleSidebar()" id="sidebarToggle">☰</button>
+  <button class="sidebar-toggle" onclick="toggleSidebar()" id="sidebarToggle" aria-label="Toggle navigation menu">☰</button>
 
   <!-- Main Content Area -->
   <main class="main-content">
@@ -6026,7 +6026,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
   <div class="provider-view active" id="provider-all">
     <!-- Filter Bar -->
     <div class="providers-filter-bar">
-      <input class="search-box" type="text" id="cardSearch" placeholder="Search providers..." oninput="filterCards()" />
+      <input class="search-box" type="text" id="cardSearch" placeholder="Search providers..." oninput="filterCards()" aria-label="Search providers" />
       <select class="filter-select" id="statusFilter" onchange="setCardFilter(this.value)">
         <option value="all">All Statuses</option>
         <option value="At Risk">At Risk</option>
@@ -6074,17 +6074,17 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       <div class="adv-filter-group">
         <label>Deadline (days)</label>
         <div class="range-inputs">
-          <input type="number" id="deadlineMin" placeholder="Min" min="0" onchange="filterCards()">
+          <input type="number" id="deadlineMin" placeholder="Min" min="0" onchange="filterCards()" aria-label="Minimum days to deadline">
           <span>to</span>
-          <input type="number" id="deadlineMax" placeholder="Max" min="0" onchange="filterCards()">
+          <input type="number" id="deadlineMax" placeholder="Max" min="0" onchange="filterCards()" aria-label="Maximum days to deadline">
         </div>
       </div>
       <div class="adv-filter-group">
         <label>Hours Completed</label>
         <div class="range-inputs">
-          <input type="number" id="hoursMin" placeholder="Min" min="0" onchange="filterCards()">
+          <input type="number" id="hoursMin" placeholder="Min" min="0" onchange="filterCards()" aria-label="Minimum hours completed">
           <span>to</span>
-          <input type="number" id="hoursMax" placeholder="Max" min="0" onchange="filterCards()">
+          <input type="number" id="hoursMax" placeholder="Max" min="0" onchange="filterCards()" aria-label="Maximum hours completed">
         </div>
       </div>
       <div class="adv-filter-group">
