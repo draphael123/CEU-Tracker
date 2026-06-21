@@ -265,5 +265,93 @@
     "hasCEBrokerCreds": false,
     "noCredentials": true,
     "platforms": []
+  },
+  {
+    "name": "Sara Johansen, MD",
+    "type": "MD",
+    "email": null,
+    "hasCEBrokerCreds": false,
+    "noCredentials": false,
+    "platforms": []
+  },
+  {
+    "name": "Deepali Mathur, NP",
+    "type": "NP",
+    "email": null,
+    "hasCEBrokerCreds": false,
+    "noCredentials": false,
+    "platforms": []
+  },
+  {
+    "name": "Nadine Halliburton-Foster, MD",
+    "type": "MD",
+    "email": null,
+    "hasCEBrokerCreds": false,
+    "noCredentials": false,
+    "platforms": []
+  },
+  {
+    "name": "Sabrina Young, NP",
+    "type": "NP",
+    "email": null,
+    "hasCEBrokerCreds": false,
+    "noCredentials": false,
+    "platforms": []
+  },
+  {
+    "name": "Alanna McLaughlin, NP",
+    "type": "NP",
+    "email": null,
+    "hasCEBrokerCreds": false,
+    "noCredentials": false,
+    "platforms": []
+  },
+  {
+    "name": "Bridget Jost, NP",
+    "type": "NP",
+    "email": null,
+    "hasCEBrokerCreds": false,
+    "noCredentials": false,
+    "platforms": []
+  },
+  {
+    "name": "Gina Miller, NP",
+    "type": "NP",
+    "email": null,
+    "hasCEBrokerCreds": false,
+    "noCredentials": false,
+    "platforms": []
+  },
+  {
+    "name": "Rebecca Bustos Duarte, NP",
+    "type": "NP",
+    "email": null,
+    "hasCEBrokerCreds": false,
+    "noCredentials": false,
+    "platforms": []
+  },
+  {
+    "name": "Briana Ellis, RN",
+    "type": "RN",
+    "email": null,
+    "hasCEBrokerCreds": false,
+    "noCredentials": false,
+    "platforms": []
+  },
+  {
+    "name": "Stephanie Fountain, RN",
+    "type": "RN",
+    "email": null,
+    "hasCEBrokerCreds": false,
+    "noCredentials": false,
+    "platforms": []
+  },
+  {
+    "name": "Tammi McMonahie, RN",
+    "type": "RN",
+    "email": null,
+    "hasCEBrokerCreds": false,
+    "noCredentials": false,
+    "platforms": []
   }
 ]
