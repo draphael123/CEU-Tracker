@@ -5561,42 +5561,8 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       <button class="exit-focus" onclick="toggleFocusMode()">Exit Focus Mode</button>
     </div>
 
-    <!-- ── Deadline Timeline (12-month view) ──────────────────────────────── -->
-    <div class="deadline-timeline" id="deadlineTimeline">
-      <div class="timeline-header">
-        <div class="timeline-title">Deadline Timeline</div>
-        <div class="timeline-subtitle">${timelineDeadlines.length} renewals in the next 12 months</div>
-      </div>
-      <div class="timeline-track">
-        <div class="timeline-months">
-          ${timelineMonths.map(m => `<div class="timeline-month${m.isCurrent ? ' current' : ''}">${m.label}</div>`).join('')}
-        </div>
-        <div class="timeline-markers">
-          ${timelineDeadlines.map(d => {
-            const statusLabel = d.status === 'Complete' ? 'Complete' : d.status === 'At Risk' ? 'Needs Attention' : d.status === 'In Progress' ? 'On Track' : 'Missing Info';
-            const statusClass = d.status === 'Complete' ? 'complete' : d.status === 'At Risk' ? 'urgent' : d.status === 'In Progress' ? 'warning' : 'unknown';
-            return `<div class="timeline-marker-wrap" style="left: ${d.pct}%">
-              <div class="timeline-marker ${statusClass}" data-tooltip="${escHtml(d.name)}${d.state ? ' (' + escHtml(d.state) + ')' : ''} | ${escHtml(d.date)} | ${statusLabel}"></div>
-              <div class="timeline-marker-label">${escHtml(d.initials)}</div>
-            </div>`;
-          }).join('')}
-        </div>
-        <div class="timeline-today" style="left: ${(1/365) * 100}%"></div>
-      </div>
-    </div>
-
-    <!-- ── Quick Stats Summary ────────────────────────────────────────────── -->
-    <div class="quick-summary">
-      <div class="quick-summary-icon">📈</div>
-      <div class="quick-summary-text">
-        ${atRisk === 0 && trulyNoCredentialsProviders.length === 0
-          ? `<span class="quick-summary-highlight">All ${total} providers are on track!</span> No immediate action needed.`
-          : atRisk > 0
-            ? `<strong>${complete} of ${total}</strong> providers are on track. <span class="quick-summary-warning">${atRisk} need${atRisk === 1 ? 's' : ''} attention</span> before their renewal deadline${atRisk === 1 ? '' : 's'}.`
-            : `<strong>${complete} of ${total}</strong> providers are on track. ${trulyNoCredentialsProviders.length} still need platform credentials.`
-        }
-      </div>
-    </div>
+    <!-- Deadline Timeline and Quick Stats removed — now shown once on the
+         Overview tab (renewal timeline + status cards there). -->
 
     <!-- ── Getting Started (First-time users) ─────────────────────────────── -->
     <div class="getting-started" id="gettingStarted">
@@ -5621,34 +5587,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       <button class="getting-started-dismiss" onclick="dismissGettingStarted()">Don't show this again</button>
     </div>
 
-    <!-- ── Stats with Tooltips ────────────────────────────────────────────── -->
-    <div class="stats">
-      <div class="stat-card total has-tooltip">
-        <div class="tooltip">Total clinical staff being tracked</div>
-        <div class="num">${total}</div>
-        <div class="lbl">Team Members</div>
-        <div class="stat-sublbl">Total providers tracked</div>
-      </div>
-      <div class="stat-card ok has-tooltip${complete === total ? ' all-complete' : ''}">
-        <div class="tooltip">All CE requirements met - no action needed</div>
-        ${complete === total ? '<div class="celebration-indicator">✓</div>' : ''}
-        <div class="num">${complete}</div>
-        <div class="lbl">Complete</div>
-        <div class="stat-sublbl">All CE hours fulfilled</div>
-      </div>
-      <div class="stat-card prog has-tooltip">
-        <div class="tooltip">CEUs remaining but deadline is 60+ days away</div>
-        <div class="num">${inProg}</div>
-        <div class="lbl">On Track</div>
-        <div class="stat-sublbl">In progress, deadline is far</div>
-      </div>
-      <div class="stat-card risk has-tooltip${atRisk > 0 ? ' has-risk' : ''}">
-        <div class="tooltip">CEUs remaining AND deadline within 60 days - urgent!</div>
-        <div class="num">${atRisk}</div>
-        <div class="lbl">Needs Attention</div>
-        <div class="stat-sublbl">Deadline approaching or overdue</div>
-      </div>
-    </div>
+    <!-- Header status cards removed — shown once on the Overview tab. -->
 
 <!-- ── Tab: Overview (Consolidated Dashboard — the default landing) ──────── -->
 <div class="tab-panel active" id="tab-dashboard">
