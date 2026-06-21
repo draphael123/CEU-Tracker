@@ -191,14 +191,6 @@
     ]
   },
   {
-    "name": "Megan Ryan-Riffle, NP",
-    "type": "NP",
-    "email": null,
-    "hasCEBrokerCreds": false,
-    "noCredentials": true,
-    "platforms": []
-  },
-  {
     "name": "Michele Foster, NP",
     "type": "NP",
     "email": null,
@@ -278,22 +270,6 @@
   },
   {
     "name": "Emmanuel Sonaike, MD",
-    "type": "MD",
-    "email": null,
-    "hasCEBrokerCreds": false,
-    "noCredentials": true,
-    "platforms": []
-  },
-  {
-    "name": "Naureen Majid Adam, MD",
-    "type": "MD",
-    "email": null,
-    "hasCEBrokerCreds": false,
-    "noCredentials": true,
-    "platforms": []
-  },
-  {
-    "name": "Nicole Tahira Perrotte, MD",
     "type": "MD",
     "email": null,
     "hasCEBrokerCreds": false,
