@@ -120,16 +120,6 @@
     ]
   },
   {
-    "name": "Terray Humphrey, NP",
-    "type": "NP",
-    "email": null,
-    "hasCEBrokerCreds": false,
-    "noCredentials": false,
-    "platforms": [
-      "NetCE"
-    ]
-  },
-  {
     "name": "Tim Mack, NP",
     "type": "NP",
     "email": null,
@@ -161,7 +151,7 @@
     ]
   },
   {
-    "name": "Victor Lopez, NP",
+    "name": "Victor Candelario, NP",
     "type": "NP",
     "email": null,
     "hasCEBrokerCreds": false,
