@@ -4,6 +4,63 @@ const fs = require('fs');
 const path = require('path');
 const { generatePDF } = require('./pdf-export');
 
+// ─── Shared brand palette + visual helpers ───────────────────────────────────
+// One navy masthead + one strict status palette, used by every email so the
+// digest and reminder feel like the same Fountain product (not a template).
+const BRAND = {
+  navy: '#0f2444',
+  teal: '#0d9488',
+  muted: '#94a3b8',
+  atRisk: '#dc2626',
+  inProgress: '#d97706',
+  complete: '#059669',
+  noData: '#94a3b8',
+};
+
+/** Navy masthead with the Fountain wordmark — identical across all emails. */
+function emailMasthead(title, subtitle) {
+  return `
+    <tr>
+      <td style="background: ${BRAND.navy}; padding: 26px 30px;">
+        <table width="100%" cellpadding="0" cellspacing="0" role="presentation"><tr>
+          <td style="vertical-align: middle;">
+            <span style="display:inline-block; width:13px; height:13px; border-radius:50%; background:${BRAND.teal}; vertical-align:middle; margin-right:8px;"></span>
+            <span style="color:#ffffff; font-size:17px; font-weight:600; vertical-align:middle; letter-spacing:.2px;">Fountain</span>
+          </td>
+          <td style="text-align:right; vertical-align: middle;">
+            <span style="color:${BRAND.muted}; font-size:12px;">${subtitle || ''}</span>
+          </td>
+        </tr></table>
+        <h1 style="color:#ffffff; margin:14px 0 0; font-size:22px; font-weight:600;">${title}</h1>
+      </td>
+    </tr>`;
+}
+
+/** One glanceable stacked status bar. */
+function summaryBar({ complete = 0, inProgress = 0, atRisk = 0, untracked = 0 }) {
+  const total = (complete + inProgress + atRisk + untracked) || 1;
+  const seg = (n, color, label) => n > 0
+    ? `<td style="width:${(n / total * 100).toFixed(1)}%; background:${color}; color:#ffffff; font-size:11px; font-weight:700; text-align:center; padding:8px 0; white-space:nowrap;">${n}${label ? ' ' + label : ''}</td>`
+    : '';
+  const key = (color, label) => `<span style="color:${color};">&#9632;</span> <span style="color:#64748b;">${label}</span>`;
+  return `
+    <tr>
+      <td style="padding: 24px 30px 0;">
+        <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border-radius:8px; overflow:hidden;">
+          <tr>
+            ${seg(complete, BRAND.complete, '')}
+            ${seg(inProgress, BRAND.inProgress, '')}
+            ${seg(atRisk, BRAND.atRisk, '')}
+            ${seg(untracked, BRAND.noData, untracked > 0 ? 'no data' : '')}
+          </tr>
+        </table>
+        <div style="font-size:11px; margin-top:7px;">
+          ${key(BRAND.complete, 'Complete')} &nbsp; ${key(BRAND.inProgress, 'In progress')} &nbsp; ${key(BRAND.atRisk, 'At risk')}${untracked > 0 ? ` &nbsp; ${key(BRAND.noData, 'No data')}` : ''}
+        </div>
+      </td>
+    </tr>`;
+}
+
 // Load config from environment or config file
 function loadConfig() {
   const configPath = path.join(__dirname, 'email-config.json');
@@ -72,7 +129,7 @@ function generateTrainingRequiredHTML(providers) {
       <tr style="background-color: ${bgColor};">
         <td style="padding: 10px; font-size: 13px; color: #1e293b; font-weight: 500;">${p.name}</td>
         <td style="padding: 10px; font-size: 13px; color: #64748b;">${p.state || 'N/A'}</td>
-        <td style="padding: 10px; font-size: 12px; color: #1e40af;">${reqHtml}</td>
+        <td style="padding: 10px; font-size: 12px; color: #0f2444;">${reqHtml}</td>
         <td style="padding: 10px; text-align: center; font-size: 12px; color: #64748b;">${p.deadline || 'N/A'}</td>
       </tr>`;
   }).join('');
@@ -80,18 +137,18 @@ function generateTrainingRequiredHTML(providers) {
   return `
     <tr>
       <td style="padding: 0 30px 30px;">
-        <h2 style="color: #2563eb; font-size: 16px; margin: 0 0 15px; padding-bottom: 10px; border-bottom: 2px solid #bfdbfe;">
+        <h2 style="color: #0f2444; font-size: 16px; margin: 0 0 15px; padding-bottom: 10px; border-bottom: 2px solid #e2e8f0;">
           📚 Training Required (${needsTraining.length} providers)
         </h2>
         <p style="margin: 0 0 15px; font-size: 13px; color: #64748b;">
           The following providers have CEU hours remaining to complete before their renewal deadline:
         </p>
         <table width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
-          <tr style="background-color: #eff6ff;">
-            <th style="padding: 10px; text-align: left; font-size: 12px; color: #1e40af;">Provider</th>
-            <th style="padding: 10px; text-align: left; font-size: 12px; color: #1e40af;">State</th>
-            <th style="padding: 10px; text-align: left; font-size: 12px; color: #1e40af;">Training Needed</th>
-            <th style="padding: 10px; text-align: center; font-size: 12px; color: #1e40af;">Deadline</th>
+          <tr style="background-color: #f1f5f9;">
+            <th style="padding: 10px; text-align: left; font-size: 12px; color: #0f2444;">Provider</th>
+            <th style="padding: 10px; text-align: left; font-size: 12px; color: #0f2444;">State</th>
+            <th style="padding: 10px; text-align: left; font-size: 12px; color: #0f2444;">Training Needed</th>
+            <th style="padding: 10px; text-align: center; font-size: 12px; color: #0f2444;">Deadline</th>
           </tr>
           ${rows}
         </table>
@@ -138,7 +195,7 @@ function generateProgressHTML(providers) {
   return `
     <tr>
       <td style="padding: 0 30px 30px;">
-        <h2 style="color: #059669; font-size: 16px; margin: 0 0 15px; padding-bottom: 10px; border-bottom: 2px solid #a7f3d0;">
+        <h2 style="color: #0f2444; font-size: 16px; margin: 0 0 15px; padding-bottom: 10px; border-bottom: 2px solid #e2e8f0;">
           📈 Progress Since Last Run
         </h2>
         ${improvedHtml}
@@ -167,15 +224,15 @@ function generatePlatformCoverageHTML(providers) {
   return `
     <tr>
       <td style="padding: 0 30px 30px;">
-        <h2 style="color: #7c3aed; font-size: 16px; margin: 0 0 15px; padding-bottom: 10px; border-bottom: 2px solid #ddd6fe;">
+        <h2 style="color: #0f2444; font-size: 16px; margin: 0 0 15px; padding-bottom: 10px; border-bottom: 2px solid #e2e8f0;">
           🔗 Platform Coverage
         </h2>
         <table width="100%" cellpadding="0" cellspacing="0">
           <tr>
             <td width="33%" style="text-align: center; padding: 10px;">
-              <div style="background-color: #faf5ff; border-radius: 8px; padding: 15px;">
-                <div style="font-size: 24px; font-weight: 700; color: #7c3aed;">${hasMultiple.length}</div>
-                <div style="font-size: 11px; color: #6b21a8;">Multiple Platforms</div>
+              <div style="background-color: #f0fdfa; border-radius: 8px; padding: 15px;">
+                <div style="font-size: 24px; font-weight: 700; color: #0d9488;">${hasMultiple.length}</div>
+                <div style="font-size: 11px; color: #0f766e;">Multiple Platforms</div>
               </div>
             </td>
             <td width="33%" style="text-align: center; padding: 10px;">
@@ -222,12 +279,10 @@ function generateEmailHTML(providers, summary) {
 <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f1f5f9;">
   <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
     <!-- Header -->
-    <tr>
-      <td style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); padding: 30px; text-align: center;">
-        <h1 style="color: #ffffff; margin: 0; font-size: 24px;">CEU Compliance Digest</h1>
-        <p style="color: #94a3b8; margin: 10px 0 0; font-size: 14px;">Weekly Summary Report</p>
-      </td>
-    </tr>
+    ${emailMasthead('CEU Compliance Digest', 'Weekly summary report')}
+
+    <!-- Glanceable status bar -->
+    ${summaryBar({ complete, inProgress, atRisk, untracked: Math.max(0, total - complete - inProgress - atRisk) })}
 
     <!-- Summary Stats -->
     <tr>
@@ -543,8 +598,8 @@ function generateLoginErrorsHTML(loginErrors) {
   // Map error codes to user-friendly labels and icons
   const errorLabels = {
     'invalid_credentials': { label: 'Invalid Credentials', icon: '🔐', color: '#dc2626' },
-    'account_locked': { label: 'Account Locked', icon: '🔒', color: '#7c3aed' },
-    'mfa_required': { label: '2FA Required', icon: '📱', color: '#2563eb' },
+    'account_locked': { label: 'Account Locked', icon: '🔒', color: '#d97706' },
+    'mfa_required': { label: '2FA Required', icon: '📱', color: '#0f2444' },
     'timeout': { label: 'Connection Timeout', icon: '⏱️', color: '#d97706' },
     'site_changed': { label: 'Site Changed', icon: '🔧', color: '#dc2626' },
     'network_error': { label: 'Network Error', icon: '📡', color: '#d97706' },
@@ -620,12 +675,7 @@ function generateRenewalReminderHTML(providers, loginErrors = []) {
 <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f1f5f9;">
   <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
     <!-- Header -->
-    <tr>
-      <td style="background: linear-gradient(135deg, #ea580c 0%, #dc2626 100%); padding: 30px; text-align: center;">
-        <h1 style="color: #ffffff; margin: 0; font-size: 24px;">CEU Renewal Reminder</h1>
-        <p style="color: #fed7aa; margin: 10px 0 0; font-size: 14px;">${sortedProviders.length} provider${sortedProviders.length !== 1 ? 's' : ''} with renewals due within 90 days${hasLoginErrors ? ` • ${loginErrors.length} login error${loginErrors.length !== 1 ? 's' : ''}` : ''}</p>
-      </td>
-    </tr>
+    ${emailMasthead('CEU Renewal Reminder', `${sortedProviders.length} due within 90 days${hasLoginErrors ? ` • ${loginErrors.length} login error${loginErrors.length !== 1 ? 's' : ''}` : ''}`)}
 
     <!-- Alert Banner -->
     <tr>
@@ -649,7 +699,7 @@ function generateRenewalReminderHTML(providers, loginErrors = []) {
             <th style="padding: 12px; text-align: center; font-size: 12px; color: #991b1b; font-weight: 600;">Hours Needed</th>
           </tr>
           ${sortedProviders.map((p, i) => {
-            const urgencyColor = p.daysLeft <= 7 ? '#dc2626' : p.daysLeft <= 14 ? '#ea580c' : '#d97706';
+            const urgencyColor = p.daysLeft <= 14 ? '#dc2626' : '#d97706';
             const rowBg = i % 2 === 0 ? '#ffffff' : '#fef2f2';
             return `
           <tr style="background-color: ${rowBg};">
@@ -675,8 +725,8 @@ function generateRenewalReminderHTML(providers, loginErrors = []) {
     <!-- Action Section -->
     <tr>
       <td style="padding: 0 30px 30px;">
-        <div style="background-color: #eff6ff; border-radius: 8px; padding: 20px; border-left: 4px solid #3b82f6;">
-          <p style="margin: 0; font-size: 14px; color: #1e40af; font-weight: 600;">Recommended Actions:</p>
+        <div style="background-color: #f0fdfa; border-radius: 8px; padding: 20px; border-left: 4px solid #0d9488;">
+          <p style="margin: 0; font-size: 14px; color: #0f2444; font-weight: 600;">Recommended Actions:</p>
           <ul style="margin: 10px 0 0; padding-left: 20px; font-size: 13px; color: #1e3a5f;">
             <li>Contact providers who have not started their CE requirements</li>
             <li>Verify providers are aware of upcoming deadlines</li>
@@ -833,4 +883,4 @@ async function sendRenewalReminders(options = {}) {
   return result;
 }
 
-module.exports = { sendDigest, sendRenewalReminders, createSampleConfig };
+module.exports = { sendDigest, sendRenewalReminders, createSampleConfig, generateEmailHTML, generateRenewalReminderHTML };
