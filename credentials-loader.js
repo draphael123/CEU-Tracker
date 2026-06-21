@@ -6,9 +6,42 @@
 
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const CREDENTIALS_FILE = path.join(__dirname, 'credentials.json');
+const ENCRYPTED_FILE = path.join(__dirname, 'credentials.enc');
 const PROVIDERS_FILE = path.join(__dirname, 'providers.json');
+
+// ─── Encryption at rest (AES-256-GCM) ────────────────────────────────────────
+// Optional: encrypt credentials.json into credentials.enc with a passphrase held
+// only in the CREDENTIALS_KEY env var, so no plaintext secret sits on disk. The
+// blob layout is base64( salt[16] | iv[12] | authTag[16] | ciphertext ).
+
+function deriveKey(passphrase, salt) {
+  return crypto.scryptSync(String(passphrase), salt, 32);
+}
+
+function encryptString(plaintext, passphrase) {
+  const salt = crypto.randomBytes(16);
+  const iv = crypto.randomBytes(12);
+  const key = deriveKey(passphrase, salt);
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+  const enc = Buffer.concat([cipher.update(String(plaintext), 'utf8'), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return Buffer.concat([salt, iv, tag, enc]).toString('base64');
+}
+
+function decryptString(blobB64, passphrase) {
+  const blob = Buffer.from(String(blobB64).trim(), 'base64');
+  const salt = blob.subarray(0, 16);
+  const iv = blob.subarray(16, 28);
+  const tag = blob.subarray(28, 44);
+  const enc = blob.subarray(44);
+  const key = deriveKey(passphrase, salt);
+  const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+  decipher.setAuthTag(tag);
+  return Buffer.concat([decipher.update(enc), decipher.final()]).toString('utf8');
+}
 
 /**
  * Load credentials from environment variable or credentials file
@@ -25,7 +58,20 @@ function loadCredentials() {
     }
   }
 
-  // Option 2: Load from credentials.json file (gitignored)
+  // Option 2: Load from the encrypted credentials.enc file (needs CREDENTIALS_KEY)
+  if (fs.existsSync(ENCRYPTED_FILE)) {
+    if (!process.env.CREDENTIALS_KEY) {
+      throw new Error('credentials.enc found but CREDENTIALS_KEY env var is not set — cannot decrypt.');
+    }
+    try {
+      const blob = fs.readFileSync(ENCRYPTED_FILE, 'utf-8');
+      return JSON.parse(decryptString(blob, process.env.CREDENTIALS_KEY));
+    } catch (err) {
+      throw new Error('Failed to decrypt credentials.enc (wrong CREDENTIALS_KEY or corrupt file): ' + err.message);
+    }
+  }
+
+  // Option 3: Load from credentials.json file (gitignored)
   if (fs.existsSync(CREDENTIALS_FILE)) {
     try {
       const data = fs.readFileSync(CREDENTIALS_FILE, 'utf-8');
@@ -134,6 +180,28 @@ function migrateCredentials() {
   return true;
 }
 
+/**
+ * Encrypt credentials.json into credentials.enc using CREDENTIALS_KEY.
+ * After verifying it loads, you can safely delete the plaintext credentials.json.
+ */
+function encryptCredentialsFile() {
+  if (!process.env.CREDENTIALS_KEY) {
+    console.error('Set the CREDENTIALS_KEY env var first (the passphrase to encrypt with).');
+    return false;
+  }
+  if (!fs.existsSync(CREDENTIALS_FILE)) {
+    console.error('credentials.json not found — nothing to encrypt.');
+    return false;
+  }
+  const plaintext = fs.readFileSync(CREDENTIALS_FILE, 'utf-8');
+  JSON.parse(plaintext); // validate it is JSON before encrypting
+  fs.writeFileSync(ENCRYPTED_FILE, encryptString(plaintext, process.env.CREDENTIALS_KEY));
+  console.log(`Encrypted → ${ENCRYPTED_FILE}`);
+  console.log('Verify it loads (CREDENTIALS_KEY=... node -e "require(\'./credentials-loader\').loadCredentials()"),');
+  console.log('then delete credentials.json so no plaintext secret remains on disk.');
+  return true;
+}
+
 // CLI support
 if (require.main === module) {
   const cmd = process.argv[2];
@@ -141,10 +209,13 @@ if (require.main === module) {
     migrateCredentials();
   } else if (cmd === 'template') {
     createCredentialsTemplate();
+  } else if (cmd === 'encrypt') {
+    encryptCredentialsFile();
   } else {
     console.log('Usage:');
     console.log('  node credentials-loader.js migrate  - Migrate providers.json to credentials.json');
     console.log('  node credentials-loader.js template - Create credentials template');
+    console.log('  node credentials-loader.js encrypt  - Encrypt credentials.json -> credentials.enc (needs CREDENTIALS_KEY)');
   }
 }
 
@@ -154,5 +225,8 @@ module.exports = {
   getAllProviders,
   getPlatformCredential,
   migrateCredentials,
-  createCredentialsTemplate
+  createCredentialsTemplate,
+  encryptCredentialsFile,
+  encryptString,
+  decryptString
 };
