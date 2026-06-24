@@ -6137,14 +6137,12 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
       </div>
     </div>
 
-    <!-- All Providers Cards Grid -->
+    <!-- All Providers Cards Grid (grouped: Providers, then RNs) -->
     <div class="cards-grid" id="allCardsGrid">
-      ${initialCards}
-    </div>
-    <div id="loadSentinel" class="load-sentinel"></div>
-    <div id="loadingIndicator" class="loading-indicator" style="display:none">
-      <div class="loading-spinner"></div>
-      <span>Loading more providers...</span>
+      <div class="group-divider" style="grid-column:1/-1; font-weight:700; font-size:0.95rem; color:var(--text-primary); padding:10px 4px 6px; margin-top:4px; border-bottom:2px solid var(--border-color);">Providers <span style="color:var(--text-secondary); font-weight:600;">(${clinicianEntries.length})</span></div>
+      ${clinicianCards}
+      <div class="group-divider" style="grid-column:1/-1; font-weight:700; font-size:0.95rem; color:var(--text-primary); padding:16px 4px 6px; margin-top:4px; border-bottom:2px solid var(--border-color);">Registered Nurses <span style="color:var(--text-secondary); font-weight:600;">(${rnEntries.length})</span></div>
+      ${rnCards}
     </div>
   </div>
 
@@ -8562,7 +8560,7 @@ function buildDashboard(allProviderRecords, runResults = [], platformData = [], 
   // ── Lazy Loading ──
   const ALL_CARDS_HTML = ${JSON.stringify(allCardHtmlArray)};
   const LAZY_BATCH_SIZE = ${LAZY_BATCH_SIZE};
-  let lazyLoadedCount = ${LAZY_BATCH_SIZE};
+  let lazyLoadedCount = ${allCardHtmlArray.length};  // lazy paging disabled — grouped grid renders all cards
   let lazyObserver = null;
   let isLazyLoading = false;
 
