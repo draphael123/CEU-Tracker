@@ -1,0 +1,80 @@
+name: Scrape & Email
+
+# Runs entirely on GitHub's servers — no dependency on Daniel's computer being on.
+on:
+  workflow_dispatch:           # manual "Run workflow" button
+    inputs:
+      send_email:
+        description: "Also send the digest + renewal reminder emails"
+        type: boolean
+        default: false
+  schedule:
+    # Cron is UTC. Eastern is UTC-4 (EDT) / UTC-5 (EST).
+    - cron: "0 12 * * *"       # daily scrape  ~08:00 EDT / 07:00 EST
+    - cron: "30 12 * * 1"      # Monday email  ~08:30 EDT / 07:30 EST
+
+# Never let two runs scrape at once.
+concurrency:
+  group: ceu-scrape
+  cancel-in-progress: false
+
+# Allow the run to commit the refreshed dashboard back to the repo (-> Vercel redeploys).
+permissions:
+  contents: write
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Configure git (for dashboard auto-publish)
+        run: |
+          git config user.name  "ceu-tracker-bot"
+          git config user.email "actions@users.noreply.github.com"
+
+      - name: Run scraper
+        env:
+          HEADLESS: "true"
+          SCRAPER_CONCURRENCY: "2"
+          CREDENTIALS_JSON: ${{ secrets.CREDENTIALS_JSON }}
+          CREDENTIALS_KEY:  ${{ secrets.CREDENTIALS_KEY }}
+          SENTRY_DSN:       ${{ secrets.SENTRY_DSN }}
+        run: node index.js
+
+      - name: Send emails (Monday schedule, or manual opt-in)
+        if: ${{ github.event.schedule == '30 12 * * 1' || github.event.inputs.send_email == 'true' }}
+        env:
+          SMTP_HOST:        ${{ secrets.SMTP_HOST }}
+          SMTP_PORT:        ${{ secrets.SMTP_PORT }}
+          SMTP_SECURE:      ${{ secrets.SMTP_SECURE }}
+          SMTP_USER:        ${{ secrets.SMTP_USER }}
+          SMTP_PASS:        ${{ secrets.SMTP_PASS }}
+          EMAIL_FROM:       ${{ secrets.EMAIL_FROM }}
+          EMAIL_RECIPIENTS: ${{ secrets.EMAIL_RECIPIENTS }}
+        run: node send-emails.js
+
+      - name: Notify on failure
+        if: failure()
+        env:
+          SMTP_HOST:        ${{ secrets.SMTP_HOST }}
+          SMTP_PORT:        ${{ secrets.SMTP_PORT }}
+          SMTP_SECURE:      ${{ secrets.SMTP_SECURE }}
+          SMTP_USER:        ${{ secrets.SMTP_USER }}
+          SMTP_PASS:        ${{ secrets.SMTP_PASS }}
+          EMAIL_FROM:       ${{ secrets.EMAIL_FROM }}
+          EMAIL_RECIPIENTS: ${{ secrets.EMAIL_RECIPIENTS }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: node notify-failure.js
