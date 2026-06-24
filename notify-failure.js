@@ -1,29 +1,49 @@
 // notify-failure.js — sends a short alert email when a CI run fails, so a broken
 // or skipped scrape is visible instead of silent. Invoked by the workflow's
-// "if: failure()" step. Run with: node notify-failure.js
+// "if: failure()" step. Reads email-config.json (restored from the EMAIL_CONFIG
+// secret), falling back to SMTP_* / EMAIL_* env vars. Run with: node notify-failure.js
 'use strict';
 
+const fs = require('fs');
+const path = require('path');
 const nodemailer = require('nodemailer');
 
-const recipients = (process.env.EMAIL_RECIPIENTS || '')
-  .split(',').map(s => s.trim()).filter(Boolean);
+function loadConfig() {
+  const p = path.join(__dirname, 'email-config.json');
+  if (fs.existsSync(p)) {
+    try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch (e) { /* fall through */ }
+  }
+  return {
+    smtp: {
+      host: process.env.SMTP_HOST || 'smtp.gmail.com',
+      port: parseInt(process.env.SMTP_PORT, 10) || 587,
+      secure: process.env.SMTP_SECURE === 'true',
+      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+    },
+    from: process.env.EMAIL_FROM,
+    recipients: (process.env.EMAIL_RECIPIENTS || '').split(',').map(s => s.trim()).filter(Boolean),
+  };
+}
 
-if (!process.env.SMTP_USER || !process.env.SMTP_PASS || recipients.length === 0) {
+const cfg = loadConfig();
+const recipients = cfg.recipients || [];
+
+if (!cfg.smtp || !cfg.smtp.auth || !cfg.smtp.auth.user || !cfg.smtp.auth.pass || recipients.length === 0) {
   console.log('Failure notification skipped: email not configured.');
   process.exit(0);
 }
 
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.SMTP_PORT, 10) || 587,
-  secure: process.env.SMTP_SECURE === 'true',
-  auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+  host: cfg.smtp.host || 'smtp.gmail.com',
+  port: cfg.smtp.port || 587,
+  secure: !!cfg.smtp.secure,
+  auth: cfg.smtp.auth,
 });
 
 const runUrl = process.env.RUN_URL || 'the GitHub Actions tab';
 
 transporter.sendMail({
-  from: process.env.EMAIL_FROM || `CEU Tracker <${process.env.SMTP_USER}>`,
+  from: cfg.from || `CEU Tracker <${cfg.smtp.auth.user}>`,
   to: recipients.join(', '),
   subject: '🚨 CEU Tracker — scheduled run FAILED',
   html: `
