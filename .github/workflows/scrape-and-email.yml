@@ -29,6 +29,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Decode the single EMAIL_CONFIG secret (base64 of email-config.json) back to a
+      # file. send-emails.js and notify-failure.js both read email-config.json.
+      - name: Restore email config
+        env:
+          EMAIL_CONFIG: ${{ secrets.EMAIL_CONFIG }}
+        run: |
+          if [ -n "$EMAIL_CONFIG" ]; then
+            echo "$EMAIL_CONFIG" | base64 -d > email-config.json
+            echo "email-config.json restored from secret"
+          else
+            echo "No EMAIL_CONFIG secret set — emails will be skipped"
+          fi
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -56,25 +69,10 @@ jobs:
 
       - name: Send emails (Monday schedule, or manual opt-in)
         if: ${{ github.event.schedule == '30 12 * * 1' || github.event.inputs.send_email == 'true' }}
-        env:
-          SMTP_HOST:        ${{ secrets.SMTP_HOST }}
-          SMTP_PORT:        ${{ secrets.SMTP_PORT }}
-          SMTP_SECURE:      ${{ secrets.SMTP_SECURE }}
-          SMTP_USER:        ${{ secrets.SMTP_USER }}
-          SMTP_PASS:        ${{ secrets.SMTP_PASS }}
-          EMAIL_FROM:       ${{ secrets.EMAIL_FROM }}
-          EMAIL_RECIPIENTS: ${{ secrets.EMAIL_RECIPIENTS }}
         run: node send-emails.js
 
       - name: Notify on failure
         if: failure()
         env:
-          SMTP_HOST:        ${{ secrets.SMTP_HOST }}
-          SMTP_PORT:        ${{ secrets.SMTP_PORT }}
-          SMTP_SECURE:      ${{ secrets.SMTP_SECURE }}
-          SMTP_USER:        ${{ secrets.SMTP_USER }}
-          SMTP_PASS:        ${{ secrets.SMTP_PASS }}
-          EMAIL_FROM:       ${{ secrets.EMAIL_FROM }}
-          EMAIL_RECIPIENTS: ${{ secrets.EMAIL_RECIPIENTS }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: node notify-failure.js
