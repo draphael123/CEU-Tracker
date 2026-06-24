@@ -213,6 +213,59 @@ function generateProgressHTML(providers) {
 }
 
 /**
+ * Classify a provider by the credential in their name ("Jane Doe, RN" -> "RN").
+ * RNs are registered nurses; everyone else (NP/MD/DO) is a prescribing provider.
+ */
+function providerCredential(p) {
+  const m = (p.name || '').match(/,\s*([A-Za-z.]+)\s*$/);
+  return m ? m[1].replace(/\./g, '').toUpperCase() : '';
+}
+function isRNProvider(p) {
+  return providerCredential(p) === 'RN';
+}
+
+/** Render the <tr> rows for the All-Providers style table. */
+function providerRowsHTML(list) {
+  return list.map((p, i) => {
+    const statusColor = p.status === 'Complete' ? '#059669' : p.status === 'At Risk' ? '#dc2626' : '#d97706';
+    const statusBg = p.status === 'Complete' ? '#d1fae5' : p.status === 'At Risk' ? '#fecaca' : '#fef3c7';
+    return `
+          <tr style="background-color: ${i % 2 === 0 ? '#ffffff' : '#f8fafc'};">
+            <td style="padding: 10px; font-size: 13px; color: #1e293b;">${p.name}</td>
+            <td style="padding: 10px; font-size: 13px; color: #64748b;">${p.state || 'N/A'}</td>
+            <td style="padding: 10px; text-align: center;">
+              <span style="display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; background-color: ${statusBg}; color: ${statusColor};">
+                ${p.status || 'Unknown'}
+              </span>
+            </td>
+            <td style="padding: 10px; text-align: center; font-size: 13px; color: #64748b;">${p.completed || 0}/${p.required || 0}h</td>
+          </tr>`;
+  }).join('');
+}
+
+/** One titled table for a group (Providers or RNs); empty groups render nothing. */
+function providerGroupTableHTML(title, list) {
+  if (!list.length) return '';
+  return `
+    <tr>
+      <td style="padding: 0 30px 30px;">
+        <h2 style="color: #1e293b; font-size: 16px; margin: 0 0 15px; padding-bottom: 10px; border-bottom: 2px solid #e2e8f0;">
+          \uD83D\uDCCB ${title} (${list.length})
+        </h2>
+        <table width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+          <tr style="background-color: #f8fafc;">
+            <th style="padding: 10px; text-align: left; font-size: 12px; color: #64748b;">Name</th>
+            <th style="padding: 10px; text-align: left; font-size: 12px; color: #64748b;">State</th>
+            <th style="padding: 10px; text-align: center; font-size: 12px; color: #64748b;">Status</th>
+            <th style="padding: 10px; text-align: center; font-size: 12px; color: #64748b;">Progress</th>
+          </tr>
+          ${providerRowsHTML(list)}
+        </table>
+      </td>
+    </tr>`;
+}
+
+/**
  * Generate Platform Coverage section HTML
  */
 function generatePlatformCoverageHTML(providers) {
@@ -222,10 +275,16 @@ function generatePlatformCoverageHTML(providers) {
 
   let missingCredsHtml = '';
   if (noPlatforms.length > 0) {
+    const provs = noPlatforms.filter(p => !isRNProvider(p));
+    const rns = noPlatforms.filter(p => isRNProvider(p));
+    const line = (label, arr) => arr.length
+      ? `<div style="font-size: 12px; color: #7f1d1d; margin-top: 4px;"><strong>${label} (${arr.length}):</strong> ${arr.map(p => p.name).join(', ')}</div>`
+      : '';
     missingCredsHtml = `
       <div style="background-color: #fef2f2; border-radius: 8px; padding: 12px; margin-top: 10px;">
-        <div style="font-size: 12px; font-weight: 600; color: #991b1b; margin-bottom: 5px;">Providers missing credentials:</div>
-        <div style="font-size: 12px; color: #7f1d1d;">${noPlatforms.map(p => p.name).join(', ')}</div>
+        <div style="font-size: 12px; font-weight: 600; color: #991b1b; margin-bottom: 5px;">Missing credentials:</div>
+        ${line('Providers', provs)}
+        ${line('RNs', rns)}
       </div>`;
   }
 
@@ -351,45 +410,9 @@ function generateEmailHTML(providers, summary) {
 
     ${generatePlatformCoverageHTML(providers)}
 
-    <!-- All Providers Summary -->
-    <tr>
-      <td style="padding: 0 30px 30px;">
-        <h2 style="color: #1e293b; font-size: 16px; margin: 0 0 15px; padding-bottom: 10px; border-bottom: 2px solid #e2e8f0;">
-          📋 All Providers (${total})
-        </h2>
-        <table width="100%" cellpadding="0" cellspacing="0" style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
-          <tr style="background-color: #f8fafc;">
-            <th style="padding: 10px; text-align: left; font-size: 12px; color: #64748b;">Provider</th>
-            <th style="padding: 10px; text-align: left; font-size: 12px; color: #64748b;">State</th>
-            <th style="padding: 10px; text-align: center; font-size: 12px; color: #64748b;">Status</th>
-            <th style="padding: 10px; text-align: center; font-size: 12px; color: #64748b;">Progress</th>
-          </tr>
-          ${providers.slice(0, 15).map((p, i) => {
-            const statusColor = p.status === 'Complete' ? '#059669' : p.status === 'At Risk' ? '#dc2626' : '#d97706';
-            const statusBg = p.status === 'Complete' ? '#d1fae5' : p.status === 'At Risk' ? '#fecaca' : '#fef3c7';
-            return `
-          <tr style="background-color: ${i % 2 === 0 ? '#ffffff' : '#f8fafc'};">
-            <td style="padding: 10px; font-size: 13px; color: #1e293b;">${p.name}</td>
-            <td style="padding: 10px; font-size: 13px; color: #64748b;">${p.state || 'N/A'}</td>
-            <td style="padding: 10px; text-align: center;">
-              <span style="display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; background-color: ${statusBg}; color: ${statusColor};">
-                ${p.status || 'Unknown'}
-              </span>
-            </td>
-            <td style="padding: 10px; text-align: center; font-size: 13px; color: #64748b;">${p.completed || 0}/${p.required || 0}h</td>
-          </tr>
-            `;
-          }).join('')}
-          ${providers.length > 15 ? `
-          <tr style="background-color: #f8fafc;">
-            <td colspan="4" style="padding: 10px; text-align: center; font-size: 12px; color: #64748b;">
-              ... and ${providers.length - 15} more providers (see attached PDF for full report)
-            </td>
-          </tr>
-          ` : ''}
-        </table>
-      </td>
-    </tr>
+    <!-- Providers and RNs (split by credential) -->
+    ${providerGroupTableHTML('Providers', providers.filter(p => !isRNProvider(p)))}
+    ${providerGroupTableHTML('Registered Nurses', providers.filter(p => isRNProvider(p)))}
 
     <!-- Footer -->
     <tr>
