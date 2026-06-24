@@ -10,8 +10,7 @@ on:
         default: false
   schedule:
     # Cron is UTC. Eastern is UTC-4 (EDT) / UTC-5 (EST).
-    - cron: "0 12 * * *"       # daily scrape  ~08:00 EDT / 07:00 EST
-    - cron: "30 12 * * 1"      # Monday email  ~08:30 EDT / 07:30 EST
+    - cron: "30 12 * * 1"      # Mondays only ~08:30 EDT / 07:30 EST — weekly scrape + email
 
 # Never let two runs scrape at once.
 concurrency:
