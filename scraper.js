@@ -17,7 +17,7 @@ const cebrokerConfig = platforms.cebroker;
 async function launchBrowser() {
   logger.info('Launching browser...');
   return chromium.launch({
-    headless: false,
+    headless: process.env.HEADLESS === 'true',  // visible locally; set HEADLESS=true in CI
     slowMo: 40,
     args: ['--start-maximized'],
   });
