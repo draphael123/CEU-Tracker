@@ -25829,7 +25829,7 @@
     ]
   },
   {
-    "timestamp": "2026-06-24T16:23:43.800Z",
+    "timestamp": "2026-06-29T13:25:45.929Z",
     "succeeded": 10,
     "failed": 2,
     "notConfigured": 30,
@@ -25907,38 +25907,19 @@
         "name": "Catherine Herrington, MD",
         "state": "Texas",
         "hoursRequired": 48,
-        "hoursCompleted": 7,
-        "hoursRemaining": 41,
+        "hoursCompleted": 20,
+        "hoursRemaining": 28,
         "renewalDeadline": null,
         "subjectAreas": []
       },
       {
         "name": "Doron Stember, MD",
         "state": "Texas",
-        "hoursRequired": 48,
-        "hoursCompleted": 0,
-        "hoursRemaining": 48,
+        "hoursRequired": null,
+        "hoursCompleted": 165,
+        "hoursRemaining": null,
         "renewalDeadline": null,
-        "subjectAreas": [
-          {
-            "topic": "Medical Ethics and/or Professional Responsibility (Category 1 or 1A)",
-            "required": 2,
-            "completed": 0,
-            "needed": 2
-          },
-          {
-            "topic": "Pain Management and the Prescription of Opioids (Category 1 or 1A)",
-            "required": 2,
-            "completed": 0,
-            "needed": 2
-          },
-          {
-            "topic": "Formal Category 1 or 1A Hours",
-            "required": 24,
-            "completed": 0,
-            "needed": 24
-          }
-        ]
+        "subjectAreas": []
       },
       {
         "name": "Hilary Morgan, RN",
