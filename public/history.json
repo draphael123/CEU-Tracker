@@ -25829,7 +25829,7 @@
     ]
   },
   {
-    "timestamp": "2026-06-29T13:25:45.929Z",
+    "timestamp": "2026-06-29T14:37:40.477Z",
     "succeeded": 10,
     "failed": 2,
     "notConfigured": 30,
@@ -25915,11 +25915,30 @@
       {
         "name": "Doron Stember, MD",
         "state": "Texas",
-        "hoursRequired": null,
-        "hoursCompleted": 165,
-        "hoursRemaining": null,
+        "hoursRequired": 48,
+        "hoursCompleted": 24,
+        "hoursRemaining": 24,
         "renewalDeadline": null,
-        "subjectAreas": []
+        "subjectAreas": [
+          {
+            "topic": "Medical Ethics and/or Professional Responsibility (Category 1 or 1A)",
+            "required": 2,
+            "completed": 0,
+            "needed": 2
+          },
+          {
+            "topic": "Forensic Evidence CME",
+            "required": 2,
+            "completed": 0,
+            "needed": 2
+          },
+          {
+            "topic": "Remaining Hours (Can be Formal or Informal)",
+            "required": 20,
+            "completed": 0,
+            "needed": 20
+          }
+        ]
       },
       {
         "name": "Hilary Morgan, RN",
