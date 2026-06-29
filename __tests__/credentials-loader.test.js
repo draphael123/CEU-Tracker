@@ -142,4 +142,39 @@ describe('credentials-loader', () => {
       expect(result[0].name).toBe('Test Provider 1');
     });
   });
+
+  describe('excluded providers', () => {
+    beforeEach(() => {
+      const encoded = Buffer.from(JSON.stringify(mockProviders)).toString('base64');
+      process.env.CREDENTIALS_JSON = encoded;
+      // Make only excluded-providers.json "exist" and return the exclusion list.
+      fs.existsSync.mockImplementation((filepath) => filepath.includes('excluded-providers.json'));
+      fs.readFileSync.mockReturnValue(JSON.stringify(['Test Provider 2']));
+    });
+
+    it('getAllProviders omits excluded providers', () => {
+      const { getAllProviders } = require('../credentials-loader');
+      const names = getAllProviders().map(p => p.name);
+      expect(names).toEqual(['Test Provider 1', 'Test Provider 3']);
+    });
+
+    it('getProvider returns undefined for an excluded provider', () => {
+      const { getProvider } = require('../credentials-loader');
+      expect(getProvider('Test Provider 2')).toBeUndefined();
+      expect(getProvider('Test Provider 1')).toBeDefined();
+    });
+
+    it('matches case- and separator-insensitively', () => {
+      fs.readFileSync.mockReturnValue(JSON.stringify(['test provider 2']));
+      const { isExcluded } = require('../credentials-loader');
+      expect(isExcluded('Test  Provider-2')).toBe(true);
+      expect(isExcluded('Test Provider 1')).toBe(false);
+    });
+
+    it('returns no exclusions when the file is absent', () => {
+      fs.existsSync.mockReturnValue(false);
+      const { getAllProviders } = require('../credentials-loader');
+      expect(getAllProviders()).toHaveLength(3);
+    });
+  });
 });

@@ -11,6 +11,38 @@ const crypto = require('crypto');
 const CREDENTIALS_FILE = path.join(__dirname, 'credentials.json');
 const ENCRYPTED_FILE = path.join(__dirname, 'credentials.enc');
 const PROVIDERS_FILE = path.join(__dirname, 'providers.json');
+const EXCLUDED_FILE = path.join(__dirname, 'excluded-providers.json');
+
+// ─── De-tracked providers ────────────────────────────────────────────────────
+// Names listed in excluded-providers.json are skipped everywhere (scraper and
+// dashboard) regardless of whether they still exist in the credentials source.
+// Matching is case-insensitive and treats spaces/hyphens as equivalent, so a
+// listed "Megan Ryan-Riffle" also matches "Megan Ryan Riffle, NP".
+
+function normalizeName(s) {
+  return String(s).toLowerCase().replace(/[\s\-]+/g, ' ').trim();
+}
+
+function loadExcludedNames() {
+  try {
+    if (!fs.existsSync(EXCLUDED_FILE)) return [];
+    const parsed = JSON.parse(fs.readFileSync(EXCLUDED_FILE, 'utf-8'));
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(e => typeof e === 'string').map(normalizeName).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+function nameMatches(name, excludedNorm) {
+  if (!name) return false;
+  const n = normalizeName(name);
+  return excludedNorm.some(ex => n.includes(ex));
+}
+
+function isExcluded(name) {
+  return nameMatches(name, loadExcludedNames());
+}
 
 // ─── Encryption at rest (AES-256-GCM) ────────────────────────────────────────
 // Optional: encrypt credentials.json into credentials.enc with a passphrase held
@@ -94,15 +126,18 @@ function loadCredentials() {
  * Get provider by name with credentials
  */
 function getProvider(name) {
+  if (isExcluded(name)) return undefined;
   const credentials = loadCredentials();
-  return credentials.find(p => p.name === name);
+  const excluded = loadExcludedNames();
+  return credentials.find(p => p.name === name && !nameMatches(p.name, excluded));
 }
 
 /**
- * Get all providers with credentials
+ * Get all providers with credentials (excluding de-tracked providers)
  */
 function getAllProviders() {
-  return loadCredentials();
+  const excluded = loadExcludedNames();
+  return loadCredentials().filter(p => !nameMatches(p.name, excluded));
 }
 
 /**
@@ -224,6 +259,8 @@ module.exports = {
   getProvider,
   getAllProviders,
   getPlatformCredential,
+  isExcluded,
+  loadExcludedNames,
   migrateCredentials,
   createCredentialsTemplate,
   encryptCredentialsFile,
