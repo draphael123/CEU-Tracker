@@ -216,13 +216,6 @@
       "statesWithLicense": 2,
       "lastFullScan": "2026-03-02T15:25:06.515Z"
     },
-    "Terray Humphrey, NP": {
-      "providerType": "NP",
-      "licenses": [],
-      "statesSearched": 2,
-      "statesWithLicense": 0,
-      "lastFullScan": "2026-03-02T15:25:26.515Z"
-    },
     "Tim Mack, NP": {
       "providerType": "NP",
       "licenses": [
@@ -572,13 +565,6 @@
       "statesSearched": 2,
       "statesWithLicense": 0,
       "lastFullScan": "2026-03-02T15:27:23.769Z"
-    },
-    "Megan Ryan-Riffle, NP": {
-      "providerType": "NP",
-      "licenses": [],
-      "statesSearched": 2,
-      "statesWithLicense": 0,
-      "lastFullScan": "2026-03-02T15:27:42.722Z"
     },
     "Michele Foster, NP": {
       "providerType": "NP",
